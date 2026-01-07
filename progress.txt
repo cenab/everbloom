@@ -3698,3 +3698,82 @@ With HTTP status 429 Too Many Requests.
 - Table capacity is enforced during assignment
 - Guests can only be assigned to one table at a time (reassignment removes previous)
 - Seat numbers are optional (stored in SeatingAssignment.seatNumber)
+
+
+### 2026-01-07 - Save-the-Date and Thank-You Email Communications
+
+**Feature worked on:** Admin can send save-the-date emails, Admin can send thank-you emails (PRD: save-the-date, thank-you categories)
+
+**Priority rationale:** Save-the-date and thank-you emails are essential communication features that build on the existing email infrastructure (invitations, reminders). These features complete the wedding communication lifecycle: save-the-date → invitation → reminders → thank-you. The implementation leverages existing patterns making it a high-value, lower-risk addition.
+
+**What was done:**
+1. Updated EmailType in platform-api types (services/platform-api/src/types/index.ts):
+   - Extended EmailType to: 'invitation' | 'reminder' | 'save_the_date' | 'thank_you' | 'update'
+   - Added SendSaveTheDateRequest/Response types
+   - Added SendThankYouRequest/Response types
+   - Updated EmailStatistics.byType to include save_the_date and thank_you counts
+
+2. Added email templates to EmailService (services/platform-api/src/invitation/email.service.ts):
+   - buildSaveTheDateEmail() method:
+     - Focuses on date announcement without RSVP link
+     - Uses wedding theme colors from render_config
+     - Includes wedding site link for more information
+   - buildThankYouEmail() method:
+     - Personalized by attendance status (different message for attendees vs non-attendees)
+     - Uses wedding theme colors
+     - Warm, grateful tone matching design system principles
+
+3. Added send methods to InvitationService (services/platform-api/src/invitation/invitation.service.ts):
+   - sendSaveTheDates() - sends save-the-date emails to selected guests
+   - sendThankYous() - sends thank-you emails with attendance-based personalization
+   - Updated getEmailStatistics() to include new email types in byType breakdown
+
+4. Added API endpoints to InvitationController (services/platform-api/src/invitation/invitation.controller.ts):
+   - POST /api/weddings/:weddingId/invitations/save-the-date
+   - POST /api/weddings/:weddingId/invitations/thank-you
+
+5. Updated platform-ui types (apps/platform-ui/src/types.ts):
+   - Added EmailType with save_the_date and thank_you
+   - Added SendSaveTheDateRequest/Response
+   - Added SendThankYouRequest/Response
+   - Updated EmailStatistics.byType
+
+6. Created Communications.tsx component (apps/platform-ui/src/components/Communications.tsx):
+   - Guest selection with checkboxes and select all functionality
+   - Action cards for Save-the-Date and Thank-You email types
+   - Confirmation dialog before sending
+   - Success/error result display
+   - RSVP status badges on guest list
+
+7. Integrated Communications into Dashboard (apps/platform-ui/src/components/Dashboard.tsx):
+   - Added Communications import
+   - Added 'communications' to View type
+   - Added view handler for communications view
+   - Added onNavigateToCommunications prop to WeddingDashboard
+   - Added Communications card with PaperAirplaneIcon
+   - Added PaperAirplaneIcon component
+
+**Files created:**
+- apps/platform-ui/src/components/Communications.tsx
+
+**Files modified:**
+- services/platform-api/src/types/index.ts (email types)
+- services/platform-api/src/invitation/email.service.ts (email templates)
+- services/platform-api/src/invitation/invitation.service.ts (send methods)
+- services/platform-api/src/invitation/invitation.controller.ts (endpoints)
+- apps/platform-ui/src/types.ts (email types)
+- apps/platform-ui/src/components/Dashboard.tsx (communications view)
+
+**PRD features now passing:**
+- "Admin can send save-the-date emails" ✓
+- "Save-the-date uses different template than invitation" ✓
+- "Admin can send thank-you emails" ✓
+- "Thank-you can be personalized by attendance" ✓
+
+**Notes for next person:**
+- Save-the-date emails intentionally exclude RSVP links (per PRD requirement)
+- Thank-you emails automatically detect attendance status and personalize the message
+- Both email types use the wedding's theme colors from render_config
+- The Communications page is always accessible (not feature-gated)
+- Email statistics now track save_the_date and thank_you types separately
+- Email templates follow the same pattern as existing invitation/reminder templates

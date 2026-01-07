@@ -537,7 +537,7 @@ export type EmailStatus = 'pending' | 'sent' | 'delivered' | 'bounced' | 'failed
 /**
  * Type of email sent
  */
-export type EmailType = 'invitation' | 'reminder' | 'update';
+export type EmailType = 'invitation' | 'reminder' | 'save_the_date' | 'thank_you' | 'update';
 
 /**
  * Bounce type from email provider webhooks
@@ -600,6 +600,70 @@ export interface SendInvitationsResponse {
 }
 
 // ============================================================================
+// Save-the-Date Email Types
+// ============================================================================
+
+/**
+ * Request to send save-the-date emails
+ */
+export interface SendSaveTheDateRequest {
+  guestIds: string[];
+}
+
+/**
+ * Result of sending a single save-the-date email
+ */
+export interface SendSaveTheDateResult {
+  guestId: string;
+  guestName: string;
+  email: string;
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Response from send save-the-date endpoint
+ */
+export interface SendSaveTheDateResponse {
+  sent: number;
+  failed: number;
+  total: number;
+  results: SendSaveTheDateResult[];
+}
+
+// ============================================================================
+// Thank-You Email Types
+// ============================================================================
+
+/**
+ * Request to send thank-you emails
+ */
+export interface SendThankYouRequest {
+  guestIds: string[];
+}
+
+/**
+ * Result of sending a single thank-you email
+ */
+export interface SendThankYouResult {
+  guestId: string;
+  guestName: string;
+  email: string;
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Response from send thank-you endpoint
+ */
+export interface SendThankYouResponse {
+  sent: number;
+  failed: number;
+  total: number;
+  results: SendThankYouResult[];
+}
+
+// ============================================================================
 // Email Statistics Types (Admin Dashboard)
 // ============================================================================
 
@@ -618,6 +682,8 @@ export interface EmailStatistics {
   byType: {
     invitation: { sent: number; delivered: number; failed: number };
     reminder: { sent: number; delivered: number; failed: number };
+    save_the_date: { sent: number; delivered: number; failed: number };
+    thank_you: { sent: number; delivered: number; failed: number };
   };
 }
 

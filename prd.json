@@ -1073,7 +1073,7 @@
       "Send save-the-dates",
       "Verify emails are enqueued"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "save-the-date",
@@ -1084,7 +1084,7 @@
       "Verify no RSVP link is included",
       "Verify design matches wedding theme"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "thank-you",
@@ -1097,7 +1097,7 @@
       "Send thank-you emails",
       "Verify emails are enqueued"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "thank-you",
@@ -1108,7 +1108,7 @@
       "Send thank-you emails",
       "Verify correct message variant is sent to each group"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "email-scheduling",

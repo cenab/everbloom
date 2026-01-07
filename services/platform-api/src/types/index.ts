@@ -922,7 +922,7 @@ export type EmailStatus = 'pending' | 'sent' | 'delivered' | 'bounced' | 'failed
 /**
  * Email type identifier
  */
-export type EmailType = 'invitation' | 'reminder' | 'update';
+export type EmailType = 'invitation' | 'reminder' | 'save_the_date' | 'thank_you' | 'update';
 
 /**
  * Bounce type from SendGrid webhooks
@@ -1012,6 +1012,8 @@ export interface EmailStatistics {
   byType: {
     invitation: { sent: number; delivered: number; failed: number };
     reminder: { sent: number; delivered: number; failed: number };
+    save_the_date: { sent: number; delivered: number; failed: number };
+    thank_you: { sent: number; delivered: number; failed: number };
   };
 }
 
@@ -1125,6 +1127,70 @@ export const REMINDER_QUEUE_FAILED = 'REMINDER_QUEUE_FAILED' as const;
  * Queue name for reminder emails
  */
 export const REMINDER_QUEUE_NAME = 'email-reminders' as const;
+
+// ============================================================================
+// Save-the-Date Email Types
+// ============================================================================
+
+/**
+ * Request body for sending save-the-date emails
+ */
+export interface SendSaveTheDateRequest {
+  guestIds: string[];
+}
+
+/**
+ * Result of sending a single save-the-date email
+ */
+export interface SendSaveTheDateResult {
+  guestId: string;
+  guestName: string;
+  email: string;
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Response from send save-the-date endpoint
+ */
+export interface SendSaveTheDateResponse {
+  sent: number;
+  failed: number;
+  total: number;
+  results: SendSaveTheDateResult[];
+}
+
+// ============================================================================
+// Thank-You Email Types
+// ============================================================================
+
+/**
+ * Request body for sending thank-you emails
+ */
+export interface SendThankYouRequest {
+  guestIds: string[];
+}
+
+/**
+ * Result of sending a single thank-you email
+ */
+export interface SendThankYouResult {
+  guestId: string;
+  guestName: string;
+  email: string;
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Response from send thank-you endpoint
+ */
+export interface SendThankYouResponse {
+  sent: number;
+  failed: number;
+  total: number;
+  results: SendThankYouResult[];
+}
 
 // ============================================================================
 // Hero Content Types

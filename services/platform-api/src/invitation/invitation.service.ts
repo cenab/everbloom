@@ -11,6 +11,8 @@ import type {
   Wedding,
   SendInvitationResult,
   SendRemindersResponse,
+  SendSaveTheDateResult,
+  SendThankYouResult,
 } from '../types';
 import { REMINDER_QUEUE_FAILED } from '../types';
 import { EmailService } from './email.service';
@@ -408,6 +410,243 @@ export class InvitationService {
   }
 
   /**
+   * Send save-the-date emails to selected guests
+   * PRD: "Admin can send save-the-date emails"
+   * PRD: "Save-the-date uses different template than invitation"
+   */
+  async sendSaveTheDates(
+    weddingId: string,
+    guestIds: string[],
+  ): Promise<{
+    sent: number;
+    failed: number;
+    total: number;
+    results: SendSaveTheDateResult[];
+  }> {
+    const wedding = this.weddingService.getWedding(weddingId);
+    if (!wedding) {
+      throw new Error('WEDDING_NOT_FOUND');
+    }
+
+    // Get the theme from render_config so emails match the wedding site
+    const renderConfig = this.weddingService.getRenderConfig(weddingId);
+    const theme = renderConfig?.theme;
+
+    const results: SendSaveTheDateResult[] = [];
+    let sent = 0;
+    let failed = 0;
+
+    for (const guestId of guestIds) {
+      const guest = this.guestService.getGuest(guestId);
+
+      if (!guest) {
+        results.push({
+          guestId,
+          guestName: 'Unknown',
+          email: 'Unknown',
+          success: false,
+          error: 'Guest not found',
+        });
+        failed++;
+        continue;
+      }
+
+      if (guest.weddingId !== weddingId) {
+        results.push({
+          guestId,
+          guestName: guest.name,
+          email: guest.email,
+          success: false,
+          error: 'Guest does not belong to this wedding',
+        });
+        failed++;
+        continue;
+      }
+
+      // Build save-the-date email (no RSVP link per PRD)
+      const emailContent = this.emailService.buildSaveTheDateEmail(
+        guest,
+        wedding,
+        theme,
+      );
+
+      // Create outbox record
+      const outboxRecord = this.createOutboxRecord(
+        guest,
+        wedding,
+        emailContent.subject,
+        'save_the_date',
+      );
+
+      // Send the email
+      const sendResult = await this.emailService.sendEmail(emailContent);
+
+      if (sendResult.success) {
+        this.updateOutboxStatus(outboxRecord.id, 'sent', {
+          messageId: sendResult.messageId,
+        });
+
+        results.push({
+          guestId,
+          guestName: guest.name,
+          email: guest.email,
+          success: true,
+        });
+        sent++;
+
+        this.logger.log(`Save-the-date sent to ${guest.name} <${guest.email}>`);
+      } else {
+        this.updateOutboxStatus(outboxRecord.id, 'failed', {
+          errorMessage: sendResult.error,
+        });
+
+        results.push({
+          guestId,
+          guestName: guest.name,
+          email: guest.email,
+          success: false,
+          error: sendResult.error || 'Failed to send email',
+        });
+        failed++;
+
+        this.logger.warn(`Failed to send save-the-date to ${guest.email}: ${sendResult.error}`);
+      }
+    }
+
+    this.logger.log(
+      `Save-the-date batch for wedding ${weddingId}: ${sent} sent, ${failed} failed`,
+    );
+
+    return {
+      sent,
+      failed,
+      total: guestIds.length,
+      results,
+    };
+  }
+
+  /**
+   * Send thank-you emails to selected guests
+   * PRD: "Admin can send thank-you emails"
+   * PRD: "Thank-you can be personalized by attendance"
+   */
+  async sendThankYous(
+    weddingId: string,
+    guestIds: string[],
+  ): Promise<{
+    sent: number;
+    failed: number;
+    total: number;
+    results: SendThankYouResult[];
+  }> {
+    const wedding = this.weddingService.getWedding(weddingId);
+    if (!wedding) {
+      throw new Error('WEDDING_NOT_FOUND');
+    }
+
+    // Get the theme from render_config so emails match the wedding site
+    const renderConfig = this.weddingService.getRenderConfig(weddingId);
+    const theme = renderConfig?.theme;
+
+    const results: SendThankYouResult[] = [];
+    let sent = 0;
+    let failed = 0;
+
+    for (const guestId of guestIds) {
+      const guest = this.guestService.getGuest(guestId);
+
+      if (!guest) {
+        results.push({
+          guestId,
+          guestName: 'Unknown',
+          email: 'Unknown',
+          success: false,
+          error: 'Guest not found',
+        });
+        failed++;
+        continue;
+      }
+
+      if (guest.weddingId !== weddingId) {
+        results.push({
+          guestId,
+          guestName: guest.name,
+          email: guest.email,
+          success: false,
+          error: 'Guest does not belong to this wedding',
+        });
+        failed++;
+        continue;
+      }
+
+      // Determine if guest attended (based on RSVP status)
+      // PRD: "Thank-you can be personalized by attendance"
+      const attended = guest.rsvpStatus === 'attending';
+
+      // Build thank-you email with personalization based on attendance
+      const emailContent = this.emailService.buildThankYouEmail(
+        guest,
+        wedding,
+        attended,
+        theme,
+      );
+
+      // Create outbox record
+      const outboxRecord = this.createOutboxRecord(
+        guest,
+        wedding,
+        emailContent.subject,
+        'thank_you',
+      );
+
+      // Send the email
+      const sendResult = await this.emailService.sendEmail(emailContent);
+
+      if (sendResult.success) {
+        this.updateOutboxStatus(outboxRecord.id, 'sent', {
+          messageId: sendResult.messageId,
+        });
+
+        results.push({
+          guestId,
+          guestName: guest.name,
+          email: guest.email,
+          success: true,
+        });
+        sent++;
+
+        this.logger.log(`Thank-you sent to ${guest.name} <${guest.email}> (attended: ${attended})`);
+      } else {
+        this.updateOutboxStatus(outboxRecord.id, 'failed', {
+          errorMessage: sendResult.error,
+        });
+
+        results.push({
+          guestId,
+          guestName: guest.name,
+          email: guest.email,
+          success: false,
+          error: sendResult.error || 'Failed to send email',
+        });
+        failed++;
+
+        this.logger.warn(`Failed to send thank-you to ${guest.email}: ${sendResult.error}`);
+      }
+    }
+
+    this.logger.log(
+      `Thank-you batch for wedding ${weddingId}: ${sent} sent, ${failed} failed`,
+    );
+
+    return {
+      sent,
+      failed,
+      total: guestIds.length,
+      results,
+    };
+  }
+
+  /**
    * Get email outbox records for a wedding
    */
   getOutboxForWedding(weddingId: string): EmailOutbox[] {
@@ -454,6 +693,8 @@ export class InvitationService {
       byType: {
         invitation: { sent: 0, delivered: 0, failed: 0 },
         reminder: { sent: 0, delivered: 0, failed: 0 },
+        save_the_date: { sent: 0, delivered: 0, failed: 0 },
+        thank_you: { sent: 0, delivered: 0, failed: 0 },
       },
     };
 
@@ -462,21 +703,21 @@ export class InvitationService {
       stats.totalSent++;
 
       // Count by status
-      if (record.status === 'sent') {
+      if (record.status === 'sent' || record.status === 'delivered') {
         stats.delivered++;
-      } else if (record.status === 'failed') {
+      } else if (record.status === 'failed' || record.status === 'bounced') {
         stats.failed++;
       } else if (record.status === 'pending') {
         stats.pending++;
       }
 
       // Count by type
-      const typeKey = record.emailType as 'invitation' | 'reminder';
-      if (typeKey === 'invitation' || typeKey === 'reminder') {
+      const typeKey = record.emailType as keyof typeof stats.byType;
+      if (stats.byType[typeKey]) {
         stats.byType[typeKey].sent++;
-        if (record.status === 'sent') {
+        if (record.status === 'sent' || record.status === 'delivered') {
           stats.byType[typeKey].delivered++;
-        } else if (record.status === 'failed') {
+        } else if (record.status === 'failed' || record.status === 'bounced') {
           stats.byType[typeKey].failed++;
         }
       }

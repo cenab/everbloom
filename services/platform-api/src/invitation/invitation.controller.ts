@@ -19,6 +19,10 @@ import type {
   SendInvitationsResponse,
   SendRemindersRequest,
   SendRemindersResponse,
+  SendSaveTheDateRequest,
+  SendSaveTheDateResponse,
+  SendThankYouRequest,
+  SendThankYouResponse,
   EmailOutbox,
   EmailStatisticsResponse,
   UpdateOutboxStatusRequest,
@@ -124,6 +128,80 @@ export class InvitationController {
           { ok: false, error: REMINDER_QUEUE_FAILED, message: 'Failed to enqueue reminders.' },
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Send save-the-date emails to selected guests
+   * PRD: "Admin can send save-the-date emails"
+   */
+  @Post('save-the-date')
+  async sendSaveTheDates(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+    @Body() body: SendSaveTheDateRequest,
+  ): Promise<ApiResponse<SendSaveTheDateResponse>> {
+    await this.requireWeddingOwner(authHeader, weddingId);
+
+    if (!body.guestIds || body.guestIds.length === 0) {
+      throw new HttpException(
+        { ok: false, error: NO_GUESTS_SELECTED, message: 'Please select at least one guest' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      const result = await this.invitationService.sendSaveTheDates(
+        weddingId,
+        body.guestIds,
+      );
+      return { ok: true, data: result };
+    } catch (error) {
+      if (error instanceof Error && error.message === 'WEDDING_NOT_FOUND') {
+        throw new NotFoundException({
+          ok: false,
+          error: 'WEDDING_NOT_FOUND',
+          message: 'Wedding not found',
+        });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Send thank-you emails to selected guests
+   * PRD: "Admin can send thank-you emails"
+   */
+  @Post('thank-you')
+  async sendThankYous(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+    @Body() body: SendThankYouRequest,
+  ): Promise<ApiResponse<SendThankYouResponse>> {
+    await this.requireWeddingOwner(authHeader, weddingId);
+
+    if (!body.guestIds || body.guestIds.length === 0) {
+      throw new HttpException(
+        { ok: false, error: NO_GUESTS_SELECTED, message: 'Please select at least one guest' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      const result = await this.invitationService.sendThankYous(
+        weddingId,
+        body.guestIds,
+      );
+      return { ok: true, data: result };
+    } catch (error) {
+      if (error instanceof Error && error.message === 'WEDDING_NOT_FOUND') {
+        throw new NotFoundException({
+          ok: false,
+          error: 'WEDDING_NOT_FOUND',
+          message: 'Wedding not found',
+        });
       }
       throw error;
     }

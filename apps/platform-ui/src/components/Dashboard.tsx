@@ -17,10 +17,11 @@ import { PhotoStatsDashboard } from './PhotoStatsDashboard';
 import { GuestbookManager } from './GuestbookManager';
 import { MusicRequests } from './MusicRequests';
 import { SeatingManager } from './SeatingManager';
+import { Communications } from './Communications';
 import { getAuthToken } from '../lib/auth';
 import type { Wedding, ApiResponse, RenderConfig } from '../types';
 
-type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'accommodations' | 'email-stats' | 'photo-stats' | 'guestbook' | 'music' | 'seating';
+type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'accommodations' | 'email-stats' | 'photo-stats' | 'guestbook' | 'music' | 'seating' | 'communications';
 
 /**
  * Admin Dashboard component.
@@ -270,6 +271,17 @@ export function Dashboard() {
     );
   }
 
+  if (view === 'communications' && selectedWedding) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <Communications
+          weddingId={selectedWedding.id}
+          onBack={() => setView('dashboard')}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -310,6 +322,7 @@ export function Dashboard() {
           onNavigateToGuestbook={() => setView('guestbook')}
           onNavigateToMusic={() => setView('music')}
           onNavigateToSeating={() => setView('seating')}
+          onNavigateToCommunications={() => setView('communications')}
           onBack={weddings.length > 1 ? () => setSelectedWedding(null) : undefined}
         />
       )}
@@ -396,6 +409,7 @@ interface WeddingDashboardProps {
   onNavigateToGuestbook: () => void;
   onNavigateToMusic: () => void;
   onNavigateToSeating: () => void;
+  onNavigateToCommunications: () => void;
   onBack?: () => void;
 }
 
@@ -422,6 +436,7 @@ function WeddingDashboard({
   onNavigateToGuestbook,
   onNavigateToMusic,
   onNavigateToSeating,
+  onNavigateToCommunications,
   onBack,
 }: WeddingDashboardProps) {
   return (
@@ -535,6 +550,12 @@ function WeddingDashboard({
           description="Track invitation and reminder delivery"
           icon={<EnvelopeIcon className="w-6 h-6" />}
           onClick={onNavigateToEmailStats}
+        />
+        <DashboardCard
+          title="Communications"
+          description="Send save-the-dates and thank-you messages"
+          icon={<PaperAirplaneIcon className="w-6 h-6" />}
+          onClick={onNavigateToCommunications}
         />
         {wedding.features.PHOTO_UPLOAD && (
           <DashboardCard
@@ -983,6 +1004,24 @@ function TableIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25-3.75h7.5M3.375 12c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m7.5-3.75v1.5c0 .621.504 1.125 1.125 1.125m0 0c.621 0 1.125.504 1.125 1.125M12 13.875v1.5c0 .621-.504 1.125-1.125 1.125M12 13.875c0 .621.504 1.125 1.125 1.125m0 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25-3.75h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m7.5-3.75v1.5c0 .621.504 1.125 1.125 1.125"
+      />
+    </svg>
+  );
+}
+
+function PaperAirplaneIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
       />
     </svg>
   );
