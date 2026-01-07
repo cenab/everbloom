@@ -28,6 +28,8 @@ import type {
   UpdateFaqResponse,
   UpdatePasscodeRequest,
   UpdatePasscodeResponse,
+  UpdateHeroContentRequest,
+  UpdateHeroContentResponse,
 } from '../types';
 import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED } from '../types';
 
@@ -255,6 +257,52 @@ export class WeddingController {
 
     if (!result) {
       throw new NotFoundException('Failed to update FAQ');
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Update hero section content for a wedding
+   * Allows admin to edit the headline and subheadline
+   */
+  @Put(':id/hero')
+  async updateHeroContent(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: UpdateHeroContentRequest,
+  ): Promise<ApiResponse<UpdateHeroContentResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException('Wedding not found');
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException('Wedding not found');
+    }
+
+    if (!body.heroContent) {
+      throw new BadRequestException('Hero content is required');
+    }
+
+    const headline = body.heroContent.headline?.trim();
+    const subheadline = body.heroContent.subheadline?.trim();
+
+    if (!headline) {
+      throw new BadRequestException('Headline is required');
+    }
+
+    const heroContent = {
+      headline,
+      ...(subheadline && { subheadline }),
+    };
+
+    const result = this.weddingService.updateHeroContent(id, heroContent);
+
+    if (!result) {
+      throw new NotFoundException('Failed to update hero content');
     }
 
     return { ok: true, data: result };

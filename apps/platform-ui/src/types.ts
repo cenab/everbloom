@@ -260,6 +260,28 @@ export interface UpdateFaqResponse {
 }
 
 // ============================================================================
+// Hero Content Types
+// ============================================================================
+
+/**
+ * Hero section content data
+ */
+export interface HeroContentData {
+  /** Main headline (typically partner names) */
+  headline: string;
+  /** Optional subheadline (e.g., "We're getting married!") */
+  subheadline?: string;
+}
+
+/**
+ * Response after updating hero content
+ */
+export interface UpdateHeroContentResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+// ============================================================================
 // Guest Types
 // ============================================================================
 

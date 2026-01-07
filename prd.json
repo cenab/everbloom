@@ -620,7 +620,7 @@
       "Verify render_config is regenerated",
       "Verify public site reflects changes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "content",

@@ -1,5 +1,5 @@
 ---
-import type { Section, Theme } from '@wedding-bestie/shared';
+import type { Section, Theme } from '../../types';
 
 interface Props {
   section: Section;
@@ -7,7 +7,7 @@ interface Props {
 }
 
 const { section, theme } = Astro.props;
-const { headline } = section.data as { headline?: string };
+const { headline, subheadline } = section.data as { headline?: string; subheadline?: string };
 ---
 
 <section
@@ -16,6 +16,9 @@ const { headline } = section.data as { headline?: string };
 >
   <div class="hero-content">
     <h1 class="hero-headline">{headline || 'Our Wedding'}</h1>
+    {subheadline && (
+      <p class="hero-subheadline">{subheadline}</p>
+    )}
   </div>
 </section>
 
@@ -42,5 +45,15 @@ const { headline } = section.data as { headline?: string };
     letter-spacing: 0.02em;
     line-height: 1.2;
     margin: 0;
+  }
+
+  .hero-subheadline {
+    font-family: 'Inter', 'system-ui', sans-serif;
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    font-weight: 400;
+    color: var(--neutral-dark);
+    opacity: 0.8;
+    letter-spacing: 0.04em;
+    margin: 1.5rem 0 0 0;
   }
 </style>

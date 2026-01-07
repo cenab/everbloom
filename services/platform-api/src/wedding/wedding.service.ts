@@ -16,6 +16,7 @@ import type {
   EventDetailsData,
   FaqConfig,
   PasscodeConfigBase,
+  HeroContentData,
 } from '../types';
 
 const scryptAsync = promisify(scrypt);
@@ -624,6 +625,55 @@ export class WeddingService {
     this.renderConfigs.set(weddingId, updatedConfig);
 
     this.logger.log(`Updated FAQ for wedding ${weddingId} with ${faq.items.length} items`);
+
+    return { wedding, renderConfig: updatedConfig };
+  }
+
+  /**
+   * Update hero section content for a wedding
+   * Updates the hero section in render_config with new headline and subheadline
+   */
+  updateHeroContent(
+    weddingId: string,
+    heroContent: HeroContentData,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    const existingConfig = this.renderConfigs.get(weddingId);
+    if (!existingConfig) {
+      return null;
+    }
+
+    // Update the hero section data in render_config
+    const updatedSections = existingConfig.sections.map((section) => {
+      if (section.type === 'hero') {
+        return {
+          ...section,
+          data: {
+            ...section.data,
+            headline: heroContent.headline,
+            ...(heroContent.subheadline && { subheadline: heroContent.subheadline }),
+          },
+        };
+      }
+      return section;
+    });
+
+    const updatedConfig: RenderConfig = {
+      ...existingConfig,
+      sections: updatedSections,
+    };
+
+    this.renderConfigs.set(weddingId, updatedConfig);
+
+    // Update wedding timestamp
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    this.logger.log(`Updated hero content for wedding ${weddingId}`);
 
     return { wedding, renderConfig: updatedConfig };
   }

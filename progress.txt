@@ -1476,3 +1476,79 @@
 - The passcode gate checks for existing session before showing form
 - Passcode verification endpoint returns sessionToken for client storage
 - PasscodeGateWrapper is a pure Astro component (no React dependency needed)
+
+---
+
+### 2026-01-07 - Hero Section Content Editing
+
+**Feature worked on:** Admin can edit hero section content (PRD: content category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. Content editing is fundamental to the product - couples need to customize their wedding site
+2. The hero section is the first thing guests see, making it essential for personalization
+3. It follows the established patterns for other content editing features (announcements, FAQ, event details)
+4. It was the first content-editing feature that was not yet implemented
+
+**What was done:**
+1. Added hero content types to platform-api types:
+   - `HeroContentData` interface with headline and optional subheadline
+   - `UpdateHeroContentRequest` and `UpdateHeroContentResponse` types
+
+2. Added `updateHeroContent` method to WeddingService:
+   - Updates the hero section data within render_config
+   - Preserves other section data while updating headline/subheadline
+   - Updates wedding timestamp
+
+3. Added hero content API endpoint to WeddingController:
+   - `PUT /api/weddings/:id/hero` - authenticated endpoint
+   - Validates headline is required
+   - Subheadline is optional
+   - Returns updated wedding and renderConfig
+
+4. Added hero content types to platform-ui types:
+   - `HeroContentData` interface
+   - `UpdateHeroContentResponse` type
+
+5. Created HeroSettings component (apps/platform-ui/src/components/HeroSettings.tsx):
+   - Fetches current hero content from render_config
+   - Form fields for headline and optional subheadline
+   - Live preview of how the hero section will look
+   - Change detection (save button disabled when no changes)
+   - Success/error feedback
+
+6. Updated Dashboard component:
+   - Added 'hero' to View type
+   - Added HeroSettings import and view handler
+   - Added onNavigateToHero prop to WeddingDashboard
+   - Added SparklesIcon component
+   - Added "Hero section" card as first item (since it's primary content editing)
+
+7. Updated HeroSection.astro to render subheadline:
+   - Added subheadline extraction from section data
+   - Added conditional rendering of subheadline paragraph
+   - Added styling for subheadline (Inter sans-serif, muted opacity)
+
+**API Endpoints:**
+- `PUT /api/weddings/:id/hero` - Update hero content (requires auth)
+  - Request: `{ heroContent: { headline: string, subheadline?: string } }`
+  - Response: `{ wedding, renderConfig }`
+
+**Design system adherence:**
+- Hero preview uses serif font (Cormorant Garamond) for headline
+- Subheadline uses sans-serif (Inter) with muted opacity
+- Human language: "Edit your site's headline", "Customize the headline that appears..."
+- No pure black/white colors - uses theme variables
+- Mobile-responsive preview styling
+
+**PRD features now passing:**
+- "Admin can edit hero section content" ✓
+
+**Notes for next person:**
+- Hero endpoint is at PUT /api/weddings/:id/hero
+- Hero section card is always visible in dashboard (not feature-gated)
+- The headline is pre-populated with partner names from wedding record
+- Subheadline is optional and can be left empty
+- Changes are reflected immediately in render_config
+- The hero section in wedding site now supports both headline and subheadline
+- HeroSettings fetches current content from /api/weddings/:id/render-config
+- Preview shows live typing feedback as user edits

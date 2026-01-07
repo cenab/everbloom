@@ -763,6 +763,35 @@ export const REMINDER_QUEUE_FAILED = 'REMINDER_QUEUE_FAILED' as const;
 export const REMINDER_QUEUE_NAME = 'email-reminders' as const;
 
 // ============================================================================
+// Hero Content Types
+// ============================================================================
+
+/**
+ * Hero section content data
+ */
+export interface HeroContentData {
+  /** Main headline (typically partner names) */
+  headline: string;
+  /** Optional subheadline (e.g., "We're getting married!") */
+  subheadline?: string;
+}
+
+/**
+ * Request to update hero section content
+ */
+export interface UpdateHeroContentRequest {
+  heroContent: HeroContentData;
+}
+
+/**
+ * Response after updating hero content
+ */
+export interface UpdateHeroContentResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+// ============================================================================
 // Calendar Invite Types
 // ============================================================================
 
