@@ -1012,21 +1012,21 @@ function CheckboxIcon({ checked, indeterminate }: { checked: boolean; indetermin
   if (indeterminate) {
     return (
       <div className="w-5 h-5 rounded border-2 border-primary-500 bg-primary-500 flex items-center justify-center">
-        <div className="w-2.5 h-0.5 bg-white rounded" />
+        <div className="w-2.5 h-0.5 bg-neutral-50 rounded" />
       </div>
     );
   }
   if (checked) {
     return (
       <div className="w-5 h-5 rounded border-2 border-primary-500 bg-primary-500 flex items-center justify-center">
-        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+        <svg className="w-3 h-3 text-neutral-50" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
         </svg>
       </div>
     );
   }
   return (
-    <div className="w-5 h-5 rounded border-2 border-neutral-300 bg-white" />
+    <div className="w-5 h-5 rounded border-2 border-neutral-300 bg-neutral-50" />
   );
 }
 
@@ -1082,7 +1082,7 @@ function SendInvitesDialog({ weddingId, guests, onSuccess, onCancel }: SendInvit
 
     return (
       <div className="fixed inset-0 bg-neutral-900/50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 p-6">
+        <div className="bg-neutral-50 rounded-xl shadow-xl max-w-lg w-full mx-4 p-6">
           <div className="flex items-center gap-2 mb-4">
             <CheckCircleIcon className="w-6 h-6 text-accent-600" />
             <h3 className="text-lg text-neutral-800">Invitations sent</h3>
@@ -1130,7 +1130,7 @@ function SendInvitesDialog({ weddingId, guests, onSuccess, onCancel }: SendInvit
   // Confirmation view
   return (
     <div className="fixed inset-0 bg-neutral-900/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 p-6">
+      <div className="bg-neutral-50 rounded-xl shadow-xl max-w-lg w-full mx-4 p-6">
         <h3 className="text-lg text-neutral-800 mb-2">Send invitations</h3>
         <p className="text-neutral-600 mb-6">
           You're about to send invitation emails to <strong>{guests.length}</strong> {guests.length === 1 ? 'guest' : 'guests'}.
@@ -1170,7 +1170,7 @@ function SendInvitesDialog({ weddingId, guests, onSuccess, onCancel }: SendInvit
           >
             {isSending ? (
               <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-neutral-50 border-t-transparent rounded-full animate-spin" />
                 Sending...
               </>
             ) : (

@@ -63,7 +63,7 @@ export class EmailService {
       padding: 40px 20px;
     }
     .card {
-      background: #ffffff;
+      background: #fdf8f6;
       border-radius: 12px;
       padding: 40px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -86,7 +86,7 @@ export class EmailService {
     .cta-button {
       display: inline-block;
       background-color: #c9826b;
-      color: #ffffff !important;
+      color: #faf8f5 !important;
       text-decoration: none;
       padding: 16px 32px;
       border-radius: 8px;
@@ -100,13 +100,13 @@ export class EmailService {
     .footer {
       margin-top: 32px;
       padding-top: 24px;
-      border-top: 1px solid #e5e5e5;
+      border-top: 1px solid #e7e5e4;
       font-size: 14px;
-      color: #666;
+      color: #57534e;
     }
     .link-fallback {
       font-size: 12px;
-      color: #888;
+      color: #78716c;
       word-break: break-all;
     }
   </style>
@@ -192,7 +192,7 @@ ${partnerNames}
       padding: 40px 20px;
     }
     .card {
-      background: #ffffff;
+      background: #fdf8f6;
       border-radius: 12px;
       padding: 40px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -215,7 +215,7 @@ ${partnerNames}
     .cta-button {
       display: inline-block;
       background-color: #c9826b;
-      color: #ffffff !important;
+      color: #faf8f5 !important;
       text-decoration: none;
       padding: 16px 32px;
       border-radius: 8px;
@@ -229,13 +229,13 @@ ${partnerNames}
     .footer {
       margin-top: 32px;
       padding-top: 24px;
-      border-top: 1px solid #e5e5e5;
+      border-top: 1px solid #e7e5e4;
       font-size: 14px;
-      color: #666;
+      color: #57534e;
     }
     .link-fallback {
       font-size: 12px;
-      color: #888;
+      color: #78716c;
       word-break: break-all;
     }
   </style>

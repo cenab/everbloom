@@ -239,7 +239,7 @@ interface GuestRowProps {
 
 function GuestRow({ guest }: GuestRowProps) {
   return (
-    <li className="px-4 py-4 flex items-center justify-between bg-white">
+    <li className="px-4 py-4 flex items-center justify-between bg-neutral-50">
       <div className="flex items-center gap-4">
         <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
           <span className="text-primary-700 font-medium">

@@ -301,7 +301,7 @@ function PhotoUploadsSection({
           </p>
         </div>
       ) : (
-        <div className="bg-white border border-neutral-200 rounded-lg overflow-hidden">
+        <div className="bg-neutral-50 border border-neutral-200 rounded-lg overflow-hidden">
           <div className="px-4 py-3 border-b border-neutral-200 bg-neutral-50 text-sm text-neutral-600">
             {photos.length} uploads
           </div>
@@ -380,7 +380,7 @@ function FeatureToggle({
         >
           <span
             className={`
-              pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0
+              pointer-events-none inline-block h-5 w-5 transform rounded-full bg-neutral-50 shadow ring-0
               transition duration-200 ease-in-out
               ${enabled ? 'translate-x-5' : 'translate-x-0'}
             `}

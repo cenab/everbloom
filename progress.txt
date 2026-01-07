@@ -1111,3 +1111,24 @@
 - Categories are ordered and labeled in TemplateSelector.
 - Cultural template ID: cultural-001.
 - plans/features.json not found when attempting to flip the required pass flag.
+
+---
+
+### 2026-01-07 - Curated Palette Enforcement
+
+**Feature worked on:** Colors are restricted to curated palettes with accessibility-safe contrast (PRD: design category)
+
+**Priority rationale:** Palette enforcement underpins the calm, ceremonial design system and prevents drift into arbitrary or high-contrast colors.
+
+**What was done:**
+1. Replaced pure white UI surfaces and controls in the platform UI with neutral token surfaces (neutral-50) for cards, toggles, checkboxes, and spinners.
+2. Updated RSVP page styling to derive surfaces and borders from theme variables and removed hard-coded white/border hexes.
+3. Updated invitation and reminder email templates to use off-white palette values and neutral borders/text (no #FFFFFF).
+
+**PRD features now passing:**
+- "Colors are restricted to curated palettes with accessibility-safe contrast" ✓
+
+**Notes for next person:**
+- RSVP page now defines theme-derived surface and border variables (`--neutral-surface`, `--neutral-border`).
+- Email templates use off-white card and button text colors (no pure white).
+- Created `plans/features.json` by mirroring `prd.json` for ongoing pass tracking.

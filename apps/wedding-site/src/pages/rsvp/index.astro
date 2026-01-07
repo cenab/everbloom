@@ -71,6 +71,8 @@ const title = wedding
         --accent: var(--accent);
         --neutral-light: var(--neutralLight);
         --neutral-dark: var(--neutralDark);
+        --neutral-surface: color-mix(in srgb, var(--neutral-light) 92%, var(--neutral-dark));
+        --neutral-border: color-mix(in srgb, var(--neutral-dark) 12%, var(--neutral-light));
       }
 
       *,
@@ -102,7 +104,7 @@ const title = wedding
       .rsvp-container {
         width: 100%;
         max-width: 480px;
-        background: white;
+        background: var(--neutral-surface);
         border-radius: 12px;
         padding: 2.5rem 2rem;
         box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
@@ -157,7 +159,7 @@ const title = wedding
         display: flex;
         align-items: center;
         padding: 1.25rem;
-        border: 2px solid #e8e4df;
+        border: 2px solid var(--neutral-border);
         border-radius: 8px;
         cursor: pointer;
         transition: all 0.2s ease;
@@ -183,7 +185,7 @@ const title = wedding
       .rsvp-option-radio {
         width: 24px;
         height: 24px;
-        border: 2px solid #e8e4df;
+        border: 2px solid var(--neutral-border);
         border-radius: 50%;
         margin-right: 1rem;
         display: flex;
@@ -202,7 +204,7 @@ const title = wedding
         content: '';
         width: 8px;
         height: 8px;
-        background: white;
+        background: var(--neutral-light);
         border-radius: 50%;
       }
 
@@ -247,7 +249,7 @@ const title = wedding
 
       .stepper-btn:hover:not(:disabled) {
         background: var(--primary);
-        color: white;
+        color: var(--neutral-light);
       }
 
       .stepper-btn:disabled {
@@ -274,7 +276,7 @@ const title = wedding
       .dietary-input {
         width: 100%;
         padding: 1rem;
-        border: 2px solid #e8e4df;
+        border: 2px solid var(--neutral-border);
         border-radius: 8px;
         font-size: 1rem;
         font-family: inherit;
@@ -291,7 +293,7 @@ const title = wedding
         width: 100%;
         padding: 1.25rem;
         background: var(--primary);
-        color: white;
+        color: var(--neutral-light);
         border: none;
         border-radius: 8px;
         font-size: 1.125rem;
