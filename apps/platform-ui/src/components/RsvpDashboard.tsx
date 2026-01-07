@@ -4,7 +4,7 @@ import type {
   RsvpSummary,
   RsvpSummaryResponse,
   ApiResponse,
-} from '@wedding-bestie/shared';
+} from '../types';
 import { getAuthToken } from '../lib/auth';
 
 interface RsvpDashboardProps {
@@ -93,29 +93,96 @@ interface SummaryCardsProps {
 }
 
 function SummaryCards({ summary }: SummaryCardsProps) {
+  // Calculate response rate: (attending + notAttending) / total * 100
+  const responded = summary.attending + summary.notAttending;
+  const responseRate = summary.total > 0
+    ? Math.round((responded / summary.total) * 100)
+    : 0;
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      <SummaryCard
-        label="Attending"
-        value={summary.attending}
-        subtext={`${summary.totalPartySize} guests total`}
-        variant="success"
+    <div className="space-y-6 mb-8">
+      {/* Response rate banner */}
+      <ResponseRateBanner
+        responseRate={responseRate}
+        responded={responded}
+        total={summary.total}
       />
-      <SummaryCard
-        label="Not attending"
-        value={summary.notAttending}
-        variant="muted"
-      />
-      <SummaryCard
-        label="Awaiting response"
-        value={summary.pending}
-        variant="pending"
-      />
-      <SummaryCard
-        label="Total invited"
-        value={summary.total}
-        variant="neutral"
-      />
+
+      {/* Breakdown cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <SummaryCard
+          label="Attending"
+          value={summary.attending}
+          subtext={`${summary.totalPartySize} guests total`}
+          variant="success"
+        />
+        <SummaryCard
+          label="Not attending"
+          value={summary.notAttending}
+          variant="muted"
+        />
+        <SummaryCard
+          label="Awaiting response"
+          value={summary.pending}
+          variant="pending"
+        />
+        <SummaryCard
+          label="Total invited"
+          value={summary.total}
+          variant="neutral"
+        />
+      </div>
+    </div>
+  );
+}
+
+interface ResponseRateBannerProps {
+  responseRate: number;
+  responded: number;
+  total: number;
+}
+
+function ResponseRateBanner({ responseRate, responded, total }: ResponseRateBannerProps) {
+  // Determine visual treatment based on response rate
+  const getProgressColor = () => {
+    if (responseRate >= 80) return 'bg-accent-500';
+    if (responseRate >= 50) return 'bg-primary-400';
+    return 'bg-primary-300';
+  };
+
+  const getMessage = () => {
+    if (total === 0) return 'Add guests to start tracking responses';
+    if (responseRate === 100) return 'All guests have responded!';
+    if (responseRate >= 80) return 'Almost there! Most guests have responded';
+    if (responseRate >= 50) return 'Over halfway there';
+    if (responseRate > 0) return 'Responses are coming in';
+    return 'Waiting for responses';
+  };
+
+  return (
+    <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-6">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-sm font-medium text-neutral-600">Response rate</h3>
+          <p className="text-3xl font-semibold text-neutral-800 mt-1">
+            {responseRate}%
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-sm text-neutral-500">
+            {responded} of {total} responded
+          </p>
+          <p className="text-xs text-neutral-400 mt-1">{getMessage()}</p>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-2 bg-neutral-200 rounded-full overflow-hidden">
+        <div
+          className={`h-full ${getProgressColor()} transition-all duration-500`}
+          style={{ width: `${responseRate}%` }}
+        />
+      </div>
     </div>
   );
 }

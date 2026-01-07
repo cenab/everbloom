@@ -705,7 +705,7 @@
       "Verify attending vs not attending breakdown",
       "Verify total expected guest count"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "analytics",

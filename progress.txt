@@ -2137,3 +2137,47 @@ No stack traces, internal messages, or technical details are ever exposed.
 - Design system requirements are fully implemented
 - Next priority should be advanced features like analytics dashboard or network error handling
 - The remaining ~60 features are enhancement/growth features beyond core MVP
+
+---
+
+### 2026-01-07 - RSVP Response Rate Display
+
+**Feature worked on:** Dashboard shows RSVP response rate (PRD: analytics category)
+
+**Priority rationale:** This is a high-priority analytics feature because:
+1. RSVP tracking is core to wedding planning - admins need to know how many guests have responded
+2. The infrastructure (guest summary endpoint) already existed
+3. It's a simple but high-value addition to the existing RsvpDashboard
+4. It completes the RSVP tracking workflow: invite → track responses → see overall rate
+
+**What was done:**
+1. Added ResponseRateBanner component to RsvpDashboard:
+   - Displays response rate as a prominent percentage
+   - Shows "X of Y responded" text
+   - Progress bar with dynamic coloring based on rate (accent for ≥80%, primary for ≥50%, lighter for <50%)
+   - Human-friendly status messages ("All guests have responded!", "Almost there!", etc.)
+
+2. Updated SummaryCards layout:
+   - Wrapped existing summary cards in a container with the new banner
+   - Response rate calculation: `(attending + notAttending) / total * 100`
+   - Handles edge case of no guests (shows 0% and "Add guests to start tracking responses")
+
+**Design system adherence:**
+- No pure black/white colors - uses neutral-50 background, neutral-200 border
+- Progress bar uses accent color (green) for success states, primary color for in-progress
+- Human-friendly messaging instead of technical percentages alone
+- Consistent with existing dashboard card styling
+
+**PRD features now passing:**
+- "Dashboard shows RSVP response rate" ✓
+  - ✓ Response rate percentage is shown (prominent banner with X%)
+  - ✓ Attending vs not attending breakdown (existing summary cards preserved)
+  - ✓ Total expected guest count (totalPartySize shown for attending guests)
+
+**Notes for next person:**
+- Response rate is calculated client-side from existing summary data
+- No backend changes were needed - existing /api/weddings/:weddingId/guests/summary provides all required data
+- The response rate considers both "attending" and "not_attending" as valid responses (pending = not responded)
+- Progress bar animates smoothly with CSS transition
+- Color coding: ≥80% = accent (green), ≥50% = primary, <50% = primary-300
+
