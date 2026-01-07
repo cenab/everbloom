@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getAuthToken } from '../lib/auth';
 import type {
   Template,
+  TemplateCategory,
   RenderConfig,
   ApiResponse,
 } from '@wedding-bestie/shared';
@@ -12,6 +13,22 @@ interface TemplateSelectorProps {
   onBack: () => void;
   onTemplateChanged?: () => void;
 }
+
+const CATEGORY_ORDER: TemplateCategory[] = [
+  'minimal',
+  'classic',
+  'modern',
+  'destination',
+  'cultural',
+];
+
+const CATEGORY_LABELS: Record<TemplateCategory, string> = {
+  minimal: 'Minimal',
+  classic: 'Classic',
+  modern: 'Modern',
+  destination: 'Destination',
+  cultural: 'Cultural',
+};
 
 /**
  * Template selection component for admin dashboard.
@@ -103,6 +120,12 @@ export function TemplateSelector({
   }
 
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
+  const groupedTemplates = CATEGORY_ORDER
+    .map((category) => ({
+      category,
+      templates: templates.filter((template) => template.category === category),
+    }))
+    .filter((group) => group.templates.length > 0);
 
   return (
     <div>
@@ -133,17 +156,29 @@ export function TemplateSelector({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        {templates.map((template) => (
-          <TemplateCard
-            key={template.id}
-            template={template}
-            isSelected={template.id === selectedTemplateId}
-            isCurrent={template.id === currentTemplateId}
-            onSelect={() => setSelectedTemplateId(template.id)}
-          />
-        ))}
-      </div>
+      {groupedTemplates.map((group) => (
+        <div key={group.category} className="mb-8 last:mb-0">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg text-neutral-800">
+              {CATEGORY_LABELS[group.category]}
+            </h2>
+            <span className="text-xs text-neutral-500">
+              {group.templates.length} option{group.templates.length === 1 ? '' : 's'}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {group.templates.map((template) => (
+              <TemplateCard
+                key={template.id}
+                template={template}
+                isSelected={template.id === selectedTemplateId}
+                isCurrent={template.id === currentTemplateId}
+                onSelect={() => setSelectedTemplateId(template.id)}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
 
       {selectedTemplate && selectedTemplate.id !== currentTemplateId && (
         <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-6 mb-8">
@@ -211,14 +246,14 @@ function TemplateCard({ template, isSelected, isCurrent, onSelect }: TemplateCar
           className="absolute top-3 left-3 w-6 h-6 rounded-full"
           style={{ backgroundColor: template.defaultTheme.accent }}
         />
-        <div
+      <div
           className="absolute top-3 right-3 text-xs font-medium px-2 py-1 rounded"
           style={{
             backgroundColor: template.defaultTheme.neutralDark,
             color: template.defaultTheme.neutralLight,
           }}
         >
-          {template.category}
+          {CATEGORY_LABELS[template.category]}
         </div>
       </div>
 

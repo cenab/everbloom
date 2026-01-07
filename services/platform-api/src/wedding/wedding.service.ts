@@ -137,6 +137,18 @@ const TEMPLATES: Template[] = [
       neutralDark: '#2c3e3f',
     },
   },
+  {
+    id: 'cultural-001',
+    name: 'Mosaic',
+    category: 'cultural' as TemplateCategory,
+    description: 'Rich, ceremonial details with warm tones to honor cultural traditions.',
+    defaultTheme: {
+      primary: '#9a5a4a',
+      accent: '#c79a7b',
+      neutralLight: '#f6f1ea',
+      neutralDark: '#3b2f2a',
+    },
+  },
 ];
 
 @Injectable()

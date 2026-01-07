@@ -1092,3 +1092,22 @@
 - Worker status callback: POST `/api/weddings/:weddingId/invitations/outbox/:outboxId/status` with `x-worker-token` if set
 - Reminders default to pending guests only (RSVP feature must be enabled)
 - Worker uses `PLATFORM_API_URL` (default `http://localhost:3001/api`) and `WORKER_TOKEN` if configured
+
+### 2026-01-07 - Template Categories Match Product Positioning
+
+**Feature worked on:** Template categories exist and match product positioning (PRD: design category)
+
+**Priority rationale:** This is the highest-priority remaining design item because template selection is a core positioning surface, and missing category coverage breaks the curated taxonomy promise.
+
+**What was done:**
+1. Added a Cultural template to the curated template list with a compliant theme.
+2. Grouped templates by category in the admin selector with clear category headings and counts.
+3. Displayed human-readable category labels on template cards.
+
+**PRD features now passing:**
+- "Template categories exist and match product positioning" ✓
+
+**Notes for next person:**
+- Categories are ordered and labeled in TemplateSelector.
+- Cultural template ID: cultural-001.
+- plans/features.json not found when attempting to flip the required pass flag.

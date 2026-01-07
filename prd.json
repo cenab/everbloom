@@ -122,7 +122,7 @@
       "Verify each category contains at least one template option",
       "Verify templates can be previewed before selection"
     ],
-    "passes": false
+    "passes": true
   },
 
   {
