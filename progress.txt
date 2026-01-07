@@ -1643,3 +1643,54 @@
 - Tag filtering returns guests that have ANY of the selected tags (OR logic)
 - Guest rows display tag badges next to their names
 - Selected guests can have tags assigned in bulk via AssignTagsDialog
+
+---
+
+### 2026-01-07 - Send Invites to Specific Segments
+
+**Feature worked on:** Admin can send invites to specific segments (PRD: guests category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. Guest tagging and filtering already existed
+2. Invitation sending already existed
+3. Only the UI wiring was incorrect - "Select all" selected ALL guests instead of filtered guests
+4. This completes the guest segmentation workflow: tag → filter → select → send
+5. Very small code change with high user value
+
+**What was done:**
+1. Fixed `handleSelectAll` in Guests.tsx to only select visible (filtered) guests:
+   - When filtered, clicking "Select all" now only selects guests matching the filter
+   - Previously it selected ALL guests regardless of filter state
+   - Uses `filterTagIds.length > 0` to detect filtered state
+
+2. Fixed `GuestList` component checkbox state calculation:
+   - Changed from comparing `selectedIds.size === guests.length` to counting actual visible selections
+   - `visibleSelectedCount` correctly counts how many of the displayed guests are selected
+   - "Deselect all" / "Select all" state and selected count now reflect visible guests only
+
+3. Verified existing flow is correct:
+   - `SendInvitesDialog` receives `filteredGuests.filter((g) => selectedGuestIds.has(g.id))`
+   - This correctly filters to ONLY guests that are both visible AND selected
+   - Invitation sending API and email_outbox already worked correctly
+
+**User workflow now works:**
+1. Admin creates tags (e.g., "Bride's side", "Groom's side")
+2. Admin assigns tags to guests
+3. Admin clicks tag filter (e.g., "Bride's side")
+4. Admin clicks "Select all" - only visible guests selected
+5. Admin clicks "Send invites" - only tagged guests receive invitations
+6. Email_outbox records match exactly the filtered guest list
+
+**PRD features now passing:**
+- "Admin can send invites to specific segments" ✓
+
+**Next steps:**
+- Implement "Admin can see invite delivery status"
+- Continue with other incomplete features
+
+**Notes for next person:**
+- Selection state can persist across filter changes (intended behavior)
+- When switching filters, previously selected guests remain selected but aren't visible
+- Clicking "Select all" on new filter adds those guests to selection
+- The send dialog shows only guests that are both selected AND visible
+- This enables batch workflow: select bride's side, then select groom's side, send to both

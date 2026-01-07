@@ -108,10 +108,24 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
   };
 
   const handleSelectAll = () => {
-    if (selectedGuestIds.size === guests.length) {
-      setSelectedGuestIds(new Set());
+    // When filtering, select/deselect only the visible (filtered) guests
+    const targetGuests = filterTagIds.length > 0 ? filteredGuests : guests;
+    const allVisibleSelected = targetGuests.every((g) => selectedGuestIds.has(g.id));
+
+    if (allVisibleSelected) {
+      // Deselect all visible guests
+      setSelectedGuestIds((prev) => {
+        const next = new Set(prev);
+        targetGuests.forEach((g) => next.delete(g.id));
+        return next;
+      });
     } else {
-      setSelectedGuestIds(new Set(guests.map((g) => g.id)));
+      // Select all visible guests (add to existing selection)
+      setSelectedGuestIds((prev) => {
+        const next = new Set(prev);
+        targetGuests.forEach((g) => next.add(g.id));
+        return next;
+      });
     }
   };
 
@@ -902,8 +916,10 @@ function GuestList({
   onToggleSelect,
   onSelectAll,
 }: GuestListProps) {
-  const allSelected = guests.length > 0 && selectedIds.size === guests.length;
-  const someSelected = selectedIds.size > 0 && selectedIds.size < guests.length;
+  // Check if all visible guests are selected (not comparing raw sizes since selection may include guests from other filters)
+  const visibleSelectedCount = guests.filter((g) => selectedIds.has(g.id)).length;
+  const allSelected = guests.length > 0 && visibleSelectedCount === guests.length;
+  const someSelected = visibleSelectedCount > 0 && visibleSelectedCount < guests.length;
 
   return (
     <div className="bg-neutral-50 border border-neutral-200 rounded-lg overflow-hidden">
@@ -918,7 +934,7 @@ function GuestList({
           </button>
           <span className="text-sm text-neutral-500">
             {guests.length} {guests.length === 1 ? 'guest' : 'guests'}
-            {selectedIds.size > 0 && ` (${selectedIds.size} selected)`}
+            {visibleSelectedCount > 0 && ` (${visibleSelectedCount} selected)`}
           </span>
         </div>
       </div>

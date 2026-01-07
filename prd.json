@@ -580,7 +580,7 @@
       "Verify only filtered guests receive invites",
       "Verify email_outbox records match filtered list"
     ],
-    "passes": false
+    "passes": true
   },
 
   {
