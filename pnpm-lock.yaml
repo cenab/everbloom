@@ -100,6 +100,9 @@ importers:
       '@wedding-bestie/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      bullmq:
+        specifier: ^5.1.0
+        version: 5.66.4
       reflect-metadata:
         specifier: ^0.2.1
         version: 0.2.2
@@ -140,6 +143,9 @@ importers:
 
   services/worker:
     dependencies:
+      '@wedding-bestie/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       bullmq:
         specifier: ^5.1.0
         version: 5.66.4

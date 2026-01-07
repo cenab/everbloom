@@ -638,6 +638,45 @@ export interface SendInvitationsResponse {
 }
 
 /**
+ * Request body for sending RSVP reminders
+ */
+export interface SendRemindersRequest {
+  guestIds?: string[];
+}
+
+/**
+ * Response from send reminders endpoint
+ */
+export interface SendRemindersResponse {
+  queued: number;
+  total: number;
+  guestIds: string[];
+  jobIds: string[];
+}
+
+/**
+ * Reminder job payload for the worker queue
+ */
+export interface ReminderJobData {
+  outboxId: string;
+  weddingId: string;
+  guestId: string;
+  toEmail: string;
+  toName: string;
+  subject: string;
+  htmlBody: string;
+  textBody: string;
+}
+
+/**
+ * Outbox status update payload (worker -> platform API)
+ */
+export interface UpdateOutboxStatusRequest {
+  status: EmailStatus;
+  errorMessage?: string;
+}
+
+/**
  * Email sending failed error code
  */
 export const EMAIL_SEND_FAILED = 'EMAIL_SEND_FAILED' as const;
@@ -646,3 +685,13 @@ export const EMAIL_SEND_FAILED = 'EMAIL_SEND_FAILED' as const;
  * No guests selected for invitation error code
  */
 export const NO_GUESTS_SELECTED = 'NO_GUESTS_SELECTED' as const;
+
+/**
+ * Reminder queue enqueue failed error code
+ */
+export const REMINDER_QUEUE_FAILED = 'REMINDER_QUEUE_FAILED' as const;
+
+/**
+ * Queue name for reminder emails
+ */
+export const REMINDER_QUEUE_NAME = 'email-reminders' as const;

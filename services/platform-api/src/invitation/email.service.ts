@@ -2,9 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { Guest, Wedding } from '@wedding-bestie/shared';
 
 /**
- * Email content for invitation emails
+ * Email content for transactional emails
  */
-interface InvitationEmailContent {
+interface EmailContent {
   to: string;
   toName: string;
   subject: string;
@@ -36,7 +36,7 @@ export class EmailService {
   /**
    * Build invitation email content
    */
-  buildInvitationEmail(guest: Guest, wedding: Wedding): InvitationEmailContent {
+  buildInvitationEmail(guest: Guest, wedding: Wedding): EmailContent {
     const rsvpUrl = this.buildRsvpUrl(guest);
     const partnerNames = `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`;
 
@@ -163,10 +163,136 @@ ${partnerNames}
   }
 
   /**
+   * Build reminder email content
+   */
+  buildReminderEmail(guest: Guest, wedding: Wedding): EmailContent {
+    const rsvpUrl = this.buildRsvpUrl(guest);
+    const partnerNames = `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`;
+
+    const subject = `A gentle reminder: RSVP for ${partnerNames}'s wedding`;
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #2d2d2d;
+      background-color: #faf8f5;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    h1 {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 30px;
+      font-weight: 400;
+      color: #c9826b;
+      margin: 0 0 16px 0;
+      text-align: center;
+    }
+    p {
+      margin: 0 0 16px 0;
+    }
+    .greeting {
+      font-size: 18px;
+      margin-bottom: 24px;
+    }
+    .cta-button {
+      display: inline-block;
+      background-color: #c9826b;
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 16px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      margin: 24px 0;
+    }
+    .cta-container {
+      text-align: center;
+    }
+    .footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #e5e5e5;
+      font-size: 14px;
+      color: #666;
+    }
+    .link-fallback {
+      font-size: 12px;
+      color: #888;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>${partnerNames}</h1>
+      <p class="greeting">Hi ${guest.name},</p>
+      <p>We hope you're doing well. If you haven't had a chance to RSVP yet, we'd love to hear from you.</p>
+      <p>Your response helps us finalize the details and celebrate with care.</p>
+      <div class="cta-container">
+        <a href="${rsvpUrl}" class="cta-button">RSVP Now</a>
+      </div>
+      <p class="link-fallback">
+        If the button doesn't work, copy and paste this link into your browser:<br>
+        ${rsvpUrl}
+      </p>
+      <div class="footer">
+        <p>With gratitude,<br>${partnerNames}</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+    `.trim();
+
+    const textBody = `
+${partnerNames}
+
+Hi ${guest.name},
+
+We hope you're doing well. If you haven't had a chance to RSVP yet, we'd love to hear from you.
+
+Your response helps us finalize the details and celebrate with care.
+
+Please RSVP here:
+${rsvpUrl}
+
+With gratitude,
+${partnerNames}
+    `.trim();
+
+    return {
+      to: guest.email,
+      toName: guest.name,
+      subject,
+      htmlBody,
+      textBody,
+    };
+  }
+
+  /**
    * Send an email via SendGrid
    * In development mode, logs the email instead of actually sending
    */
-  async sendEmail(content: InvitationEmailContent): Promise<SendEmailResult> {
+  async sendEmail(content: EmailContent): Promise<SendEmailResult> {
     const sendgridApiKey = process.env.SENDGRID_API_KEY;
     const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'invites@everbloom.wedding';
     const fromName = process.env.SENDGRID_FROM_NAME || 'Everbloom Weddings';

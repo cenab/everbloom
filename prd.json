@@ -378,6 +378,6 @@
       "Verify worker processes emails",
       "Verify email_outbox updated"
     ],
-    "passes": false
+    "passes": true
   }
 ]

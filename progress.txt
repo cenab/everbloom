@@ -1065,3 +1065,30 @@
 - Admin list is visible under Site features only when PHOTO_UPLOAD is enabled.
 - Endpoint returns FEATURE_DISABLED if photo sharing is off.
 - `plans/features.json` was not present when looking for the required pass flag update.
+
+---
+
+### 2026-01-07 - Reminder Emails via Worker Queue
+
+**Feature worked on:** Reminder emails are sent via worker queue (PRD: email category)
+
+**Priority rationale:** Reminder emails close the RSVP loop and are the last outstanding operational email feature. Implementing them via BullMQ validates the queue + worker architecture and keeps sending off the API request thread.
+
+**What was done:**
+1. Added reminder queue types and payload contracts to the shared package, including a queue name constant.
+2. Added reminder enqueue flow in platform API:
+   - New POST /api/weddings/:weddingId/invitations/reminders endpoint
+   - ReminderQueueService to add BullMQ jobs
+   - Outbox status update endpoint for worker callbacks
+3. Added reminder email template in EmailService.
+4. Implemented worker processor to send reminder emails and report results back to the platform API.
+
+**PRD features now passing:**
+- "Reminder emails are sent via worker queue" ✓
+
+**Notes for next person:**
+- Queue name: `email-reminders` (BullMQ)
+- Trigger reminders: POST `/api/weddings/:weddingId/invitations/reminders` (auth required)
+- Worker status callback: POST `/api/weddings/:weddingId/invitations/outbox/:outboxId/status` with `x-worker-token` if set
+- Reminders default to pending guests only (RSVP feature must be enabled)
+- Worker uses `PLATFORM_API_URL` (default `http://localhost:3001/api`) and `WORKER_TOKEN` if configured

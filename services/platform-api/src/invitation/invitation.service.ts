@@ -3,11 +3,16 @@ import { randomBytes } from 'crypto';
 import type {
   EmailOutbox,
   EmailStatus,
+  EmailType,
   Guest,
+  ReminderJobData,
   Wedding,
   SendInvitationResult,
+  SendRemindersResponse,
 } from '@wedding-bestie/shared';
+import { REMINDER_QUEUE_FAILED } from '@wedding-bestie/shared';
 import { EmailService } from './email.service';
+import { ReminderQueueService } from './reminder-queue.service';
 import { GuestService } from '../guest/guest.service';
 import { WeddingService } from '../wedding/wedding.service';
 
@@ -20,6 +25,7 @@ export class InvitationService {
 
   constructor(
     private readonly emailService: EmailService,
+    private readonly reminderQueueService: ReminderQueueService,
     private readonly guestService: GuestService,
     private readonly weddingService: WeddingService,
   ) {}
@@ -31,6 +37,7 @@ export class InvitationService {
     guest: Guest,
     wedding: Wedding,
     subject: string,
+    emailType: EmailType,
   ): EmailOutbox {
     const now = new Date().toISOString();
     const id = randomBytes(16).toString('hex');
@@ -39,7 +46,7 @@ export class InvitationService {
       id,
       weddingId: wedding.id,
       guestId: guest.id,
-      emailType: 'invitation',
+      emailType,
       status: 'pending',
       toEmail: guest.email,
       toName: guest.name,
@@ -77,6 +84,24 @@ export class InvitationService {
     }
 
     this.emailOutbox.set(recordId, record);
+  }
+
+  /**
+   * Update an outbox record status by ID for a wedding
+   */
+  updateOutboxRecord(
+    weddingId: string,
+    recordId: string,
+    status: EmailStatus,
+    errorMessage?: string,
+  ): boolean {
+    const record = this.emailOutbox.get(recordId);
+    if (!record || record.weddingId !== weddingId) {
+      return false;
+    }
+
+    this.updateOutboxStatus(recordId, status, errorMessage);
+    return true;
   }
 
   /**
@@ -145,7 +170,12 @@ export class InvitationService {
       const emailContent = this.emailService.buildInvitationEmail(guest, wedding);
 
       // Create outbox record (tracks email)
-      const outboxRecord = this.createOutboxRecord(guest, wedding, emailContent.subject);
+      const outboxRecord = this.createOutboxRecord(
+        guest,
+        wedding,
+        emailContent.subject,
+        'invitation',
+      );
 
       // Send the email
       const sendResult = await this.emailService.sendEmail(emailContent);
@@ -189,6 +219,77 @@ export class InvitationService {
       total: guestIds.length,
       results,
     };
+  }
+
+  /**
+   * Enqueue reminder emails for pending guests
+   * PRD: "Reminder emails are sent via worker queue"
+   */
+  async enqueueReminders(
+    weddingId: string,
+    guestIds?: string[],
+  ): Promise<SendRemindersResponse> {
+    const wedding = this.weddingService.getWedding(weddingId);
+    if (!wedding) {
+      throw new Error('WEDDING_NOT_FOUND');
+    }
+
+    if (!wedding.features.RSVP) {
+      throw new Error('FEATURE_DISABLED');
+    }
+
+    let guests = this.guestService
+      .getGuestsForWedding(weddingId)
+      .filter((guest) => guest.rsvpStatus === 'pending');
+
+    if (guestIds && guestIds.length > 0) {
+      const allowed = new Set(guestIds);
+      guests = guests.filter((guest) => allowed.has(guest.id));
+    }
+
+    if (guests.length === 0) {
+      return { queued: 0, total: 0, guestIds: [], jobIds: [] };
+    }
+
+    const jobs: ReminderJobData[] = guests.map((guest) => {
+      const emailContent = this.emailService.buildReminderEmail(guest, wedding);
+      const outboxRecord = this.createOutboxRecord(
+        guest,
+        wedding,
+        emailContent.subject,
+        'reminder',
+      );
+
+      return {
+        outboxId: outboxRecord.id,
+        weddingId: wedding.id,
+        guestId: guest.id,
+        toEmail: emailContent.to,
+        toName: emailContent.toName,
+        subject: emailContent.subject,
+        htmlBody: emailContent.htmlBody,
+        textBody: emailContent.textBody,
+      };
+    });
+
+    try {
+      const jobIds = await this.reminderQueueService.enqueueReminders(jobs);
+      this.logger.log(
+        `Queued ${jobIds.length} reminder(s) for wedding ${weddingId}.`,
+      );
+      return {
+        queued: jobIds.length,
+        total: jobs.length,
+        guestIds: guests.map((guest) => guest.id),
+        jobIds,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Queue error';
+      for (const job of jobs) {
+        this.updateOutboxStatus(job.outboxId, 'failed', errorMessage);
+      }
+      throw new Error(REMINDER_QUEUE_FAILED);
+    }
   }
 
   /**
