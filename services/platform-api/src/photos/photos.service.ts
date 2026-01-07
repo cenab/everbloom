@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import type { PhotoMetadata } from '@wedding-bestie/shared';
 import { createHmac, randomBytes } from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -16,12 +17,18 @@ export interface UploadSession {
   storagePath?: string;
 }
 
+interface StoredPhoto extends PhotoMetadata {
+  weddingId: string;
+  storagePath: string;
+}
+
 @Injectable()
 export class PhotosService {
   private readonly logger = new Logger(PhotosService.name);
   private readonly secret =
     process.env.PHOTO_UPLOAD_SECRET || 'dev-photo-upload-secret';
   private uploads = new Map<string, UploadSession>();
+  private photosByWedding = new Map<string, StoredPhoto[]>();
 
   getMaxFileSize(): number {
     return MAX_PHOTO_SIZE_BYTES;
@@ -53,6 +60,13 @@ export class PhotosService {
 
   getUpload(uploadId: string): UploadSession | null {
     return this.uploads.get(uploadId) || null;
+  }
+
+  listPhotos(weddingId: string): PhotoMetadata[] {
+    const photos = this.photosByWedding.get(weddingId) ?? [];
+    return [...photos]
+      .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))
+      .map(({ storagePath, weddingId: _weddingId, ...photo }) => photo);
   }
 
   isUploadExpired(upload: UploadSession): boolean {
@@ -90,9 +104,20 @@ export class PhotosService {
 
     await fs.writeFile(filePath, buffer);
 
+    const uploadedAt = new Date().toISOString();
     upload.storagePath = filePath;
-    upload.uploadedAt = new Date().toISOString();
+    upload.uploadedAt = uploadedAt;
     this.uploads.set(upload.id, upload);
+
+    this.addPhotoRecord({
+      id: upload.id,
+      weddingId: upload.weddingId,
+      fileName: file.originalname || upload.fileName,
+      contentType: upload.contentType,
+      fileSize: buffer.length,
+      uploadedAt,
+      storagePath: filePath,
+    });
 
     this.logger.log(`Stored photo upload ${upload.id} to ${filePath}`);
   }
@@ -112,5 +137,10 @@ export class PhotosService {
     const trimmed = fileName.trim().toLowerCase();
     const sanitized = trimmed.replace(/[^a-z0-9._-]/g, '-');
     return sanitized || 'upload';
+  }
+
+  private addPhotoRecord(record: StoredPhoto): void {
+    const current = this.photosByWedding.get(record.weddingId) ?? [];
+    this.photosByWedding.set(record.weddingId, [record, ...current]);
   }
 }

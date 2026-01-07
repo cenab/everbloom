@@ -345,7 +345,7 @@
       "Verify metadata record exists in database",
       "Verify admin can see uploaded photo list"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "announcements",

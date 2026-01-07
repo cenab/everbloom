@@ -1044,3 +1044,24 @@
 - Upload endpoint expects multipart form field `file`
 - Files are stored under `uploads/{weddingId}` in dev (ignored by git)
 - Photo metadata storage + admin photo list are still pending
+
+### 2026-01-07 - Photo Metadata Stored + Admin List
+
+**Feature worked on:** Uploaded photo metadata is stored (PRD: photos category)
+
+**Priority rationale:** Photo uploads were working, but without stored metadata there was no admin visibility. This completes the photo flow by persisting upload details and exposing them in the platform UI.
+
+**What was done:**
+1. Added photo metadata types in the shared package for admin listing.
+2. Stored photo records after upload in the platform API and added a list method.
+3. Added an authenticated admin endpoint: `GET /api/weddings/:weddingId/photos` with feature flag gating.
+4. Added a Photo uploads section to the Site features page with refresh, empty state, and list display.
+
+**PRD features now passing:**
+- "Uploaded photo metadata is stored" ✓
+
+**Notes for next person:**
+- Photo metadata is stored in-memory alongside uploads (restart API clears it).
+- Admin list is visible under Site features only when PHOTO_UPLOAD is enabled.
+- Endpoint returns FEATURE_DISABLED if photo sharing is off.
+- `plans/features.json` was not present when looking for the required pass flag update.

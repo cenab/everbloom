@@ -1,0 +1,83 @@
+import {
+  Controller,
+  Get,
+  Headers,
+  Param,
+  ForbiddenException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import type { ApiResponse, PhotoListResponse } from '@wedding-bestie/shared';
+import { FEATURE_DISABLED } from '@wedding-bestie/shared';
+import { AuthService } from '../auth/auth.service';
+import { WeddingService } from '../wedding/wedding.service';
+import { PhotosService } from './photos.service';
+
+@Controller('weddings')
+export class PhotosAdminController {
+  constructor(
+    private readonly authService: AuthService,
+    private readonly weddingService: WeddingService,
+    private readonly photosService: PhotosService,
+  ) {}
+
+  /**
+   * List uploaded photos for a wedding
+   * GET /api/weddings/:weddingId/photos
+   */
+  @Get(':weddingId/photos')
+  async listPhotos(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+  ): Promise<ApiResponse<PhotoListResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(weddingId);
+
+    if (!wedding || wedding.userId !== user.id) {
+      throw new NotFoundException('Wedding not found');
+    }
+
+    if (!wedding.features.PHOTO_UPLOAD) {
+      throw new ForbiddenException({
+        ok: false,
+        error: FEATURE_DISABLED,
+      });
+    }
+
+    const photos = this.photosService.listPhotos(weddingId);
+    return { ok: true, data: { photos } };
+  }
+
+  /**
+   * Extract and validate auth token
+   */
+  private async requireAuth(authHeader: string | undefined) {
+    const token = this.extractBearerToken(authHeader);
+    if (!token) {
+      throw new UnauthorizedException('Authentication required');
+    }
+
+    const user = await this.authService.validateSession(token);
+    if (!user) {
+      throw new UnauthorizedException('Invalid or expired session');
+    }
+
+    return user;
+  }
+
+  /**
+   * Extract Bearer token from Authorization header
+   */
+  private extractBearerToken(authHeader: string | undefined): string | null {
+    if (!authHeader) {
+      return null;
+    }
+
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      return null;
+    }
+
+    return parts[1];
+  }
+}

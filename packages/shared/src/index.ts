@@ -485,6 +485,28 @@ export const PHOTO_UPLOAD_VALIDATION_ERROR = 'PHOTO_UPLOAD_VALIDATION_ERROR' as 
 export const PHOTO_UPLOAD_INVALID = 'PHOTO_UPLOAD_INVALID' as const;
 
 // ============================================================================
+// Photo Metadata Types (Admin)
+// ============================================================================
+
+/**
+ * Metadata for an uploaded photo
+ */
+export interface PhotoMetadata {
+  id: string;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  uploadedAt: string;
+}
+
+/**
+ * Response from listing uploaded photos
+ */
+export interface PhotoListResponse {
+  photos: PhotoMetadata[];
+}
+
+// ============================================================================
 // RSVP Summary Types (Admin Dashboard)
 // ============================================================================
 

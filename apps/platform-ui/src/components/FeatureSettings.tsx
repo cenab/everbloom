@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getAuthToken } from '../lib/auth';
 import type {
   FeatureFlag,
   Wedding,
   UpdateFeaturesResponse,
   ApiResponse,
+  PhotoMetadata,
+  PhotoListResponse,
 } from '@wedding-bestie/shared';
 
 interface FeatureSettingsProps {
@@ -72,8 +74,12 @@ export function FeatureSettings({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<PhotoMetadata[]>([]);
+  const [photosError, setPhotosError] = useState<string | null>(null);
+  const [isPhotosLoading, setIsPhotosLoading] = useState(false);
 
   const availableFeatures = PLAN_AVAILABLE_FEATURES[wedding.planId] || [];
+  const showPhotoUploads = availableFeatures.includes('PHOTO_UPLOAD') && wedding.features.PHOTO_UPLOAD;
 
   // Check if there are unsaved changes
   const hasChanges = Object.keys(features).some(
@@ -83,7 +89,42 @@ export function FeatureSettings({
   useEffect(() => {
     // Reset features if wedding changes
     setFeatures(wedding.features);
+    setPhotos([]);
+    setPhotosError(null);
+    setIsPhotosLoading(false);
   }, [wedding.id]);
+
+  const loadPhotos = useCallback(async () => {
+    setIsPhotosLoading(true);
+    setPhotosError(null);
+
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`/api/weddings/${wedding.id}/photos`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data: ApiResponse<PhotoListResponse> = await response.json();
+
+      if (data.ok) {
+        setPhotos(data.data.photos);
+      } else {
+        setPhotosError('Unable to load photo uploads. Please try again.');
+      }
+    } catch {
+      setPhotosError('Unable to load photo uploads. Please try again.');
+    } finally {
+      setIsPhotosLoading(false);
+    }
+  }, [wedding.id]);
+
+  useEffect(() => {
+    if (showPhotoUploads) {
+      loadPhotos();
+    }
+  }, [showPhotoUploads, loadPhotos]);
 
   const handleToggle = (flag: FeatureFlag) => {
     setFeatures((prev) => ({
@@ -182,6 +223,15 @@ export function FeatureSettings({
         })}
       </div>
 
+      {showPhotoUploads && (
+        <PhotoUploadsSection
+          photos={photos}
+          isLoading={isPhotosLoading}
+          error={photosError}
+          onRefresh={loadPhotos}
+        />
+      )}
+
       <div className="flex gap-4">
         <button
           onClick={handleSave}
@@ -194,6 +244,84 @@ export function FeatureSettings({
           Cancel
         </button>
       </div>
+    </div>
+  );
+}
+
+interface PhotoUploadsSectionProps {
+  photos: PhotoMetadata[];
+  isLoading: boolean;
+  error: string | null;
+  onRefresh: () => void;
+}
+
+function PhotoUploadsSection({
+  photos,
+  isLoading,
+  error,
+  onRefresh,
+}: PhotoUploadsSectionProps) {
+  return (
+    <div className="mb-10">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div>
+          <h2 className="text-xl text-neutral-800">Photo uploads</h2>
+          <p className="text-neutral-500 mt-1">
+            See the photos your guests have shared.
+          </p>
+        </div>
+        <button
+          onClick={onRefresh}
+          className="text-sm text-neutral-600 hover:text-neutral-800"
+          type="button"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {error && (
+        <div className="mb-4 p-4 bg-primary-50 border border-primary-200 rounded-lg text-primary-800">
+          {error}
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="text-center py-8">
+          <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-neutral-500">Loading photo uploads...</p>
+        </div>
+      ) : photos.length === 0 ? (
+        <div className="text-center py-10 px-6 bg-neutral-50 border border-neutral-200 rounded-lg">
+          <div className="w-12 h-12 mx-auto rounded-full bg-primary-100 flex items-center justify-center mb-4">
+            <CameraIcon className="w-6 h-6 text-primary-600" />
+          </div>
+          <h3 className="text-lg text-neutral-800 mb-2">No photos yet</h3>
+          <p className="text-neutral-500 max-w-sm mx-auto">
+            Once guests start uploading, their photos will appear here.
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white border border-neutral-200 rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-neutral-200 bg-neutral-50 text-sm text-neutral-600">
+            {photos.length} uploads
+          </div>
+          <ul className="divide-y divide-neutral-200">
+            {photos.map((photo) => (
+              <li key={photo.id} className="px-4 py-4 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p className="text-neutral-800 font-medium">{photo.fileName}</p>
+                  <p className="text-sm text-neutral-500">
+                    {formatFileSize(photo.fileSize)} | {photo.contentType}
+                  </p>
+                </div>
+                <span className="text-sm text-neutral-500">
+                  {formatDateTime(photo.uploadedAt)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -263,6 +391,31 @@ function FeatureToggle({
   );
 }
 
+function formatFileSize(bytes: number): string {
+  if (!Number.isFinite(bytes)) {
+    return 'Unknown size';
+  }
+
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDateTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString();
+}
+
 function ChevronLeftIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -276,6 +429,24 @@ function ChevronLeftIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M15.75 19.5L8.25 12l7.5-7.5"
+      />
+    </svg>
+  );
+}
+
+function CameraIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6.75 7.5h10.5M6.75 7.5a2.25 2.25 0 00-2.25 2.25v7.5A2.25 2.25 0 006.75 19.5h10.5A2.25 2.25 0 0019.5 17.25v-7.5A2.25 2.25 0 0017.25 7.5m-10.5 0l1.5-2.25h6l1.5 2.25m-6.75 6a3 3 0 106 0 3 3 0 00-6 0z"
       />
     </svg>
   );
