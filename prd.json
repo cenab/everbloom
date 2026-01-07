@@ -180,7 +180,7 @@
       "Verify render_config contains sections array",
       "Verify render_config contains enabled feature flags"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "site",

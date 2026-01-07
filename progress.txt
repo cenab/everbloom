@@ -241,3 +241,52 @@
 - For local testing, use Stripe CLI: `stripe listen --forward-to localhost:3001/api/billing/stripe-webhook`
 - Slugs are generated as `partner1-and-partner2-{random}` (URL-safe, lowercase)
 - The render_config generation is already in place - provisioning feature passes
+
+---
+
+### 2026-01-06 - Wedding render_config API Endpoint
+
+**Feature worked on:** Wedding site render_config is generated on provisioning (PRD: provisioning category)
+
+**Priority rationale:** This was the highest-priority incomplete feature because:
+1. The render_config generation logic was already implemented in WeddingService
+2. However, there was no API endpoint to fetch the render_config
+3. This blocks the wedding site rendering feature (which needs to consume render_config)
+4. Without an endpoint, the PRD step "Fetch wedding_sites.render_config" could not pass
+
+**What was done:**
+1. Created WeddingController (services/platform-api/src/wedding/wedding.controller.ts):
+   - `GET /api/weddings` - List all weddings for authenticated user
+   - `GET /api/weddings/:id` - Get a specific wedding by ID
+   - `GET /api/weddings/:id/render-config` - Fetch render_config for a wedding
+   - All endpoints require authentication and verify ownership
+
+2. Updated WeddingModule to:
+   - Import AuthModule (using forwardRef to avoid circular dependency)
+   - Register WeddingController
+
+3. Updated AppModule to:
+   - Import WeddingModule directly (previously only imported via BillingModule)
+
+**API Endpoints added:**
+- `GET /api/weddings` - Returns user's weddings array
+- `GET /api/weddings/:id` - Returns wedding details
+- `GET /api/weddings/:id/render-config` - Returns the render_config object containing:
+  - `templateId` (e.g., "minimal-001")
+  - `theme` (primary, accent, neutralLight, neutralDark)
+  - `features` (feature flags record based on plan)
+  - `sections` (array of section definitions)
+  - `wedding` (slug, partnerNames)
+
+**PRD features now passing:**
+- "Wedding site render_config is generated on provisioning" ✓
+
+**Next steps:**
+- Implement wedding site rendering from render_config (site category)
+- This will require updating the Astro wedding site to fetch and render from the config
+
+**Notes for next person:**
+- The render_config is stored in-memory alongside weddings (dev mode)
+- Endpoint requires Bearer token authentication
+- Only the wedding owner can fetch their render_config
+- The config contains all data needed for the wedding site to render without additional DB queries
