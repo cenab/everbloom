@@ -696,13 +696,23 @@ export const CSV_IMPORT_VALIDATION_ERROR = 'CSV_IMPORT_VALIDATION_ERROR' as cons
 
 /**
  * Email status in the email_outbox
+ * - pending: Email queued but not yet sent
+ * - sent: Email accepted by SendGrid (may not yet be delivered)
+ * - delivered: Email confirmed delivered to recipient's mailbox
+ * - bounced: Email bounced (hard or soft bounce)
+ * - failed: Email send failed (API error or rejected)
  */
-export type EmailStatus = 'pending' | 'sent' | 'failed';
+export type EmailStatus = 'pending' | 'sent' | 'delivered' | 'bounced' | 'failed';
 
 /**
  * Email type identifier
  */
 export type EmailType = 'invitation' | 'reminder' | 'update';
+
+/**
+ * Bounce type from SendGrid webhooks
+ */
+export type BounceType = 'hard' | 'soft';
 
 /**
  * Email outbox record for tracking sent emails
@@ -717,7 +727,17 @@ export interface EmailOutbox {
   toName: string;
   subject: string;
   sentAt?: string;
+  /** Timestamp when email was delivered (from webhook) */
+  deliveredAt?: string;
+  /** Timestamp when bounce occurred (from webhook) */
+  bouncedAt?: string;
+  /** Type of bounce (hard = permanent, soft = temporary) */
+  bounceType?: BounceType;
+  /** Bounce reason from SendGrid (e.g., "invalid_email", "mailbox_unavailable") */
+  bounceReason?: string;
   errorMessage?: string;
+  /** SendGrid message ID for tracking */
+  messageId?: string;
   attempts: number;
   createdAt: string;
   updatedAt: string;
@@ -812,12 +832,64 @@ export interface ReminderJobData {
 }
 
 /**
- * Outbox status update payload (worker -> platform API)
+ * Outbox status update payload (worker -> platform API or webhook)
  */
 export interface UpdateOutboxStatusRequest {
   status: EmailStatus;
   errorMessage?: string;
+  /** SendGrid message ID for tracking */
+  messageId?: string;
+  /** Bounce type (for bounced status) */
+  bounceType?: BounceType;
+  /** Bounce reason (for bounced status) */
+  bounceReason?: string;
 }
+
+// ============================================================================
+// SendGrid Webhook Types
+// ============================================================================
+
+/**
+ * SendGrid webhook event types we care about
+ */
+export type SendGridEventType =
+  | 'delivered'
+  | 'bounce'
+  | 'dropped'
+  | 'deferred'
+  | 'processed'
+  | 'open'
+  | 'click'
+  | 'spamreport'
+  | 'unsubscribe';
+
+/**
+ * SendGrid webhook event payload (simplified)
+ */
+export interface SendGridWebhookEvent {
+  /** SendGrid message ID (sg_message_id) */
+  sg_message_id: string;
+  /** Event type */
+  event: SendGridEventType;
+  /** Recipient email */
+  email: string;
+  /** Unix timestamp */
+  timestamp: number;
+  /** Bounce type (for bounce events) */
+  type?: string;
+  /** Bounce reason (for bounce events) */
+  reason?: string;
+  /** SMTP response (for bounce/dropped events) */
+  response?: string;
+  /** Custom args we pass (contains outboxId) */
+  outbox_id?: string;
+  wedding_id?: string;
+}
+
+/**
+ * SendGrid webhook signature verification failed
+ */
+export const SENDGRID_WEBHOOK_INVALID = 'SENDGRID_WEBHOOK_INVALID' as const;
 
 /**
  * Email sending failed error code
@@ -1064,6 +1136,7 @@ export type ErrorCode =
   | typeof PASSCODE_NOT_CONFIGURED
   | typeof TAG_NOT_FOUND
   | typeof TAG_ALREADY_EXISTS
+  | typeof SENDGRID_WEBHOOK_INVALID
   | typeof VALIDATION_ERROR
   | typeof UNAUTHORIZED
   | typeof FORBIDDEN

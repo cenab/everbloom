@@ -27,19 +27,34 @@ interface GuestsProps {
  * PRD: "Admin can add invitees manually"
  */
 /**
- * Get the latest email status for a guest by looking at all their outbox records.
- * Returns the most recent status (prioritizing invitation over reminder).
+ * Email status info including bounce details for display
  */
-function getLatestEmailStatus(guestId: string, emailOutbox: EmailOutbox[]): { status: EmailStatus; type: string } | null {
+interface EmailStatusInfo {
+  status: EmailStatus;
+  type: string;
+  bounceType?: 'hard' | 'soft';
+  bounceReason?: string;
+}
+
+/**
+ * Get the latest email status for a guest by looking at all their outbox records.
+ * Returns the most recent status with bounce details if applicable.
+ */
+function getLatestEmailStatus(guestId: string, emailOutbox: EmailOutbox[]): EmailStatusInfo | null {
   const guestEmails = emailOutbox
     .filter((e) => e.guestId === guestId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   if (guestEmails.length === 0) return null;
 
-  // Return the most recent email status
+  // Return the most recent email status with bounce info
   const latest = guestEmails[0];
-  return { status: latest.status, type: latest.emailType };
+  return {
+    status: latest.status,
+    type: latest.emailType,
+    bounceType: latest.bounceType,
+    bounceReason: latest.bounceReason,
+  };
 }
 
 export function Guests({ weddingId, onBack }: GuestsProps) {
@@ -999,7 +1014,7 @@ function GuestList({
 interface GuestRowProps {
   guest: Guest;
   tags: GuestTag[];
-  emailStatus: { status: EmailStatus; type: string } | null;
+  emailStatus: EmailStatusInfo | null;
   weddingId: string;
   onDelete: (guestId: string) => void;
   isSelected: boolean;
@@ -1089,13 +1104,13 @@ function GuestRow({ guest, tags, emailStatus, weddingId, onDelete, isSelected, o
 
 /**
  * InviteStatusBadge component shows the delivery status of the invitation email.
- * PRD: "Admin can see invite delivery status"
+ * PRD: "Admin can see invite delivery status" and "Admin can see bounce and failure status"
  */
 function InviteStatusBadge({
   emailStatus,
   inviteSentAt,
 }: {
-  emailStatus: { status: EmailStatus; type: string } | null;
+  emailStatus: EmailStatusInfo | null;
   inviteSentAt?: string;
 }) {
   // No invitation has been attempted
@@ -1105,13 +1120,25 @@ function InviteStatusBadge({
 
   // Show detailed status from email outbox
   if (emailStatus) {
-    const statusConfig = {
-      sent: {
+    const statusConfig: Record<
+      EmailStatus,
+      { className: string; label: string; icon: React.ReactNode }
+    > = {
+      delivered: {
         className: 'bg-accent-100 text-accent-700',
         label: 'Delivered',
         icon: (
           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
+        ),
+      },
+      sent: {
+        className: 'bg-amber-100 text-amber-700',
+        label: 'Sent',
+        icon: (
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
           </svg>
         ),
       },
@@ -1121,6 +1148,15 @@ function InviteStatusBadge({
         icon: (
           <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+          </svg>
+        ),
+      },
+      bounced: {
+        className: 'bg-red-100 text-red-700',
+        label: emailStatus.bounceType === 'hard' ? 'Bounced' : 'Soft bounce',
+        icon: (
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
           </svg>
         ),
       },
@@ -1137,10 +1173,16 @@ function InviteStatusBadge({
 
     const config = statusConfig[emailStatus.status];
 
+    // Build tooltip with bounce reason if available
+    let tooltip = `${emailStatus.type === 'reminder' ? 'Reminder' : 'Invitation'} ${emailStatus.status}`;
+    if (emailStatus.status === 'bounced' && emailStatus.bounceReason) {
+      tooltip += `: ${emailStatus.bounceReason}`;
+    }
+
     return (
       <span
         className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${config.className}`}
-        title={`${emailStatus.type === 'reminder' ? 'Reminder' : 'Invitation'} ${emailStatus.status}`}
+        title={tooltip}
       >
         {config.icon}
         {config.label}

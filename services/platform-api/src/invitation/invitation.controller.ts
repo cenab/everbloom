@@ -20,6 +20,7 @@ import type {
   SendRemindersRequest,
   SendRemindersResponse,
   EmailOutbox,
+  EmailStatisticsResponse,
   UpdateOutboxStatusRequest,
   ApiResponse,
 } from '../types';
@@ -143,6 +144,21 @@ export class InvitationController {
   }
 
   /**
+   * Get email delivery statistics for a wedding
+   * PRD: "Dashboard shows email delivery statistics"
+   */
+  @Get('statistics')
+  async getStatistics(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+  ): Promise<ApiResponse<EmailStatisticsResponse>> {
+    await this.requireWeddingOwner(authHeader, weddingId);
+
+    const statistics = this.invitationService.getEmailStatistics(weddingId);
+    return { ok: true, data: { statistics } };
+  }
+
+  /**
    * Update outbox status (worker -> platform API)
    */
   @Post('outbox/:outboxId/status')
@@ -154,11 +170,12 @@ export class InvitationController {
   ): Promise<ApiResponse<{ updated: boolean }>> {
     this.requireWorkerToken(workerToken);
 
-    if (!body.status || (body.status !== 'sent' && body.status !== 'failed')) {
+    const validStatuses = ['sent', 'failed', 'delivered', 'bounced'];
+    if (!body.status || !validStatuses.includes(body.status)) {
       throw new BadRequestException({
         ok: false,
         error: 'INVALID_STATUS',
-        message: 'Status must be sent or failed.',
+        message: 'Status must be sent, failed, delivered, or bounced.',
       });
     }
 
@@ -166,7 +183,12 @@ export class InvitationController {
       weddingId,
       outboxId,
       body.status,
-      body.errorMessage,
+      {
+        errorMessage: body.errorMessage,
+        messageId: body.messageId,
+        bounceType: body.bounceType,
+        bounceReason: body.bounceReason,
+      },
     );
 
     if (!updated) {

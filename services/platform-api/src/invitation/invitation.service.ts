@@ -1,8 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import type {
+  BounceType,
   EmailOutbox,
   EmailStatus,
+  EmailStatistics,
   EmailType,
   Guest,
   ReminderJobData,
@@ -66,7 +68,12 @@ export class InvitationService {
   private updateOutboxStatus(
     recordId: string,
     status: EmailStatus,
-    errorMessage?: string,
+    options?: {
+      errorMessage?: string;
+      messageId?: string;
+      bounceType?: BounceType;
+      bounceReason?: string;
+    },
   ): void {
     const record = this.emailOutbox.get(recordId);
     if (!record) return;
@@ -79,8 +86,26 @@ export class InvitationService {
       record.sentAt = new Date().toISOString();
     }
 
-    if (errorMessage) {
-      record.errorMessage = errorMessage;
+    if (status === 'delivered') {
+      record.deliveredAt = new Date().toISOString();
+    }
+
+    if (status === 'bounced') {
+      record.bouncedAt = new Date().toISOString();
+      if (options?.bounceType) {
+        record.bounceType = options.bounceType;
+      }
+      if (options?.bounceReason) {
+        record.bounceReason = options.bounceReason;
+      }
+    }
+
+    if (options?.errorMessage) {
+      record.errorMessage = options.errorMessage;
+    }
+
+    if (options?.messageId) {
+      record.messageId = options.messageId;
     }
 
     this.emailOutbox.set(recordId, record);
@@ -93,14 +118,54 @@ export class InvitationService {
     weddingId: string,
     recordId: string,
     status: EmailStatus,
-    errorMessage?: string,
+    options?: {
+      errorMessage?: string;
+      messageId?: string;
+      bounceType?: BounceType;
+      bounceReason?: string;
+    },
   ): boolean {
     const record = this.emailOutbox.get(recordId);
     if (!record || record.weddingId !== weddingId) {
       return false;
     }
 
-    this.updateOutboxStatus(recordId, status, errorMessage);
+    this.updateOutboxStatus(recordId, status, options);
+    return true;
+  }
+
+  /**
+   * Find an outbox record by SendGrid message ID
+   */
+  findOutboxByMessageId(messageId: string): EmailOutbox | undefined {
+    for (const record of this.emailOutbox.values()) {
+      if (record.messageId === messageId) {
+        return record;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Update outbox status by SendGrid message ID (for webhook events)
+   */
+  updateOutboxByMessageId(
+    messageId: string,
+    status: EmailStatus,
+    options?: {
+      bounceType?: BounceType;
+      bounceReason?: string;
+    },
+  ): boolean {
+    const record = this.findOutboxByMessageId(messageId);
+    if (!record) {
+      return false;
+    }
+
+    this.updateOutboxStatus(record.id, status, options);
+    this.logger.log(
+      `Updated outbox ${record.id} status to ${status} via webhook (messageId: ${messageId})`,
+    );
     return true;
   }
 
@@ -200,7 +265,9 @@ export class InvitationService {
       const sendResult = await this.emailService.sendEmail(emailContent);
 
       if (sendResult.success) {
-        this.updateOutboxStatus(outboxRecord.id, 'sent');
+        this.updateOutboxStatus(outboxRecord.id, 'sent', {
+          messageId: sendResult.messageId,
+        });
         await this.markGuestInviteSent(guestId);
 
         results.push({
@@ -213,7 +280,9 @@ export class InvitationService {
 
         this.logger.log(`Invitation sent to ${guest.name} <${guest.email}>`);
       } else {
-        this.updateOutboxStatus(outboxRecord.id, 'failed', sendResult.error);
+        this.updateOutboxStatus(outboxRecord.id, 'failed', {
+          errorMessage: sendResult.error,
+        });
 
         results.push({
           guestId,
@@ -316,9 +385,9 @@ export class InvitationService {
         jobIds,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Queue error';
+      const errMsg = error instanceof Error ? error.message : 'Queue error';
       for (const job of jobs) {
-        this.updateOutboxStatus(job.outboxId, 'failed', errorMessage);
+        this.updateOutboxStatus(job.outboxId, 'failed', { errorMessage: errMsg });
       }
       throw new Error(REMINDER_QUEUE_FAILED);
     }
@@ -353,5 +422,55 @@ export class InvitationService {
     return records.sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
+  }
+
+  /**
+   * Get email delivery statistics for a wedding
+   * PRD: "Dashboard shows email delivery statistics"
+   */
+  getEmailStatistics(weddingId: string): EmailStatistics {
+    const records = this.getOutboxForWedding(weddingId);
+
+    // Initialize counters
+    const stats: EmailStatistics = {
+      totalSent: 0,
+      delivered: 0,
+      failed: 0,
+      pending: 0,
+      byType: {
+        invitation: { sent: 0, delivered: 0, failed: 0 },
+        reminder: { sent: 0, delivered: 0, failed: 0 },
+      },
+    };
+
+    for (const record of records) {
+      // Count overall totals
+      stats.totalSent++;
+
+      // Count by status
+      if (record.status === 'sent') {
+        stats.delivered++;
+      } else if (record.status === 'failed') {
+        stats.failed++;
+      } else if (record.status === 'pending') {
+        stats.pending++;
+      }
+
+      // Count by type
+      const typeKey = record.emailType as 'invitation' | 'reminder';
+      if (typeKey === 'invitation' || typeKey === 'reminder') {
+        stats.byType[typeKey].sent++;
+        if (record.status === 'sent') {
+          stats.byType[typeKey].delivered++;
+        } else if (record.status === 'failed') {
+          stats.byType[typeKey].failed++;
+        }
+      }
+    }
+
+    // Note: openRate would require tracking pixel implementation
+    // which is not currently implemented, so we leave it undefined
+
+    return stats;
   }
 }

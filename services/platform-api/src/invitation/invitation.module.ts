@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { InvitationController } from './invitation.controller';
+import { SendGridWebhookController } from './sendgrid-webhook.controller';
 import { InvitationService } from './invitation.service';
 import { EmailService } from './email.service';
 import { ReminderQueueService } from './reminder-queue.service';
@@ -13,7 +14,7 @@ import { WeddingModule } from '../wedding/wedding.module';
     forwardRef(() => GuestModule),
     forwardRef(() => WeddingModule),
   ],
-  controllers: [InvitationController],
+  controllers: [InvitationController, SendGridWebhookController],
   providers: [InvitationService, EmailService, ReminderQueueService],
   exports: [InvitationService, EmailService, ReminderQueueService],
 })

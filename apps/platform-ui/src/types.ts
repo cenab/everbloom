@@ -416,13 +416,23 @@ export interface CsvImportResponse {
 
 /**
  * Email delivery status
+ * - pending: Email queued but not yet sent
+ * - sent: Email accepted by SendGrid (may not yet be delivered)
+ * - delivered: Email confirmed delivered to recipient's mailbox
+ * - bounced: Email bounced (hard or soft bounce)
+ * - failed: Email send failed (API error or rejected)
  */
-export type EmailStatus = 'pending' | 'sent' | 'failed';
+export type EmailStatus = 'pending' | 'sent' | 'delivered' | 'bounced' | 'failed';
 
 /**
  * Type of email sent
  */
 export type EmailType = 'invitation' | 'reminder' | 'update';
+
+/**
+ * Bounce type from email provider webhooks
+ */
+export type BounceType = 'hard' | 'soft';
 
 /**
  * Email outbox record for tracking email delivery
@@ -437,6 +447,14 @@ export interface EmailOutbox {
   toName: string;
   subject: string;
   sentAt?: string;
+  /** Timestamp when email was delivered (from webhook) */
+  deliveredAt?: string;
+  /** Timestamp when bounce occurred (from webhook) */
+  bouncedAt?: string;
+  /** Type of bounce (hard = permanent, soft = temporary) */
+  bounceType?: BounceType;
+  /** Bounce reason (e.g., "invalid_email", "mailbox_unavailable") */
+  bounceReason?: string;
   errorMessage?: string;
   attempts: number;
   createdAt: string;

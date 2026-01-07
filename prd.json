@@ -604,7 +604,7 @@
       "Verify bounced status is shown",
       "Verify admin can update email and resend"
     ],
-    "passes": false
+    "passes": true
   },
 
   {

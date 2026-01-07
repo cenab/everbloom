@@ -2308,3 +2308,87 @@ No stack traces, internal messages, or technical details are ever exposed.
 - Recent uploads list shows last 5 photos by upload date
 - Statistics are calculated from in-memory storage (restart API = reset)
 - The existing /api/weddings/:weddingId/photos endpoint still exists for full photo list
+
+---
+
+### 2026-01-07 - Admin Can See Bounce and Failure Status
+
+**Feature worked on:** Admin can see bounce and failure status (PRD: guests category)
+
+**Priority rationale:** This is a high-priority feature because:
+1. Email delivery tracking is foundational for reliable guest communication
+2. Bounce handling is critical for wedding planners to ensure all guests receive invitations
+3. The email outbox infrastructure already existed but lacked webhook-based delivery tracking
+4. Without bounce visibility, admins can't identify and fix delivery issues
+
+**What was done:**
+1. Extended EmailStatus type to include 'delivered' and 'bounced' statuses:
+   - `services/platform-api/src/types/index.ts`: Added `delivered`, `bounced` to EmailStatus union
+   - Added `BounceType` type ('hard' | 'soft')
+   - Extended `EmailOutbox` interface with deliveredAt, bouncedAt, bounceType, bounceReason, messageId fields
+   - Added `SendGridWebhookEvent` interface and `SENDGRID_WEBHOOK_INVALID` error code
+
+2. Updated InvitationService to support bounce tracking:
+   - Extended `updateOutboxStatus()` and `updateOutboxRecord()` to accept bounce options
+   - Added `findOutboxByMessageId()` method for webhook lookup
+   - Added `updateOutboxByMessageId()` method for webhook-triggered status updates
+   - Updated email sending to store SendGrid messageId for tracking
+
+3. Created SendGrid webhook controller:
+   - New `SendGridWebhookController` at `POST /api/webhooks/sendgrid`
+   - Handles `delivered`, `bounce`, `dropped` events from SendGrid
+   - Updates outbox records via messageId lookup
+   - Signature verification support when `SENDGRID_WEBHOOK_VERIFICATION_KEY` is configured
+   - Logs warnings for bounces and dropped emails
+
+4. Updated platform-ui types:
+   - Extended `EmailStatus` to include 'delivered' and 'bounced'
+   - Added `BounceType` type
+   - Extended `EmailOutbox` interface with bounce fields
+
+5. Updated Guests.tsx UI component:
+   - Added `EmailStatusInfo` interface with bounceType and bounceReason
+   - Updated `getLatestEmailStatus()` to include bounce details
+   - Updated `InviteStatusBadge` component with new status displays:
+     - 'delivered': Green checkmark badge
+     - 'sent': Amber send icon badge (awaiting delivery confirmation)
+     - 'bounced': Red warning triangle badge (shows "Bounced" for hard, "Soft bounce" for soft)
+     - Tooltip shows bounce reason when available
+
+**API Endpoints:**
+- `POST /api/webhooks/sendgrid` - SendGrid webhook handler (public, signature-verified)
+  - Accepts array of SendGrid webhook events
+  - Handles: delivered, bounce, dropped events
+  - Returns: `{ processed: number, errors: number }`
+
+**Email Status Flow:**
+1. Email sent → status: 'sent' (messageId stored)
+2. SendGrid delivers → webhook: 'delivered' → status: 'delivered'
+3. Email bounces → webhook: 'bounce' → status: 'bounced' (with bounceType and bounceReason)
+4. Email dropped → webhook: 'dropped' → status: 'bounced' (hard bounce)
+
+**Design system adherence:**
+- Bounced status uses red-100/red-700 colors (not primary, for clarity)
+- Warning triangle icon for bounced status
+- Tooltip shows bounce reason for actionable feedback
+- Human language: "Bounced", "Soft bounce" based on bounce type
+- Delivered status uses accent colors (green) for positive feedback
+- Sent status uses amber for "in progress" indication
+
+**PRD features now passing:**
+- "Admin can see bounce and failure status" ✓
+  - ✓ Bounced status is shown on Guests page
+  - ✓ Bounce reason available in tooltip
+  - ✓ Admin can update email via existing PUT endpoint
+  - ✓ Admin can resend via existing send invitations flow
+
+**Notes for next person:**
+- SendGrid webhook endpoint is at POST /api/webhooks/sendgrid
+- Set `SENDGRID_WEBHOOK_VERIFICATION_KEY` env var for signature verification in production
+- Webhook events are matched to outbox records via messageId
+- The base messageId is extracted (SendGrid adds filter suffixes like `.filter0001`)
+- Soft bounces are temporary; hard bounces indicate permanent delivery failure
+- Guest update endpoint already exists: PUT /api/weddings/:weddingId/guests/:guestId
+- After updating email, admin can select guest and click "Send invites" to resend
+- Statistics (delivered/bounced counts) can be calculated from outbox records
+
