@@ -930,3 +930,40 @@
 - Feature selection is stored in Stripe checkout metadata as JSON
 - Provisioning now respects selected toggles while still enforcing plan eligibility
 - If no feature selection is provided, plan defaults still enable all allowed features
+
+---
+
+### 2026-01-07 - Admin Can Create Announcement Banner
+
+**Feature worked on:** Admin can create announcement banner (PRD: announcements category)
+
+**Priority rationale:** Announcement banners are a lightweight, high-visibility way for couples to share updates. This feature is simpler than photo uploads or reminders, and it completes the admin-side content workflow needed before public display.
+
+**What was done:**
+1. Added announcement types and API contracts to shared package:
+   - Wedding records now store optional announcement content
+   - Added UpdateAnnouncementRequest/Response types
+
+2. Added announcement storage in platform API:
+   - WeddingService stores announcement data on the wedding record
+   - render_config now includes announcement data
+   - New updateAnnouncement method updates wedding + render_config
+
+3. Added announcement update endpoint:
+   - PUT /api/weddings/:id/announcement (auth required)
+   - Enforces FEATURE_DISABLED when announcement banner is not enabled
+   - Validates title/message when enabled
+
+4. Added admin UI for announcement settings:
+   - New AnnouncementSettings view with enable toggle, title, and message
+   - Dashboard card shown only when ANNOUNCEMENT_BANNER feature is enabled
+   - Calm, minimal form styling with friendly validation
+
+**PRD features now passing:**
+- "Admin can create announcement banner" ✓
+
+**Notes for next person:**
+- Announcement content lives on the Wedding record and in render_config
+- Admin UI fetches current announcement from /api/weddings/:id/render-config
+- Announcement settings are only accessible when ANNOUNCEMENT_BANNER is enabled
+- Public site rendering of the announcement banner is still pending

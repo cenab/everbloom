@@ -229,6 +229,7 @@ export interface CreateCheckoutSessionRequest {
   planId: PlanTier;
   weddingName: string;
   partnerNames: [string, string];
+  features?: Partial<Record<FeatureFlag, boolean>>;
 }
 
 /**
@@ -265,6 +266,7 @@ export interface Wedding {
   planId: PlanTier;
   status: WeddingStatus;
   features: Record<FeatureFlag, boolean>;
+  announcement?: Announcement;
   createdAt: string;
   updatedAt: string;
 }
@@ -278,6 +280,7 @@ export interface CreateWeddingPayload {
   weddingName: string;
   partnerNames: [string, string];
   stripeSessionId: string;
+  features?: Partial<Record<FeatureFlag, boolean>>;
 }
 
 /**
@@ -299,6 +302,21 @@ export interface UpdateFeaturesRequest {
  * Response after updating feature flags
  */
 export interface UpdateFeaturesResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+/**
+ * Request to update announcement banner for a wedding
+ */
+export interface UpdateAnnouncementRequest {
+  announcement: Announcement;
+}
+
+/**
+ * Response after updating announcement banner
+ */
+export interface UpdateAnnouncementResponse {
   wedding: Wedding;
   renderConfig: RenderConfig;
 }

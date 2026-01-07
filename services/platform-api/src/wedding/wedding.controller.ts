@@ -8,6 +8,7 @@ import {
   UnauthorizedException,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { WeddingService } from './wedding.service';
 import { AuthService } from '../auth/auth.service';
@@ -19,8 +20,10 @@ import type {
   ChangeTemplateRequest,
   UpdateFeaturesRequest,
   UpdateFeaturesResponse,
+  UpdateAnnouncementRequest,
+  UpdateAnnouncementResponse,
 } from '@wedding-bestie/shared';
-import { TEMPLATE_NOT_FOUND } from '@wedding-bestie/shared';
+import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED } from '@wedding-bestie/shared';
 
 @Controller('weddings')
 export class WeddingController {
@@ -134,6 +137,60 @@ export class WeddingController {
 
     if (!result) {
       throw new NotFoundException('Failed to update features');
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Update announcement banner content for a wedding
+   */
+  @Put(':id/announcement')
+  async updateAnnouncement(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: UpdateAnnouncementRequest,
+  ): Promise<ApiResponse<UpdateAnnouncementResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException('Wedding not found');
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException('Wedding not found');
+    }
+
+    if (!wedding.features.ANNOUNCEMENT_BANNER) {
+      throw new ForbiddenException({
+        ok: false,
+        error: FEATURE_DISABLED,
+      });
+    }
+
+    if (!body.announcement) {
+      throw new BadRequestException('Announcement data is required');
+    }
+
+    const title = body.announcement.title?.trim();
+    const message = body.announcement.message?.trim();
+    const enabled = Boolean(body.announcement.enabled);
+
+    if (enabled && (!title || !message)) {
+      throw new BadRequestException('Title and message are required when enabled');
+    }
+
+    const announcement = {
+      enabled,
+      title: title ?? '',
+      message: message ?? '',
+    };
+
+    const result = this.weddingService.updateAnnouncement(id, announcement);
+
+    if (!result) {
+      throw new NotFoundException('Failed to update announcement');
     }
 
     return { ok: true, data: result };

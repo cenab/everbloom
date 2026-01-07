@@ -10,6 +10,7 @@ import type {
   Theme,
   Template,
   TemplateCategory,
+  Announcement,
 } from '@wedding-bestie/shared';
 
 /**
@@ -20,6 +21,12 @@ const DEFAULT_THEME: Theme = {
   accent: '#8fac8b', // sage
   neutralLight: '#faf8f5', // warm off-white
   neutralDark: '#2d2d2d', // soft black
+};
+
+const DEFAULT_ANNOUNCEMENT: Announcement = {
+  enabled: false,
+  title: '',
+  message: '',
 };
 
 /**
@@ -173,6 +180,7 @@ export class WeddingService {
       templateId: 'minimal-001', // Default template
       theme: DEFAULT_THEME,
       features: wedding.features,
+      announcement: wedding.announcement ?? { ...DEFAULT_ANNOUNCEMENT },
       sections: [
         {
           id: 'hero',
@@ -263,6 +271,7 @@ export class WeddingService {
       planId: payload.planId,
       status: 'active' as WeddingStatus,
       features: this.buildFeatureFlags(payload.planId, payload.features),
+      announcement: { ...DEFAULT_ANNOUNCEMENT },
       createdAt: now,
       updatedAt: now,
     };
@@ -381,6 +390,40 @@ export class WeddingService {
     this.renderConfigs.set(weddingId, updatedConfig);
 
     this.logger.log(`Updated features for wedding ${weddingId}: ${JSON.stringify(updatedFeatures)}`);
+
+    return { wedding, renderConfig: updatedConfig };
+  }
+
+  /**
+   * Update announcement banner for a wedding
+   * Updates both the wedding record and render_config announcement content
+   */
+  updateAnnouncement(
+    weddingId: string,
+    announcement: Announcement,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    wedding.announcement = announcement;
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    const existingConfig = this.renderConfigs.get(weddingId);
+    if (!existingConfig) {
+      return null;
+    }
+
+    const updatedConfig: RenderConfig = {
+      ...existingConfig,
+      announcement,
+    };
+
+    this.renderConfigs.set(weddingId, updatedConfig);
+
+    this.logger.log(`Updated announcement banner for wedding ${weddingId}`);
 
     return { wedding, renderConfig: updatedConfig };
   }

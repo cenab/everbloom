@@ -4,10 +4,11 @@ import { Guests } from './Guests';
 import { RsvpDashboard } from './RsvpDashboard';
 import { TemplateSelector } from './TemplateSelector';
 import { FeatureSettings } from './FeatureSettings';
+import { AnnouncementSettings } from './AnnouncementSettings';
 import { getAuthToken } from '../lib/auth';
 import type { Wedding, ApiResponse, RenderConfig } from '@wedding-bestie/shared';
 
-type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features';
+type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement';
 
 /**
  * Admin Dashboard component.
@@ -105,6 +106,18 @@ export function Dashboard() {
     );
   }
 
+  if (view === 'announcement' && selectedWedding) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <AnnouncementSettings
+          wedding={selectedWedding}
+          onBack={() => setView('dashboard')}
+          onAnnouncementChanged={fetchWeddings}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -132,6 +145,7 @@ export function Dashboard() {
           onNavigateToRsvp={() => setView('rsvp')}
           onNavigateToTemplate={() => setView('template')}
           onNavigateToFeatures={() => setView('features')}
+          onNavigateToAnnouncement={() => setView('announcement')}
           onBack={weddings.length > 1 ? () => setSelectedWedding(null) : undefined}
         />
       )}
@@ -205,6 +219,7 @@ interface WeddingDashboardProps {
   onNavigateToRsvp: () => void;
   onNavigateToTemplate: () => void;
   onNavigateToFeatures: () => void;
+  onNavigateToAnnouncement: () => void;
   onBack?: () => void;
 }
 
@@ -212,7 +227,15 @@ interface WeddingDashboardProps {
  * Dashboard view when a wedding is selected.
  * Shows quick actions for the wedding including navigation to guests.
  */
-function WeddingDashboard({ wedding, onNavigateToGuests, onNavigateToRsvp, onNavigateToTemplate, onNavigateToFeatures, onBack }: WeddingDashboardProps) {
+function WeddingDashboard({
+  wedding,
+  onNavigateToGuests,
+  onNavigateToRsvp,
+  onNavigateToTemplate,
+  onNavigateToFeatures,
+  onNavigateToAnnouncement,
+  onBack,
+}: WeddingDashboardProps) {
   return (
     <div>
       {onBack && (
@@ -257,6 +280,14 @@ function WeddingDashboard({ wedding, onNavigateToGuests, onNavigateToRsvp, onNav
           icon={<ToggleIcon className="w-6 h-6" />}
           onClick={onNavigateToFeatures}
         />
+        {wedding.features.ANNOUNCEMENT_BANNER && (
+          <DashboardCard
+            title="Announcement banner"
+            description="Share an update at the top of your site"
+            icon={<BellIcon className="w-6 h-6" />}
+            onClick={onNavigateToAnnouncement}
+          />
+        )}
         <DashboardCard
           title="Your site"
           description="View your wedding website"
@@ -433,6 +464,24 @@ function ToggleIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"
+      />
+    </svg>
+  );
+}
+
+function BellIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9a6 6 0 00-12 0v.75a8.967 8.967 0 01-2.312 6.022 23.848 23.848 0 005.455 1.31m5.714 0a3 3 0 11-5.714 0"
       />
     </svg>
   );
