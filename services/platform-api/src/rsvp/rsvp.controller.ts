@@ -22,6 +22,7 @@ import {
   FEATURE_DISABLED,
   WEDDING_NOT_FOUND,
   PLUS_ONE_LIMIT_EXCEEDED,
+  INVALID_MEAL_OPTION,
 } from '../types';
 
 /**
@@ -100,6 +101,7 @@ export class RsvpController {
       dietaryNotes: guest.dietaryNotes,
       plusOneAllowance: guest.plusOneAllowance,
       plusOneGuests: guest.plusOneGuests,
+      mealOptionId: guest.mealOptionId,
     };
 
     const rsvpViewData: RsvpViewData = {
@@ -115,6 +117,8 @@ export class RsvpController {
         neutralLight: '#faf8f5',
         neutralDark: '#2d2d2d',
       },
+      // Include meal config if enabled
+      mealConfig: wedding.mealConfig?.enabled ? wedding.mealConfig : undefined,
     };
 
     return { ok: true, data: rsvpViewData };
@@ -123,13 +127,13 @@ export class RsvpController {
   /**
    * Submit RSVP response
    * POST /api/rsvp/submit
-   * Allows guest to submit or update their RSVP, including plus-one details
+   * Allows guest to submit or update their RSVP, including plus-one details and meal selection
    */
   @Post('submit')
   async submitRsvp(
     @Body() body: RsvpSubmitRequest,
   ): Promise<ApiResponse<RsvpSubmitResponse>> {
-    const { token, rsvpStatus, partySize, dietaryNotes, plusOneGuests } = body;
+    const { token, rsvpStatus, partySize, dietaryNotes, plusOneGuests, mealOptionId } = body;
 
     if (!token) {
       throw new BadRequestException({
@@ -174,7 +178,34 @@ export class RsvpController {
       });
     }
 
-    // Update guest RSVP with plus-one guests
+    // Validate meal option if meal selection is enabled and guest is attending
+    if (wedding.mealConfig?.enabled && rsvpStatus === 'attending') {
+      // Validate primary guest's meal option if provided
+      if (mealOptionId) {
+        const validOptionIds = wedding.mealConfig.options.map((o) => o.id);
+        if (!validOptionIds.includes(mealOptionId)) {
+          throw new BadRequestException({
+            ok: false,
+            error: INVALID_MEAL_OPTION,
+          });
+        }
+      }
+
+      // Validate plus-one meal options if provided
+      if (plusOneGuests) {
+        const validOptionIds = wedding.mealConfig.options.map((o) => o.id);
+        for (const plusOne of plusOneGuests) {
+          if (plusOne.mealOptionId && !validOptionIds.includes(plusOne.mealOptionId)) {
+            throw new BadRequestException({
+              ok: false,
+              error: INVALID_MEAL_OPTION,
+            });
+          }
+        }
+      }
+    }
+
+    // Update guest RSVP with plus-one guests and meal options
     let updatedGuest;
     try {
       updatedGuest = await this.guestService.updateRsvpStatus(
@@ -183,6 +214,7 @@ export class RsvpController {
         partySize,
         dietaryNotes,
         plusOneGuests,
+        mealOptionId,
       );
     } catch (error) {
       if (error instanceof Error && error.message === 'PLUS_ONE_LIMIT_EXCEEDED') {
@@ -211,6 +243,7 @@ export class RsvpController {
       dietaryNotes: updatedGuest.dietaryNotes,
       plusOneAllowance: updatedGuest.plusOneAllowance,
       plusOneGuests: updatedGuest.plusOneGuests,
+      mealOptionId: updatedGuest.mealOptionId,
     };
 
     const message =

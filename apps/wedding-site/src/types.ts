@@ -106,6 +106,7 @@ export interface RenderConfig {
   announcement?: Announcement;
   eventDetails?: EventDetailsData;
   faq?: FaqConfig;
+  mealConfig?: MealConfig;
   /** Whether passcode protection is enabled (hash is never exposed) */
   passcodeProtected?: boolean;
   wedding: {
@@ -136,6 +137,28 @@ export interface ApiSuccess<T = unknown> {
 export type ApiResponse<T = unknown> = ApiSuccess<T> | ApiError;
 
 // ============================================================================
+// Meal Options Types
+// ============================================================================
+
+/**
+ * A single meal option for RSVP selection
+ */
+export interface MealOption {
+  id: string;
+  name: string;
+  description?: string;
+  order: number;
+}
+
+/**
+ * Meal configuration for a wedding
+ */
+export interface MealConfig {
+  enabled: boolean;
+  options: MealOption[];
+}
+
+// ============================================================================
 // RSVP Types
 // ============================================================================
 
@@ -150,6 +173,8 @@ export type RsvpStatus = 'pending' | 'attending' | 'not_attending';
 export interface PlusOneGuest {
   name: string;
   dietaryNotes?: string;
+  /** Selected meal option ID (if meal selection is enabled) */
+  mealOptionId?: string;
 }
 
 /**
@@ -166,6 +191,8 @@ export interface RsvpGuestView {
   plusOneAllowance?: number;
   /** Plus-one guest details (if previously submitted) */
   plusOneGuests?: PlusOneGuest[];
+  /** Selected meal option ID for the primary guest (if meal selection is enabled) */
+  mealOptionId?: string;
 }
 
 /**
@@ -186,6 +213,8 @@ export interface RsvpViewData {
   guest: RsvpGuestView;
   wedding: RsvpWeddingView;
   theme: Theme;
+  /** Meal configuration if enabled for this wedding */
+  mealConfig?: MealConfig;
 }
 
 /**
@@ -198,6 +227,8 @@ export interface RsvpSubmitRequest {
   dietaryNotes?: string;
   /** Plus-one guest details (names and optional dietary notes) */
   plusOneGuests?: PlusOneGuest[];
+  /** Selected meal option ID for the primary guest (if meal selection is enabled) */
+  mealOptionId?: string;
 }
 
 /**

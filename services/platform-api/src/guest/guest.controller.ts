@@ -10,6 +10,7 @@ import {
   UnauthorizedException,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { GuestService } from './guest.service';
 import { WeddingService } from '../wedding/wedding.service';
@@ -23,8 +24,9 @@ import type {
   RsvpSummaryResponse,
   CsvImportRequest,
   CsvImportResponse,
+  MealSummaryResponse,
 } from '../types';
-import { GUEST_NOT_FOUND, GUEST_ALREADY_EXISTS, CSV_IMPORT_VALIDATION_ERROR, UNAUTHORIZED, WEDDING_NOT_FOUND } from '../types';
+import { GUEST_NOT_FOUND, GUEST_ALREADY_EXISTS, CSV_IMPORT_VALIDATION_ERROR, UNAUTHORIZED, WEDDING_NOT_FOUND, FEATURE_DISABLED } from '../types';
 
 @Controller('weddings/:weddingId/guests')
 export class GuestController {
@@ -73,6 +75,35 @@ export class GuestController {
       data: {
         summary,
         guests,
+      },
+    };
+  }
+
+  /**
+   * Get meal selection summary for a wedding
+   * PRD: "Admin can export meal counts"
+   */
+  @Get('meal-summary')
+  async getMealSummary(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+  ): Promise<ApiResponse<MealSummaryResponse>> {
+    const { wedding } = await this.requireWeddingOwner(authHeader, weddingId);
+
+    // Check if meal options are enabled for this wedding
+    if (!wedding.mealConfig?.enabled) {
+      throw new ForbiddenException({
+        ok: false,
+        error: FEATURE_DISABLED,
+      });
+    }
+
+    const summary = this.guestService.getMealSummary(weddingId);
+
+    return {
+      ok: true,
+      data: {
+        summary,
       },
     };
   }

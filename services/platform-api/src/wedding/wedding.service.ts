@@ -17,6 +17,7 @@ import type {
   FaqConfig,
   PasscodeConfigBase,
   HeroContentData,
+  MealConfig,
 } from '../types';
 
 const scryptAsync = promisify(scrypt);
@@ -316,6 +317,11 @@ export class WeddingService {
       config.passcodeProtected = true;
     } else {
       config.passcodeProtected = false;
+    }
+
+    // Add meal configuration if present and enabled
+    if (wedding.mealConfig?.enabled && wedding.mealConfig.options.length > 0) {
+      config.mealConfig = wedding.mealConfig;
     }
 
     return config;
@@ -830,5 +836,44 @@ export class WeddingService {
       wedding.passcodeConfig?.enabled &&
       wedding.passcodeConfig?.passcodeHash
     );
+  }
+
+  /**
+   * Update meal options configuration for a wedding
+   * Updates both the wedding record and regenerates render_config
+   */
+  updateMealConfig(
+    weddingId: string,
+    mealConfig: MealConfig,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    wedding.mealConfig = mealConfig;
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    // Regenerate render_config to include meal options
+    const updatedConfig = this.generateRenderConfig(wedding);
+    this.renderConfigs.set(weddingId, updatedConfig);
+
+    this.logger.log(
+      `Updated meal config for wedding ${weddingId}: enabled=${mealConfig.enabled}, options=${mealConfig.options.length}`,
+    );
+
+    return { wedding, renderConfig: updatedConfig };
+  }
+
+  /**
+   * Get meal configuration for a wedding
+   */
+  getMealConfig(weddingId: string): MealConfig | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+    return wedding.mealConfig || null;
   }
 }

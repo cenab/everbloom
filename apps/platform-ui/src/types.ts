@@ -128,6 +128,7 @@ export interface RenderConfig {
   announcement?: Announcement;
   eventDetails?: EventDetailsData;
   faq?: FaqConfig;
+  mealConfig?: MealConfig;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -255,6 +256,7 @@ export interface Wedding {
   eventDetails?: EventDetailsData;
   faq?: FaqConfig;
   passcodeConfig?: PasscodeConfig;
+  mealConfig?: MealConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -320,6 +322,8 @@ export type RsvpStatus = 'pending' | 'attending' | 'not_attending';
 export interface PlusOneGuest {
   name: string;
   dietaryNotes?: string;
+  /** Selected meal option ID (if meal selection is enabled) */
+  mealOptionId?: string;
 }
 
 /**
@@ -341,6 +345,8 @@ export interface Guest {
   plusOneAllowance?: number;
   /** Plus-one guest details submitted during RSVP */
   plusOneGuests?: PlusOneGuest[];
+  /** Selected meal option ID for the primary guest (if meal selection is enabled) */
+  mealOptionId?: string;
   inviteSentAt?: string;
   rsvpSubmittedAt?: string;
   createdAt: string;
@@ -594,6 +600,67 @@ export interface PhotoSummaryResponse {
  * Response after updating passcode settings
  */
 export interface UpdatePasscodeResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+// ============================================================================
+// Meal Options Types
+// ============================================================================
+
+/**
+ * A single meal option for RSVP selection
+ */
+export interface MealOption {
+  id: string;
+  name: string;
+  description?: string;
+  order: number;
+}
+
+/**
+ * Meal configuration for a wedding
+ */
+export interface MealConfig {
+  enabled: boolean;
+  options: MealOption[];
+}
+
+/**
+ * Meal counts breakdown by option
+ */
+export interface MealCounts {
+  byOption: Record<string, number>;
+  total: number;
+  noSelection: number;
+}
+
+/**
+ * Meal summary for admin dashboard
+ */
+export interface MealSummary {
+  counts: MealCounts;
+  dietaryNotes: Array<{ guestName: string; notes: string }>;
+}
+
+/**
+ * Response from meal summary endpoint
+ */
+export interface MealSummaryResponse {
+  summary: MealSummary;
+}
+
+/**
+ * Request to update meal options configuration
+ */
+export interface UpdateMealOptionsRequest {
+  mealConfig: MealConfig;
+}
+
+/**
+ * Response after updating meal options
+ */
+export interface UpdateMealOptionsResponse {
   wedding: Wedding;
   renderConfig: RenderConfig;
 }

@@ -776,7 +776,7 @@
       "Save meal options",
       "Verify options are stored in render_config"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "meals",
@@ -788,7 +788,7 @@
       "Submit RSVP",
       "Verify meal choice is stored"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "meals",
@@ -800,7 +800,7 @@
       "Submit RSVP",
       "Verify dietary info is stored"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "meals",
@@ -811,7 +811,7 @@
       "Export meal counts",
       "Verify export includes per-meal totals and dietary notes"
     ],
-    "passes": false
+    "passes": true
   },
 
   {

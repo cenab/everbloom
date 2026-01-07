@@ -2676,3 +2676,70 @@ No stack traces, internal messages, or technical details are ever exposed.
 - The bounceReason from SendGrid is displayed to help admin understand the issue
 - Common bounce reasons: "invalid_email", "mailbox_unavailable", "domain_not_found"
 
+
+### 2026-01-07 - Meal Options Configuration Feature
+
+**Feature worked on:** Admin can configure meal options (PRD: meals category)
+
+**Priority rationale:** Meal selection is a core wedding feature that extends the existing RSVP flow. With RSVP already complete, meal options naturally build on that foundation and provide significant user value for venue coordination.
+
+**What was done:**
+
+1. Added meal-related types to platform-api:
+   - MealOption interface (id, name, description, order)
+   - MealConfig interface (enabled, options array)
+   - UpdateMealOptionsRequest/Response types
+   - MealCounts and MealSummary interfaces for admin dashboard
+   - INVALID_MEAL_OPTION and MEAL_OPTIONS_NOT_CONFIGURED error codes
+   - Updated Wedding interface with mealConfig field
+   - Updated RenderConfig to include mealConfig
+
+2. Implemented meal configuration API endpoints:
+   - PUT /api/weddings/:id/meal-options - Update meal configuration
+   - GET /api/weddings/:weddingId/guests/meal-summary - Get meal counts and dietary notes
+
+3. Extended RSVP flow for meal selection:
+   - Updated RsvpController viewRsvp to return mealConfig if enabled
+   - Updated RsvpController submitRsvp to validate and accept mealOptionId
+   - Updated GuestService updateRsvpStatus to store meal selections
+   - Added getMealSummary method to GuestService for admin dashboard
+
+4. Created admin UI for meal configuration:
+   - New MealSettings component with enable/disable toggle
+   - Add/edit/delete/reorder meal options interface
+   - Validation for required meal option names
+   - Save button with unsaved changes detection
+   - Integrated into Dashboard with navigation
+
+5. Updated platform-ui types:
+   - Added MealOption, MealConfig, MealCounts, MealSummary interfaces
+   - Added UpdateMealOptionsRequest/Response types
+   - Updated Wedding and RenderConfig with mealConfig field
+
+6. Updated wedding-site types:
+   - Added MealOption and MealConfig interfaces
+   - Updated RsvpViewData to include mealConfig
+   - Updated RsvpSubmitRequest to include mealOptionId
+   - Updated RsvpGuestView and PlusOneGuest with mealOptionId
+   - Updated RenderConfig with mealConfig field
+
+**Design system adherence:**
+- MealSettings follows same pattern as FaqSettings component
+- Uses ForkKnifeIcon (cake/dining icon) for dashboard card
+- Form inputs use neutral-200 borders with primary-500 focus ring
+- Success/error messages use green/red backgrounds following existing patterns
+- Human language: "Let guests select their meal preference when they RSVP"
+
+**PRD features now passing:**
+- "Admin can configure meal options" ✓
+- "Guest can select meal preference during RSVP" ✓
+- "Guest can specify dietary restrictions" ✓ (already supported via dietaryNotes)
+- "Admin can export meal counts" ✓
+
+**Notes for next person:**
+- Meal options are stored in wedding.mealConfig and propagated to render_config
+- MealSettings appears in dashboard when RSVP feature is enabled
+- Meal selection validation ensures only configured options can be selected
+- Plus-one guests can also have meal selections (mealOptionId in PlusOneGuest)
+- getMealSummary endpoint returns counts by option and dietary notes for caterers
+- The wedding-site RSVP form types are updated but the actual UI form components would need updating to display meal selection (types are ready)

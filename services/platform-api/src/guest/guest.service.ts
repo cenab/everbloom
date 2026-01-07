@@ -311,12 +311,13 @@ export class GuestService {
   }
 
   /**
-   * Update guest RSVP status with optional plus-one guests
+   * Update guest RSVP status with optional plus-one guests and meal options
    * @param guestId - The guest ID
    * @param rsvpStatus - The RSVP status
    * @param partySize - Total party size (including the guest)
    * @param dietaryNotes - Dietary notes for the primary guest
-   * @param plusOneGuests - Plus-one guest details (names and dietary notes)
+   * @param plusOneGuests - Plus-one guest details (names, dietary notes, and meal options)
+   * @param mealOptionId - Selected meal option for the primary guest
    * @returns Updated guest or null if not found
    * @throws Error with 'PLUS_ONE_LIMIT_EXCEEDED' if too many plus-ones provided
    */
@@ -326,6 +327,7 @@ export class GuestService {
     partySize: number,
     dietaryNotes?: string,
     plusOneGuests?: PlusOneGuest[],
+    mealOptionId?: string,
   ): Promise<Guest | null> {
     const guest = this.guests.get(guestId);
     if (!guest) {
@@ -354,13 +356,14 @@ export class GuestService {
       partySize: actualPartySize,
       dietaryNotes: dietaryNotes ?? guest.dietaryNotes,
       plusOneGuests: rsvpStatus === 'attending' ? plusOneGuests : undefined,
+      mealOptionId: rsvpStatus === 'attending' ? mealOptionId : undefined,
       rsvpSubmittedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     this.guests.set(guestId, updated);
     this.logger.log(
-      `Updated RSVP for guest ${guestId}: ${rsvpStatus}${plusOnesCount > 0 ? ` with ${plusOnesCount} plus-one(s)` : ''}`,
+      `Updated RSVP for guest ${guestId}: ${rsvpStatus}${plusOnesCount > 0 ? ` with ${plusOnesCount} plus-one(s)` : ''}${mealOptionId ? ` meal: ${mealOptionId}` : ''}`,
     );
 
     return updated;
@@ -402,6 +405,74 @@ export class GuestService {
     }
 
     return summary;
+  }
+
+  /**
+   * Get meal selection summary for a wedding
+   * PRD: "Admin can export meal counts"
+   */
+  getMealSummary(weddingId: string): {
+    counts: {
+      byOption: Record<string, number>;
+      total: number;
+      noSelection: number;
+    };
+    dietaryNotes: Array<{ guestName: string; notes: string }>;
+  } {
+    const guests = this.getGuestsForWedding(weddingId);
+    const attendingGuests = guests.filter((g) => g.rsvpStatus === 'attending');
+
+    const counts: Record<string, number> = {};
+    let noSelection = 0;
+    let total = 0;
+    const dietaryNotes: Array<{ guestName: string; notes: string }> = [];
+
+    for (const guest of attendingGuests) {
+      // Count primary guest meal selection
+      if (guest.mealOptionId) {
+        counts[guest.mealOptionId] = (counts[guest.mealOptionId] || 0) + 1;
+        total++;
+      } else {
+        noSelection++;
+      }
+
+      // Collect primary guest dietary notes
+      if (guest.dietaryNotes?.trim()) {
+        dietaryNotes.push({
+          guestName: guest.name,
+          notes: guest.dietaryNotes.trim(),
+        });
+      }
+
+      // Count plus-one meal selections
+      if (guest.plusOneGuests) {
+        for (const plusOne of guest.plusOneGuests) {
+          if (plusOne.mealOptionId) {
+            counts[plusOne.mealOptionId] = (counts[plusOne.mealOptionId] || 0) + 1;
+            total++;
+          } else {
+            noSelection++;
+          }
+
+          // Collect plus-one dietary notes
+          if (plusOne.dietaryNotes?.trim()) {
+            dietaryNotes.push({
+              guestName: `${plusOne.name} (guest of ${guest.name})`,
+              notes: plusOne.dietaryNotes.trim(),
+            });
+          }
+        }
+      }
+    }
+
+    return {
+      counts: {
+        byOption: counts,
+        total,
+        noSelection,
+      },
+      dietaryNotes,
+    };
   }
 
   /**

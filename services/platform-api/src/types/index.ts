@@ -119,6 +119,8 @@ export interface RenderConfig {
   faq?: FaqConfig;
   /** Whether passcode protection is enabled (hash is never exposed) */
   passcodeProtected?: boolean;
+  /** Meal options for RSVP form (if configured) */
+  mealConfig?: MealConfig;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -337,6 +339,8 @@ export interface Wedding {
   eventDetails?: EventDetailsData;
   faq?: FaqConfig;
   passcodeConfig?: PasscodeConfigBase;
+  /** Meal options configuration */
+  mealConfig?: MealConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -421,6 +425,8 @@ export type RsvpStatus = 'pending' | 'attending' | 'not_attending';
 export interface PlusOneGuest {
   name: string;
   dietaryNotes?: string;
+  /** Selected meal option ID (if meal selection is enabled) */
+  mealOptionId?: string;
 }
 
 /**
@@ -446,6 +452,8 @@ export interface Guest {
   plusOneAllowance?: number;
   /** Plus-one guest details submitted during RSVP */
   plusOneGuests?: PlusOneGuest[];
+  /** Selected meal option ID for the primary guest (if meal selection is enabled) */
+  mealOptionId?: string;
   inviteSentAt?: string;
   rsvpSubmittedAt?: string;
   createdAt: string;
@@ -519,6 +527,8 @@ export interface RsvpGuestView {
   plusOneAllowance?: number;
   /** Plus-one guest details (if previously submitted) */
   plusOneGuests?: PlusOneGuest[];
+  /** Selected meal option ID (if meal selection is enabled and previously submitted) */
+  mealOptionId?: string;
 }
 
 /**
@@ -539,6 +549,8 @@ export interface RsvpViewData {
   guest: RsvpGuestView;
   wedding: RsvpWeddingView;
   theme: Theme;
+  /** Meal options configuration (if enabled for this wedding) */
+  mealConfig?: MealConfig;
 }
 
 /**
@@ -549,8 +561,10 @@ export interface RsvpSubmitRequest {
   rsvpStatus: RsvpStatus;
   partySize: number;
   dietaryNotes?: string;
-  /** Plus-one guest details (names and optional dietary notes) */
+  /** Plus-one guest details (names, optional dietary notes, and optional meal selection) */
   plusOneGuests?: PlusOneGuest[];
+  /** Selected meal option ID for the primary guest */
+  mealOptionId?: string;
 }
 
 /**
@@ -1135,6 +1149,80 @@ export const NOT_FOUND = 'NOT_FOUND' as const;
  */
 export const INTERNAL_ERROR = 'INTERNAL_ERROR' as const;
 
+// ============================================================================
+// Meal Options Types
+// ============================================================================
+
+/**
+ * A single meal option (e.g., "Chicken", "Fish", "Vegetarian")
+ */
+export interface MealOption {
+  id: string;
+  name: string;
+  description?: string;
+  /** Order for display (lower numbers first) */
+  order: number;
+}
+
+/**
+ * Meal configuration for a wedding
+ */
+export interface MealConfig {
+  enabled: boolean;
+  options: MealOption[];
+}
+
+/**
+ * Request to update meal options for a wedding
+ */
+export interface UpdateMealOptionsRequest {
+  mealConfig: MealConfig;
+}
+
+/**
+ * Response after updating meal options
+ */
+export interface UpdateMealOptionsResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+/**
+ * Meal counts for admin dashboard / catering export
+ */
+export interface MealCounts {
+  byOption: Record<string, number>;
+  total: number;
+  /** Guests who haven't selected a meal yet */
+  noSelection: number;
+}
+
+/**
+ * Full meal summary including counts and dietary notes
+ */
+export interface MealSummary {
+  counts: MealCounts;
+  /** All dietary notes for catering coordination */
+  dietaryNotes: Array<{ guestName: string; notes: string }>;
+}
+
+/**
+ * Response from meal summary/export endpoint
+ */
+export interface MealSummaryResponse {
+  summary: MealSummary;
+}
+
+/**
+ * Invalid meal option selection error code
+ */
+export const INVALID_MEAL_OPTION = 'INVALID_MEAL_OPTION' as const;
+
+/**
+ * Meal options not configured error code
+ */
+export const MEAL_OPTIONS_NOT_CONFIGURED = 'MEAL_OPTIONS_NOT_CONFIGURED' as const;
+
 /**
  * All error codes as a union type for documentation
  */
@@ -1167,4 +1255,6 @@ export type ErrorCode =
   | typeof UNAUTHORIZED
   | typeof FORBIDDEN
   | typeof NOT_FOUND
-  | typeof INTERNAL_ERROR;
+  | typeof INTERNAL_ERROR
+  | typeof INVALID_MEAL_OPTION
+  | typeof MEAL_OPTIONS_NOT_CONFIGURED;

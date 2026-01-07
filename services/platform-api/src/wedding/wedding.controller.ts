@@ -30,6 +30,8 @@ import type {
   UpdatePasscodeResponse,
   UpdateHeroContentRequest,
   UpdateHeroContentResponse,
+  UpdateMealOptionsRequest,
+  UpdateMealOptionsResponse,
 } from '../types';
 import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, WEDDING_NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, NOT_FOUND } from '../types';
 
@@ -425,6 +427,78 @@ export class WeddingController {
     }
 
     const result = await this.weddingService.updatePasscode(id, body.enabled, body.passcode);
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Update meal options configuration for a wedding
+   * Allows admin to configure meal choices for RSVP (e.g., Chicken, Fish, Vegetarian)
+   */
+  @Put(':id/meal-options')
+  async updateMealOptions(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: UpdateMealOptionsRequest,
+  ): Promise<ApiResponse<UpdateMealOptionsResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    // Meal options require RSVP feature to be enabled
+    if (!wedding.features.RSVP) {
+      throw new ForbiddenException({
+        ok: false,
+        error: FEATURE_DISABLED,
+      });
+    }
+
+    if (!body.mealConfig) {
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+    }
+
+    const { enabled, options } = body.mealConfig;
+
+    if (typeof enabled !== 'boolean') {
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+    }
+
+    // Validate options if provided
+    if (enabled) {
+      if (!options || !Array.isArray(options) || options.length === 0) {
+        throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+      }
+
+      for (const option of options) {
+        if (!option.name?.trim()) {
+          throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+        }
+      }
+    }
+
+    // Normalize the meal options
+    const normalizedConfig = {
+      enabled,
+      options: (options || []).map((option, index) => ({
+        id: option.id || `meal-${Date.now()}-${index}`,
+        name: option.name.trim(),
+        description: option.description?.trim() || undefined,
+        order: option.order ?? index,
+      })),
+    };
+
+    const result = this.weddingService.updateMealConfig(id, normalizedConfig);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
