@@ -395,3 +395,50 @@ export interface RsvpSummaryResponse {
   summary: RsvpSummary;
   guests: Guest[];
 }
+
+// ============================================================================
+// CSV Import Types
+// ============================================================================
+
+/**
+ * A single row from a CSV file to be imported
+ */
+export interface CsvGuestRow {
+  name: string;
+  email: string;
+  partySize?: number;
+}
+
+/**
+ * Result of importing a single guest
+ */
+export interface CsvImportRowResult {
+  row: number;
+  name: string;
+  email: string;
+  success: boolean;
+  error?: string;
+  guest?: Guest;
+}
+
+/**
+ * Request body for CSV import
+ */
+export interface CsvImportRequest {
+  guests: CsvGuestRow[];
+}
+
+/**
+ * Response from CSV import endpoint
+ */
+export interface CsvImportResponse {
+  imported: number;
+  skipped: number;
+  total: number;
+  results: CsvImportRowResult[];
+}
+
+/**
+ * CSV import validation error code
+ */
+export const CSV_IMPORT_VALIDATION_ERROR = 'CSV_IMPORT_VALIDATION_ERROR' as const;

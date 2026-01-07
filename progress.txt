@@ -595,3 +595,78 @@
 - Dashboard now has 3 cards: Your guests, RSVP responses, Your site
 - Guests are grouped by RSVP status in the dashboard for easy scanning
 - totalPartySize counts only attending guests' party sizes
+
+---
+
+### 2026-01-06 - CSV Import for Guests
+
+**Feature worked on:** Admin can import invitees via CSV (PRD: guests category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. Most weddings have 50-200+ guests - manual entry is impractical
+2. It's a natural extension of the existing guest management infrastructure
+3. It doesn't require new infrastructure (unlike photos which needs storage, or emails which needs SendGrid)
+4. It unblocks bulk guest workflows and makes the platform production-ready for real weddings
+
+**What was done:**
+1. Added CSV import types to shared package:
+   - `CsvGuestRow` - a single row from CSV (name, email, partySize)
+   - `CsvImportRowResult` - result per row with success/error status
+   - `CsvImportRequest` - request body containing guest rows
+   - `CsvImportResponse` - response with imported/skipped counts and results
+   - `CSV_IMPORT_VALIDATION_ERROR` error code
+
+2. Added bulk import method to GuestService:
+   - `importGuestsFromCsv(weddingId, rows)` - processes CSV rows
+   - Validates each row (name required, email required, email format)
+   - Checks for duplicate emails within the wedding
+   - Returns detailed results per row
+   - Made `findByEmail` method public for duplicate checking
+
+3. Added CSV import endpoint to GuestController:
+   - `POST /api/weddings/:weddingId/guests/import` - authenticated endpoint
+   - Validates request has guests array
+   - Limits import size to 500 guests per request
+   - Returns detailed results with imported/skipped counts
+
+4. Added CSV import UI to Guests page:
+   - Multi-step import flow: Upload → Map columns → Confirm → Results
+   - CSV file parsing with quote handling
+   - Auto-detection of name/email/partySize columns from headers
+   - Column mapping UI with dropdowns
+   - Preview of first 5 rows with mapped data
+   - Import confirmation step
+   - Results summary showing imported/skipped counts
+   - Detailed skipped rows table with error reasons
+
+**API Endpoints:**
+- `POST /api/weddings/:weddingId/guests/import` - Bulk import guests (requires auth)
+  - Request: `{ guests: CsvGuestRow[] }`
+  - Response: `{ imported, skipped, total, results: CsvImportRowResult[] }`
+  - Max 500 guests per request
+
+**Design system adherence:**
+- Multi-step wizard with clear progress indicator
+- Drag-and-drop upload zone with file picker fallback
+- Clean preview table for column mapping verification
+- Summary cards for import results (imported/skipped)
+- Human language: "Import guests from CSV", "Map columns", "Guests with invalid data..."
+- No pure black/white colors
+- Calm, minimal UI
+
+**PRD features now passing:**
+- "Admin can import invitees via CSV" ✓
+
+**Next steps:**
+- Implement invitation email sending
+- Implement photo upload feature
+- Implement announcement banner feature
+
+**Notes for next person:**
+- CSV import endpoint is at POST /api/weddings/:weddingId/guests/import
+- Maximum 500 guests per import to prevent timeout
+- CSV parser handles quoted fields (e.g., "Smith, John")
+- Column auto-detection looks for "name", "email", "party"/"size"/"guests" in headers
+- Duplicate emails within the same wedding are skipped
+- Import results include per-row error details for debugging
+- The import form maintains step state and shows results before closing

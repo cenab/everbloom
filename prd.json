@@ -259,7 +259,7 @@
       "Confirm import",
       "Verify invitees appear in list"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "invites",

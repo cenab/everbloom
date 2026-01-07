@@ -5,6 +5,8 @@ import type {
   RsvpStatus,
   CreateGuestRequest,
   UpdateGuestRequest,
+  CsvGuestRow,
+  CsvImportRowResult,
 } from '@wedding-bestie/shared';
 
 @Injectable()
@@ -121,7 +123,7 @@ export class GuestService {
   /**
    * Find a guest by email in a wedding
    */
-  private findByEmail(weddingId: string, email: string): Guest | null {
+  findByEmail(weddingId: string, email: string): Guest | null {
     const normalizedEmail = email.toLowerCase();
     for (const guest of this.guests.values()) {
       if (
@@ -132,6 +134,104 @@ export class GuestService {
       }
     }
     return null;
+  }
+
+  /**
+   * Import guests from CSV data
+   * PRD: "Admin can import invitees via CSV"
+   */
+  async importGuestsFromCsv(
+    weddingId: string,
+    rows: CsvGuestRow[],
+  ): Promise<CsvImportRowResult[]> {
+    const results: CsvImportRowResult[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowNumber = i + 1;
+
+      // Validate required fields
+      if (!row.name || !row.name.trim()) {
+        results.push({
+          row: rowNumber,
+          name: row.name || '',
+          email: row.email || '',
+          success: false,
+          error: 'Name is required',
+        });
+        continue;
+      }
+
+      if (!row.email || !row.email.trim()) {
+        results.push({
+          row: rowNumber,
+          name: row.name,
+          email: row.email || '',
+          success: false,
+          error: 'Email is required',
+        });
+        continue;
+      }
+
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(row.email.trim())) {
+        results.push({
+          row: rowNumber,
+          name: row.name,
+          email: row.email,
+          success: false,
+          error: 'Invalid email format',
+        });
+        continue;
+      }
+
+      // Check for duplicate in wedding
+      const existing = this.findByEmail(weddingId, row.email.trim());
+      if (existing) {
+        results.push({
+          row: rowNumber,
+          name: row.name,
+          email: row.email,
+          success: false,
+          error: 'A guest with this email already exists',
+        });
+        continue;
+      }
+
+      // Create the guest
+      try {
+        const guest = await this.createGuest(weddingId, {
+          name: row.name.trim(),
+          email: row.email.trim(),
+          partySize: row.partySize ?? 1,
+        });
+
+        results.push({
+          row: rowNumber,
+          name: row.name,
+          email: row.email,
+          success: true,
+          guest,
+        });
+      } catch (error) {
+        results.push({
+          row: rowNumber,
+          name: row.name,
+          email: row.email,
+          success: false,
+          error: 'Failed to create guest',
+        });
+      }
+    }
+
+    const imported = results.filter((r) => r.success).length;
+    const skipped = results.filter((r) => !r.success).length;
+    this.logger.log(
+      `CSV import for wedding ${weddingId}: ${imported} imported, ${skipped} skipped`,
+    );
+
+    return results;
   }
 
   /**

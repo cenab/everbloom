@@ -21,8 +21,10 @@ import type {
   CreateGuestRequest,
   UpdateGuestRequest,
   RsvpSummaryResponse,
+  CsvImportRequest,
+  CsvImportResponse,
 } from '@wedding-bestie/shared';
-import { GUEST_NOT_FOUND, GUEST_ALREADY_EXISTS } from '@wedding-bestie/shared';
+import { GUEST_NOT_FOUND, GUEST_ALREADY_EXISTS, CSV_IMPORT_VALIDATION_ERROR } from '@wedding-bestie/shared';
 
 @Controller('weddings/:weddingId/guests')
 export class GuestController {
@@ -71,6 +73,56 @@ export class GuestController {
       data: {
         summary,
         guests,
+      },
+    };
+  }
+
+  /**
+   * Import guests from CSV data
+   * PRD: "Admin can import invitees via CSV"
+   */
+  @Post('import')
+  async importGuests(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+    @Body() body: CsvImportRequest,
+  ): Promise<ApiResponse<CsvImportResponse>> {
+    await this.requireWeddingOwner(authHeader, weddingId);
+
+    // Validate request
+    if (!body.guests || !Array.isArray(body.guests) || body.guests.length === 0) {
+      throw new ConflictException({
+        ok: false,
+        error: CSV_IMPORT_VALIDATION_ERROR,
+        message: 'No guests provided for import',
+      });
+    }
+
+    // Limit import size
+    const maxImportSize = 500;
+    if (body.guests.length > maxImportSize) {
+      throw new ConflictException({
+        ok: false,
+        error: CSV_IMPORT_VALIDATION_ERROR,
+        message: `Cannot import more than ${maxImportSize} guests at once`,
+      });
+    }
+
+    const results = await this.guestService.importGuestsFromCsv(
+      weddingId,
+      body.guests,
+    );
+
+    const imported = results.filter((r) => r.success).length;
+    const skipped = results.filter((r) => !r.success).length;
+
+    return {
+      ok: true,
+      data: {
+        imported,
+        skipped,
+        total: results.length,
+        results,
       },
     };
   }

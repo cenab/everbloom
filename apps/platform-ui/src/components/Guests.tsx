@@ -1,9 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type {
   Guest,
   CreateGuestRequest,
   GuestListResponse,
   ApiResponse,
+  CsvGuestRow,
+  CsvImportResponse,
+  CsvImportRowResult,
 } from '@wedding-bestie/shared';
 import { getAuthToken } from '../lib/auth';
 
@@ -21,6 +24,7 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showCsvImport, setShowCsvImport] = useState(false);
 
   const fetchGuests = useCallback(async () => {
     setIsLoading(true);
@@ -60,6 +64,11 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
     setGuests((prev) => prev.filter((g) => g.id !== guestId));
   };
 
+  const handleGuestsImported = (newGuests: Guest[]) => {
+    setGuests((prev) => [...prev, ...newGuests].sort((a, b) => a.name.localeCompare(b.name)));
+    setShowCsvImport(false);
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
@@ -77,15 +86,32 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
               Manage your wedding guest list
             </p>
           </div>
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="btn-primary"
-            disabled={showAddForm}
-          >
-            Add guest
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowCsvImport(true)}
+              className="btn-secondary"
+              disabled={showCsvImport || showAddForm}
+            >
+              Import CSV
+            </button>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="btn-primary"
+              disabled={showAddForm || showCsvImport}
+            >
+              Add guest
+            </button>
+          </div>
         </div>
       </div>
+
+      {showCsvImport && (
+        <CsvImportForm
+          weddingId={weddingId}
+          onSuccess={handleGuestsImported}
+          onCancel={() => setShowCsvImport(false)}
+        />
+      )}
 
       {showAddForm && (
         <AddGuestForm
@@ -236,6 +262,445 @@ function AddGuestForm({ weddingId, onSuccess, onCancel }: AddGuestFormProps) {
         </div>
       </form>
     </div>
+  );
+}
+
+interface CsvImportFormProps {
+  weddingId: string;
+  onSuccess: (guests: Guest[]) => void;
+  onCancel: () => void;
+}
+
+type ImportStep = 'upload' | 'map' | 'confirm' | 'results';
+
+interface ParsedCsvData {
+  headers: string[];
+  rows: string[][];
+}
+
+interface ColumnMapping {
+  nameColumn: number;
+  emailColumn: number;
+  partySizeColumn: number | null;
+}
+
+/**
+ * CSV Import form with column mapping.
+ * PRD: "Admin can import invitees via CSV"
+ */
+function CsvImportForm({ weddingId, onSuccess, onCancel }: CsvImportFormProps) {
+  const [step, setStep] = useState<ImportStep>('upload');
+  const [csvData, setCsvData] = useState<ParsedCsvData | null>(null);
+  const [mapping, setMapping] = useState<ColumnMapping>({
+    nameColumn: 0,
+    emailColumn: 1,
+    partySizeColumn: null,
+  });
+  const [isImporting, setIsImporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [importResults, setImportResults] = useState<CsvImportRowResult[] | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const parseCsv = (text: string): ParsedCsvData => {
+    const lines = text.trim().split('\n');
+    const headers = parseRow(lines[0]);
+    const rows = lines.slice(1).map(parseRow).filter(row => row.some(cell => cell.trim()));
+    return { headers, rows };
+  };
+
+  const parseRow = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError(null);
+
+    if (!file.name.endsWith('.csv')) {
+      setError('Please select a CSV file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const parsed = parseCsv(text);
+
+        if (parsed.headers.length < 2) {
+          setError('CSV must have at least 2 columns (name and email)');
+          return;
+        }
+
+        if (parsed.rows.length === 0) {
+          setError('CSV file has no data rows');
+          return;
+        }
+
+        setCsvData(parsed);
+
+        // Auto-detect columns
+        const lowerHeaders = parsed.headers.map(h => h.toLowerCase());
+        const nameIdx = lowerHeaders.findIndex(h => h.includes('name'));
+        const emailIdx = lowerHeaders.findIndex(h => h.includes('email') || h.includes('e-mail'));
+        const partyIdx = lowerHeaders.findIndex(h => h.includes('party') || h.includes('size') || h.includes('guests'));
+
+        setMapping({
+          nameColumn: nameIdx >= 0 ? nameIdx : 0,
+          emailColumn: emailIdx >= 0 ? emailIdx : 1,
+          partySizeColumn: partyIdx >= 0 ? partyIdx : null,
+        });
+
+        setStep('map');
+      } catch {
+        setError('Unable to parse CSV file');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleConfirm = () => {
+    setStep('confirm');
+  };
+
+  const handleImport = async () => {
+    if (!csvData) return;
+
+    setIsImporting(true);
+    setError(null);
+
+    try {
+      const guests: CsvGuestRow[] = csvData.rows.map(row => ({
+        name: row[mapping.nameColumn] || '',
+        email: row[mapping.emailColumn] || '',
+        partySize: mapping.partySizeColumn !== null
+          ? parseInt(row[mapping.partySizeColumn], 10) || 1
+          : 1,
+      }));
+
+      const token = getAuthToken();
+      const response = await fetch(`/api/weddings/${weddingId}/guests/import`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ guests }),
+      });
+
+      const data: ApiResponse<CsvImportResponse> = await response.json();
+
+      if (data.ok) {
+        setImportResults(data.data.results);
+        setStep('results');
+
+        // Extract successfully imported guests
+        const importedGuests = data.data.results
+          .filter(r => r.success && r.guest)
+          .map(r => r.guest as Guest);
+
+        if (importedGuests.length > 0) {
+          onSuccess(importedGuests);
+        }
+      } else {
+        setError('message' in data ? (data as { message?: string }).message || 'Import failed' : 'Import failed');
+      }
+    } catch {
+      setError('Unable to import guests. Please try again.');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const previewGuests = csvData?.rows.slice(0, 5).map(row => ({
+    name: row[mapping.nameColumn] || '(empty)',
+    email: row[mapping.emailColumn] || '(empty)',
+    partySize: mapping.partySizeColumn !== null
+      ? row[mapping.partySizeColumn] || '1'
+      : '1',
+  })) || [];
+
+  return (
+    <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-6 mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg text-neutral-800">Import guests from CSV</h3>
+        <div className="flex items-center gap-2 text-sm text-neutral-500">
+          <span className={step === 'upload' ? 'text-primary-600 font-medium' : ''}>Upload</span>
+          <span>→</span>
+          <span className={step === 'map' ? 'text-primary-600 font-medium' : ''}>Map columns</span>
+          <span>→</span>
+          <span className={step === 'confirm' ? 'text-primary-600 font-medium' : ''}>Confirm</span>
+        </div>
+      </div>
+
+      {error && (
+        <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg text-primary-800 text-sm mb-4">
+          {error}
+        </div>
+      )}
+
+      {step === 'upload' && (
+        <div>
+          <p className="text-neutral-600 text-sm mb-4">
+            Upload a CSV file with your guest list. The file should have columns for name and email.
+            Party size is optional.
+          </p>
+          <div className="border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <DocumentIcon className="w-10 h-10 mx-auto text-neutral-400 mb-3" />
+            <p className="text-neutral-600 mb-2">Drag and drop your CSV file here, or</p>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="btn-secondary"
+            >
+              Browse files
+            </button>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button type="button" onClick={onCancel} className="btn-secondary">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 'map' && csvData && (
+        <div>
+          <p className="text-neutral-600 text-sm mb-4">
+            Match your CSV columns to the guest fields. We detected {csvData.rows.length} rows.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Name column
+              </label>
+              <select
+                value={mapping.nameColumn}
+                onChange={(e) => setMapping({ ...mapping, nameColumn: parseInt(e.target.value, 10) })}
+                className="w-full px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                {csvData.headers.map((header, idx) => (
+                  <option key={idx} value={idx}>{header || `Column ${idx + 1}`}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Email column
+              </label>
+              <select
+                value={mapping.emailColumn}
+                onChange={(e) => setMapping({ ...mapping, emailColumn: parseInt(e.target.value, 10) })}
+                className="w-full px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                {csvData.headers.map((header, idx) => (
+                  <option key={idx} value={idx}>{header || `Column ${idx + 1}`}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Party size column <span className="text-neutral-400">(optional)</span>
+              </label>
+              <select
+                value={mapping.partySizeColumn ?? ''}
+                onChange={(e) => setMapping({
+                  ...mapping,
+                  partySizeColumn: e.target.value ? parseInt(e.target.value, 10) : null,
+                })}
+                className="w-full px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="">None</option>
+                {csvData.headers.map((header, idx) => (
+                  <option key={idx} value={idx}>{header || `Column ${idx + 1}`}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <p className="text-sm font-medium text-neutral-700 mb-2">Preview (first 5 rows)</p>
+            <div className="border border-neutral-200 rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-neutral-100">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-neutral-600">Name</th>
+                    <th className="px-3 py-2 text-left text-neutral-600">Email</th>
+                    <th className="px-3 py-2 text-left text-neutral-600">Party Size</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-200">
+                  {previewGuests.map((guest, idx) => (
+                    <tr key={idx}>
+                      <td className="px-3 py-2 text-neutral-800">{guest.name}</td>
+                      <td className="px-3 py-2 text-neutral-800">{guest.email}</td>
+                      <td className="px-3 py-2 text-neutral-800">{guest.partySize}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="flex gap-3 justify-end">
+            <button type="button" onClick={() => setStep('upload')} className="btn-secondary">
+              Back
+            </button>
+            <button type="button" onClick={handleConfirm} className="btn-primary">
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 'confirm' && csvData && (
+        <div>
+          <p className="text-neutral-600 text-sm mb-4">
+            Ready to import <strong>{csvData.rows.length}</strong> guests. Duplicates will be skipped.
+          </p>
+          <div className="bg-accent-50 border border-accent-200 rounded-lg p-4 mb-6">
+            <p className="text-accent-800 text-sm">
+              Guests with invalid data or duplicate emails will be skipped.
+              You'll see a summary after the import completes.
+            </p>
+          </div>
+          <div className="flex gap-3 justify-end">
+            <button
+              type="button"
+              onClick={() => setStep('map')}
+              className="btn-secondary"
+              disabled={isImporting}
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              onClick={handleImport}
+              className="btn-primary"
+              disabled={isImporting}
+            >
+              {isImporting ? 'Importing...' : `Import ${csvData.rows.length} guests`}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 'results' && importResults && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <CheckCircleIcon className="w-6 h-6 text-accent-600" />
+            <span className="text-lg text-neutral-800">Import complete</span>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-accent-50 border border-accent-200 rounded-lg p-4 text-center">
+              <p className="text-2xl font-semibold text-accent-700">
+                {importResults.filter(r => r.success).length}
+              </p>
+              <p className="text-sm text-accent-600">Imported</p>
+            </div>
+            <div className="bg-neutral-100 border border-neutral-200 rounded-lg p-4 text-center">
+              <p className="text-2xl font-semibold text-neutral-700">
+                {importResults.filter(r => !r.success).length}
+              </p>
+              <p className="text-sm text-neutral-600">Skipped</p>
+            </div>
+          </div>
+
+          {importResults.some(r => !r.success) && (
+            <div className="mb-6">
+              <p className="text-sm font-medium text-neutral-700 mb-2">Skipped rows</p>
+              <div className="border border-neutral-200 rounded-lg overflow-hidden max-h-48 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-neutral-100 sticky top-0">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-neutral-600">Row</th>
+                      <th className="px-3 py-2 text-left text-neutral-600">Name</th>
+                      <th className="px-3 py-2 text-left text-neutral-600">Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-200">
+                    {importResults.filter(r => !r.success).map((result, idx) => (
+                      <tr key={idx}>
+                        <td className="px-3 py-2 text-neutral-800">{result.row}</td>
+                        <td className="px-3 py-2 text-neutral-800">{result.name || '(empty)'}</td>
+                        <td className="px-3 py-2 text-neutral-500">{result.error}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <button type="button" onClick={onCancel} className="btn-primary">
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DocumentIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+      />
+    </svg>
+  );
+}
+
+function CheckCircleIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+    </svg>
   );
 }
 
