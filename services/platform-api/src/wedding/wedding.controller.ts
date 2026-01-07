@@ -44,8 +44,12 @@ import type {
   UpdateGalleryResponse,
   GalleryConfig,
   GalleryPhoto,
+  UpdateVideoRequest,
+  UpdateVideoResponse,
+  VideoConfig,
+  VideoEmbed,
 } from '../types';
-import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, WEDDING_NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, NOT_FOUND, GALLERY_PHOTO_NOT_FOUND } from '../types';
+import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, WEDDING_NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, NOT_FOUND, GALLERY_PHOTO_NOT_FOUND, VIDEO_URL_INVALID, VIDEO_NOT_FOUND } from '../types';
 
 @Controller('weddings')
 export class WeddingController {
@@ -864,6 +868,243 @@ export class WeddingController {
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: GALLERY_PHOTO_NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
+  }
+
+  // ============================================================================
+  // Video Embed Endpoints
+  // ============================================================================
+
+  /**
+   * Get video configuration for a wedding
+   * PRD: "Admin can embed videos"
+   */
+  @Get(':id/video')
+  async getVideo(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+  ): Promise<ApiResponse<VideoConfig>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    // Check if VIDEO_EMBED feature is enabled
+    if (!wedding.features.VIDEO_EMBED) {
+      throw new ForbiddenException({
+        ok: false,
+        error: FEATURE_DISABLED,
+      });
+    }
+
+    const video = this.weddingService.getVideo(id);
+
+    if (!video) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return { ok: true, data: video };
+  }
+
+  /**
+   * Update video configuration for a wedding
+   * Allows admin to add/remove/reorder videos and update titles
+   * PRD: "Admin can embed videos"
+   */
+  @Put(':id/video')
+  async updateVideo(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: UpdateVideoRequest,
+  ): Promise<ApiResponse<UpdateVideoResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    // Check if VIDEO_EMBED feature is enabled
+    if (!wedding.features.VIDEO_EMBED) {
+      throw new ForbiddenException({
+        ok: false,
+        error: FEATURE_DISABLED,
+      });
+    }
+
+    if (!body.video) {
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+    }
+
+    // Validate video entries
+    const videos = body.video.videos || [];
+    for (const video of videos) {
+      if (!video.id?.trim() || !video.videoId?.trim() || !video.platform) {
+        throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+      }
+      if (video.platform !== 'youtube' && video.platform !== 'vimeo') {
+        throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+      }
+    }
+
+    // Normalize the video config
+    const normalizedVideo: VideoConfig = {
+      videos: videos.map((video, index) => ({
+        id: video.id,
+        platform: video.platform,
+        videoId: video.videoId,
+        url: video.url,
+        title: video.title?.trim() || undefined,
+        order: video.order ?? index,
+        addedAt: video.addedAt || new Date().toISOString(),
+      })),
+    };
+
+    const result = this.weddingService.updateVideo(id, normalizedVideo);
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Add a single video embed to the wedding
+   * Parses and validates the YouTube/Vimeo URL
+   * PRD: "Admin can embed videos"
+   */
+  @Post(':id/video/videos')
+  async addVideo(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: { url: string; title?: string },
+  ): Promise<ApiResponse<UpdateVideoResponse & { video: VideoEmbed }>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    // Check if VIDEO_EMBED feature is enabled
+    if (!wedding.features.VIDEO_EMBED) {
+      throw new ForbiddenException({
+        ok: false,
+        error: FEATURE_DISABLED,
+      });
+    }
+
+    if (!body.url?.trim()) {
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+    }
+
+    // Validate and parse the URL
+    const parsed = this.weddingService.parseVideoUrl(body.url);
+    if (!parsed) {
+      throw new BadRequestException({
+        ok: false,
+        error: VIDEO_URL_INVALID,
+      });
+    }
+
+    const result = this.weddingService.addVideo(id, body.url, body.title?.trim());
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Update a specific video (title, order)
+   * PRD: "Set video title"
+   */
+  @Put(':id/video/videos/:videoId')
+  async updateVideoEmbed(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Param('videoId') videoId: string,
+    @Body() body: { title?: string; order?: number },
+  ): Promise<ApiResponse<UpdateVideoResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    // Check if VIDEO_EMBED feature is enabled
+    if (!wedding.features.VIDEO_EMBED) {
+      throw new ForbiddenException({
+        ok: false,
+        error: FEATURE_DISABLED,
+      });
+    }
+
+    const result = this.weddingService.updateVideoEmbed(id, videoId, body);
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: VIDEO_NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Remove a video from the wedding
+   * PRD: "Admin can embed videos" (implies ability to remove)
+   */
+  @Delete(':id/video/videos/:videoId')
+  async removeVideo(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Param('videoId') videoId: string,
+  ): Promise<ApiResponse<UpdateVideoResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    // Check if VIDEO_EMBED feature is enabled
+    if (!wedding.features.VIDEO_EMBED) {
+      throw new ForbiddenException({
+        ok: false,
+        error: FEATURE_DISABLED,
+      });
+    }
+
+    const result = this.weddingService.removeVideo(id, videoId);
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: VIDEO_NOT_FOUND });
     }
 
     return { ok: true, data: result };

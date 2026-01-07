@@ -14,7 +14,8 @@ export type FeatureFlag =
   | 'ACCOMMODATIONS'
   | 'GUESTBOOK'
   | 'MUSIC_REQUESTS'
-  | 'SEATING_CHART';
+  | 'SEATING_CHART'
+  | 'VIDEO_EMBED';
 
 /**
  * Template categories matching product positioning
@@ -193,6 +194,67 @@ export const GALLERY_PHOTO_NOT_FOUND = 'GALLERY_PHOTO_NOT_FOUND' as const;
  * Gallery upload validation error code
  */
 export const GALLERY_UPLOAD_VALIDATION_ERROR = 'GALLERY_UPLOAD_VALIDATION_ERROR' as const;
+
+// ============================================================================
+// Video Embed Types
+// ============================================================================
+
+/**
+ * Supported video platforms for embedding
+ */
+export type VideoEmbedPlatform = 'youtube' | 'vimeo';
+
+/**
+ * A single embedded video (e.g., engagement video, proposal video)
+ */
+export interface VideoEmbed {
+  id: string;
+  /** Platform the video is hosted on */
+  platform: VideoEmbedPlatform;
+  /** Video ID from the platform (extracted from URL) */
+  videoId: string;
+  /** Original URL provided by user */
+  url: string;
+  /** Optional title for the video */
+  title?: string;
+  /** Display order (lower = first) */
+  order: number;
+  /** When the video was added */
+  addedAt: string;
+}
+
+/**
+ * Video embed configuration for the wedding
+ */
+export interface VideoConfig {
+  /** Array of embedded videos */
+  videos: VideoEmbed[];
+}
+
+/**
+ * Request to update video embeds
+ */
+export interface UpdateVideoRequest {
+  video: VideoConfig;
+}
+
+/**
+ * Response after updating video embeds
+ */
+export interface UpdateVideoResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+/**
+ * Video URL invalid or unsupported platform error code
+ */
+export const VIDEO_URL_INVALID = 'VIDEO_URL_INVALID' as const;
+
+/**
+ * Video not found error code
+ */
+export const VIDEO_NOT_FOUND = 'VIDEO_NOT_FOUND' as const;
 
 // ============================================================================
 // Registry Types
@@ -378,6 +440,8 @@ export interface RenderConfig {
   seating?: SeatingConfig;
   /** Admin curated photo gallery */
   gallery?: GalleryConfig;
+  /** Embedded videos (engagement video, proposal video, etc.) */
+  video?: VideoConfig;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -674,6 +738,8 @@ export interface Wedding {
   gallery?: GalleryConfig;
   /** Photo moderation settings (guest uploads) */
   photoModerationConfig?: PhotoModerationConfig;
+  /** Embedded video configuration */
+  video?: VideoConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -2073,4 +2139,6 @@ export type ErrorCode =
   | typeof GUEST_NOT_INVITED_TO_EVENT
   | typeof EVENT_NOT_FOUND
   | typeof GALLERY_PHOTO_NOT_FOUND
-  | typeof GALLERY_UPLOAD_VALIDATION_ERROR;
+  | typeof GALLERY_UPLOAD_VALIDATION_ERROR
+  | typeof VIDEO_URL_INVALID
+  | typeof VIDEO_NOT_FOUND;

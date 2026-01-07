@@ -25,6 +25,9 @@ import type {
   EmailTemplatesConfig,
   GalleryConfig,
   GalleryPhoto,
+  VideoConfig,
+  VideoEmbed,
+  VideoEmbedPlatform,
 } from '../types';
 
 const scryptAsync = promisify(scrypt);
@@ -210,6 +213,25 @@ const createGallerySection = (order: number, enabled: boolean): Section => ({
   data: { ...DEFAULT_GALLERY_SECTION_DATA },
 });
 
+const VIDEO_SECTION_ID = 'video';
+
+const DEFAULT_VIDEO_SECTION_DATA = {
+  title: 'Our Videos',
+  description: 'Watch our special moments together.',
+};
+
+const DEFAULT_VIDEO: VideoConfig = {
+  videos: [],
+};
+
+const createVideoSection = (order: number, enabled: boolean): Section => ({
+  id: VIDEO_SECTION_ID,
+  type: 'video',
+  enabled,
+  order,
+  data: { ...DEFAULT_VIDEO_SECTION_DATA },
+});
+
 /**
  * Features enabled by plan tier
  */
@@ -227,6 +249,7 @@ const PLAN_FEATURES: Record<PlanTier, FeatureFlag[]> = {
     'GUESTBOOK',
     'MUSIC_REQUESTS',
     'SEATING_CHART',
+    'VIDEO_EMBED',
   ],
 };
 
@@ -245,6 +268,7 @@ const ALL_FEATURES: FeatureFlag[] = [
   'GUESTBOOK',
   'MUSIC_REQUESTS',
   'SEATING_CHART',
+  'VIDEO_EMBED',
 ];
 
 /**
@@ -424,6 +448,8 @@ export class WeddingService {
         createSeatingSection(9, wedding.features.SEATING_CHART),
         // Gallery section - enabled when there are curated photos (admin-controlled, not feature-gated)
         createGallerySection(10, (wedding.gallery?.photos.length ?? 0) > 0),
+        // Video section - enabled when VIDEO_EMBED feature is enabled and videos exist
+        createVideoSection(11, wedding.features.VIDEO_EMBED && (wedding.video?.videos.length ?? 0) > 0),
       ],
       wedding: {
         slug: wedding.slug,
@@ -467,6 +493,11 @@ export class WeddingService {
     // Add gallery configuration if present (admin curated photos)
     if (wedding.gallery && wedding.gallery.photos.length > 0) {
       config.gallery = wedding.gallery;
+    }
+
+    // Add video configuration if present and feature enabled
+    if (wedding.features.VIDEO_EMBED && wedding.video && wedding.video.videos.length > 0) {
+      config.video = wedding.video;
     }
 
     return config;
@@ -528,6 +559,7 @@ export class WeddingService {
       faq: { ...DEFAULT_FAQ },
       registry: { ...DEFAULT_REGISTRY },
       gallery: { ...DEFAULT_GALLERY },
+      video: { ...DEFAULT_VIDEO },
       createdAt: now,
       updatedAt: now,
     };
@@ -663,6 +695,11 @@ export class WeddingService {
         if (section.type === 'seating') {
           return { ...section, enabled: updatedFeatures.SEATING_CHART };
         }
+        if (section.type === 'video') {
+          // Video section is enabled only when feature is enabled AND videos exist
+          const hasVideos = (wedding.video?.videos.length ?? 0) > 0;
+          return { ...section, enabled: updatedFeatures.VIDEO_EMBED && hasVideos };
+        }
         return section;
       }),
     };
@@ -723,6 +760,16 @@ export class WeddingService {
       updatedConfig.sections = [
         ...updatedConfig.sections,
         createSeatingSection(maxOrder + 1, updatedFeatures.SEATING_CHART),
+      ];
+    }
+
+    const hasVideoSection = updatedConfig.sections.some((section) => section.type === 'video');
+    if (!hasVideoSection) {
+      const maxOrder = updatedConfig.sections.reduce((max, section) => Math.max(max, section.order), -1);
+      const hasVideos = (wedding.video?.videos.length ?? 0) > 0;
+      updatedConfig.sections = [
+        ...updatedConfig.sections,
+        createVideoSection(maxOrder + 1, updatedFeatures.VIDEO_EMBED && hasVideos),
       ];
     }
 
@@ -1455,5 +1502,232 @@ export class WeddingService {
       return null;
     }
     return wedding.gallery ?? { ...DEFAULT_GALLERY };
+  }
+
+  // ============================================================================
+  // Video Embed Methods
+  // ============================================================================
+
+  /**
+   * Parse a YouTube or Vimeo URL and extract the video ID
+   * Supports various URL formats:
+   * - YouTube: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID
+   * - Vimeo: vimeo.com/ID, player.vimeo.com/video/ID
+   */
+  parseVideoUrl(url: string): { platform: VideoEmbedPlatform; videoId: string } | null {
+    try {
+      const parsedUrl = new URL(url);
+
+      // YouTube URL patterns
+      if (parsedUrl.hostname.includes('youtube.com') || parsedUrl.hostname.includes('youtu.be')) {
+        let videoId: string | null = null;
+
+        if (parsedUrl.hostname === 'youtu.be') {
+          // Short format: youtu.be/VIDEO_ID
+          videoId = parsedUrl.pathname.slice(1);
+        } else if (parsedUrl.pathname.includes('/watch')) {
+          // Standard format: youtube.com/watch?v=VIDEO_ID
+          videoId = parsedUrl.searchParams.get('v');
+        } else if (parsedUrl.pathname.includes('/embed/')) {
+          // Embed format: youtube.com/embed/VIDEO_ID
+          videoId = parsedUrl.pathname.split('/embed/')[1]?.split('?')[0];
+        }
+
+        if (videoId && videoId.length === 11) {
+          return { platform: 'youtube', videoId };
+        }
+      }
+
+      // Vimeo URL patterns
+      if (parsedUrl.hostname.includes('vimeo.com') || parsedUrl.hostname.includes('player.vimeo.com')) {
+        let videoId: string | null = null;
+
+        if (parsedUrl.hostname === 'player.vimeo.com') {
+          // Player format: player.vimeo.com/video/VIDEO_ID
+          videoId = parsedUrl.pathname.split('/video/')[1]?.split('?')[0];
+        } else {
+          // Standard format: vimeo.com/VIDEO_ID
+          videoId = parsedUrl.pathname.slice(1).split('/')[0];
+        }
+
+        // Vimeo IDs are numeric
+        if (videoId && /^\d+$/.test(videoId)) {
+          return { platform: 'vimeo', videoId };
+        }
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Update video configuration for a wedding
+   * Updates both the wedding record and regenerates render_config
+   * PRD: "Admin can embed videos"
+   */
+  updateVideo(
+    weddingId: string,
+    video: VideoConfig,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    wedding.video = video;
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    const existingConfig = this.renderConfigs.get(weddingId);
+    if (!existingConfig) {
+      return null;
+    }
+
+    // Update video in render_config
+    const hasVideos = video.videos.length > 0;
+    const featureEnabled = wedding.features.VIDEO_EMBED;
+
+    // Update the video section enabled state
+    const updatedSections = existingConfig.sections.map((section) => {
+      if (section.type === 'video') {
+        return { ...section, enabled: featureEnabled && hasVideos };
+      }
+      return section;
+    });
+
+    // Ensure video section exists
+    const hasVideoSection = updatedSections.some((s) => s.type === 'video');
+    if (!hasVideoSection) {
+      const maxOrder = updatedSections.reduce((max, s) => Math.max(max, s.order), -1);
+      updatedSections.push(createVideoSection(maxOrder + 1, featureEnabled && hasVideos));
+    }
+
+    const updatedConfig: RenderConfig = {
+      ...existingConfig,
+      sections: updatedSections,
+      video: (featureEnabled && hasVideos) ? video : undefined,
+    };
+
+    this.renderConfigs.set(weddingId, updatedConfig);
+
+    this.logger.log(
+      `Updated video for wedding ${weddingId}: ${video.videos.length} videos`,
+    );
+
+    return { wedding, renderConfig: updatedConfig };
+  }
+
+  /**
+   * Add a single video embed to the wedding
+   * Validates the URL and extracts the platform/videoId
+   */
+  addVideo(
+    weddingId: string,
+    url: string,
+    title?: string,
+  ): { wedding: Wedding; renderConfig: RenderConfig; video: VideoEmbed } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    // Parse and validate the URL
+    const parsed = this.parseVideoUrl(url);
+    if (!parsed) {
+      return null;
+    }
+
+    const video = wedding.video ?? { ...DEFAULT_VIDEO };
+
+    // Create the new video embed
+    const newVideo: VideoEmbed = {
+      id: randomBytes(8).toString('hex'),
+      platform: parsed.platform,
+      videoId: parsed.videoId,
+      url,
+      title,
+      order: video.videos.length,
+      addedAt: new Date().toISOString(),
+    };
+
+    video.videos.push(newVideo);
+
+    const result = this.updateVideo(weddingId, video);
+    if (!result) {
+      return null;
+    }
+
+    return { ...result, video: newVideo };
+  }
+
+  /**
+   * Remove a video from the wedding by ID
+   */
+  removeVideo(
+    weddingId: string,
+    videoId: string,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding || !wedding.video) {
+      return null;
+    }
+
+    const updatedVideos = wedding.video.videos.filter((v) => v.id !== videoId);
+
+    // Re-order remaining videos
+    const reorderedVideos = updatedVideos.map((v, index) => ({
+      ...v,
+      order: index,
+    }));
+
+    return this.updateVideo(weddingId, { videos: reorderedVideos });
+  }
+
+  /**
+   * Update a video's title or order
+   */
+  updateVideoEmbed(
+    weddingId: string,
+    videoId: string,
+    updates: { title?: string; order?: number },
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding || !wedding.video) {
+      return null;
+    }
+
+    const videoIndex = wedding.video.videos.findIndex((v) => v.id === videoId);
+    if (videoIndex === -1) {
+      return null;
+    }
+
+    const updatedVideos = [...wedding.video.videos];
+    updatedVideos[videoIndex] = {
+      ...updatedVideos[videoIndex],
+      ...updates,
+    };
+
+    // If order changed, re-sort and re-number
+    if (updates.order !== undefined) {
+      updatedVideos.sort((a, b) => a.order - b.order);
+      updatedVideos.forEach((v, index) => {
+        v.order = index;
+      });
+    }
+
+    return this.updateVideo(weddingId, { videos: updatedVideos });
+  }
+
+  /**
+   * Get the video configuration for a wedding
+   */
+  getVideo(weddingId: string): VideoConfig | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+    return wedding.video ?? { ...DEFAULT_VIDEO };
   }
 }

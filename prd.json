@@ -1229,7 +1229,7 @@
       "Save video embed",
       "Verify embed is stored"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "video",
@@ -1241,7 +1241,7 @@
       "Verify video section is visible",
       "Verify video plays correctly"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "photo-moderation",

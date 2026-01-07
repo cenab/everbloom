@@ -11,13 +11,14 @@ import GuestbookSection from './sections/GuestbookSection.astro';
 import MusicRequestSection from './sections/MusicRequestSection.astro';
 import SeatingSection from './sections/SeatingSection.astro';
 import GallerySection from './sections/GallerySection.astro';
+import VideoSection from './sections/VideoSection.astro';
 
 interface Props {
   config: RenderConfig;
 }
 
 const { config } = Astro.props;
-const { sections, theme, wedding, features, faq, registry, accommodations, guestbook, seating, gallery } = config;
+const { sections, theme, wedding, features, faq, registry, accommodations, guestbook, seating, gallery, video } = config;
 
 // Filter enabled sections and sort by order
 const enabledSections = sections
@@ -86,6 +87,11 @@ const enabledSections = sections
     case 'gallery':
       // Gallery is always rendered if photos exist (not feature-gated)
       return <GallerySection section={section} theme={theme} gallery={gallery} />;
+    case 'video':
+      if (features.VIDEO_EMBED) {
+        return <VideoSection section={section} theme={theme} video={video} />;
+      }
+      return null;
     default:
       return null;
   }

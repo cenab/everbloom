@@ -85,6 +85,10 @@ const FEATURE_INFO: Record<FeatureFlag, { label: string; description: string }> 
     label: 'Seating chart',
     description: 'Display table assignments for your guests',
   },
+  VIDEO_EMBED: {
+    label: 'Video embeds',
+    description: 'Embed YouTube or Vimeo videos on your site',
+  },
 };
 
 /**
@@ -104,6 +108,7 @@ const PLAN_AVAILABLE_FEATURES: Record<PlanTier, FeatureFlag[]> = {
     'GUESTBOOK',
     'MUSIC_REQUESTS',
     'SEATING_CHART',
+    'VIDEO_EMBED',
   ],
 };
 
@@ -119,6 +124,7 @@ const DEFAULT_FEATURE_SELECTION: Record<FeatureFlag, boolean> = {
   GUESTBOOK: false,
   SEATING_CHART: false,
   MUSIC_REQUESTS: false,
+  VIDEO_EMBED: false,
 };
 
 const ALL_FEATURES = Object.keys(FEATURE_INFO) as FeatureFlag[];

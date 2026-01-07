@@ -14,7 +14,8 @@ export type FeatureFlag =
   | 'ACCOMMODATIONS'
   | 'GUESTBOOK'
   | 'MUSIC_REQUESTS'
-  | 'SEATING_CHART';
+  | 'SEATING_CHART'
+  | 'VIDEO_EMBED';
 
 /**
  * Theme configuration for wedding sites
@@ -181,6 +182,8 @@ export interface RenderConfig {
   seating?: SeatingConfig;
   /** Admin-curated photo gallery */
   gallery?: GalleryConfig;
+  /** Video embeds configuration */
+  video?: VideoConfig;
   /** Whether passcode protection is enabled (hash is never exposed) */
   passcodeProtected?: boolean;
   wedding: {
@@ -416,6 +419,35 @@ export interface GalleryPhoto {
  */
 export interface GalleryConfig {
   photos: GalleryPhoto[];
+}
+
+// ============================================================================
+// Video Embed Types
+// ============================================================================
+
+/**
+ * Video embed platform type
+ */
+export type VideoEmbedPlatform = 'youtube' | 'vimeo';
+
+/**
+ * A single embedded video
+ */
+export interface VideoEmbed {
+  id: string;
+  platform: VideoEmbedPlatform;
+  videoId: string;
+  url: string;
+  title?: string;
+  order: number;
+  addedAt: string;
+}
+
+/**
+ * Video configuration for a wedding
+ */
+export interface VideoConfig {
+  videos: VideoEmbed[];
 }
 
 // ============================================================================

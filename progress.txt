@@ -4268,3 +4268,106 @@ Implemented email template customization feature allowing admins to personalize 
 - Could add a "reason" field for rejected photos
 - Could send notifications when photos are approved/rejected
 - Wedding site gallery should filter to only show approved photos
+
+---
+
+### 2026-01-07 - Video Embed Feature
+
+**Feature worked on:** Admin can embed videos (PRD: video category)
+
+**Priority rationale:** Chose video embed as highest priority because:
+- Medium complexity following established patterns (similar to Gallery feature)
+- Real user value - couples can share engagement videos, proposal videos, etc.
+- No new infrastructure required - just API endpoints and UI components
+- Premium-only feature that adds differentiation
+
+**What was done:**
+
+1. **Added video types to platform-api (services/platform-api/src/types/index.ts):**
+   - Added VIDEO_EMBED to FeatureFlag union type
+   - Added VideoEmbedPlatform ('youtube' | 'vimeo') type
+   - Added VideoEmbed interface (id, platform, videoId, url, title, order, addedAt)
+   - Added VideoConfig interface with videos array
+   - Added UpdateVideoRequest/Response types
+   - Added VIDEO_URL_INVALID, VIDEO_NOT_FOUND error codes
+   - Added video to Wedding interface and RenderConfig
+
+2. **Updated WeddingService (services/platform-api/src/wedding/wedding.service.ts):**
+   - Added VIDEO_EMBED to PLAN_FEATURES (premium only) and ALL_FEATURES
+   - Added video section constants (VIDEO_SECTION_ID, DEFAULT_VIDEO_SECTION_DATA, DEFAULT_VIDEO)
+   - Added createVideoSection helper function
+   - Updated generateRenderConfig to include video section when enabled
+   - Added video to initial wedding provisioning
+   - Updated updateFeatures to handle VIDEO_EMBED flag
+   - Added parseVideoUrl method for YouTube/Vimeo URL parsing
+   - Added updateVideo, addVideo, removeVideo, updateVideoEmbed, getVideo methods
+
+3. **Updated WeddingController (services/platform-api/src/wedding/wedding.controller.ts):**
+   - Added GET :id/video - Get video configuration
+   - Added PUT :id/video - Update video configuration
+   - Added POST :id/video/videos - Add a single video (parses URL)
+   - Added PUT :id/video/videos/:videoId - Update video title/order
+   - Added DELETE :id/video/videos/:videoId - Remove a video
+   - All endpoints check VIDEO_EMBED feature flag
+
+4. **Updated platform-ui types (apps/platform-ui/src/types.ts):**
+   - Added VIDEO_EMBED to FeatureFlag
+   - Added VideoEmbedPlatform, VideoEmbed, VideoConfig, UpdateVideoResponse interfaces
+   - Added video to RenderConfig and Wedding interfaces
+
+5. **Created VideoSettings component (apps/platform-ui/src/components/VideoSettings.tsx):**
+   - Admin UI for managing video embeds
+   - Form to add YouTube/Vimeo URLs with optional titles
+   - List view with thumbnails (YouTube only)
+   - Reorder (up/down) and delete functionality
+   - Save changes to API
+
+6. **Updated Dashboard (apps/platform-ui/src/components/Dashboard.tsx):**
+   - Added 'video' to View type
+   - Added VideoSettings import and view handler
+   - Added onNavigateToVideo to WeddingDashboard props
+   - Added "Video embeds" dashboard card with VideoIcon (conditionally shown when VIDEO_EMBED enabled)
+   - Added VideoIcon SVG component
+
+7. **Updated CreateWedding.tsx and FeatureSettings.tsx:**
+   - Added VIDEO_EMBED to FEATURE_INFO
+   - Added VIDEO_EMBED to PLAN_AVAILABLE_FEATURES (premium tier)
+   - Added VIDEO_EMBED to DEFAULT_FEATURE_SELECTION
+
+8. **Added video types to wedding-site (apps/wedding-site/src/types.ts):**
+   - Added VIDEO_EMBED to FeatureFlag
+   - Added VideoEmbedPlatform, VideoEmbed, VideoConfig interfaces
+   - Added video to RenderConfig
+
+9. **Created VideoSection.astro component (apps/wedding-site/src/components/sections/VideoSection.astro):**
+   - Renders video section on public wedding site
+   - Supports YouTube and Vimeo embeds via iframe
+   - 16:9 aspect ratio responsive video wrapper
+   - Shows video title if provided
+   - Calm, ceremonial styling matching design system
+
+10. **Updated SectionRenderer.astro (apps/wedding-site/src/components/SectionRenderer.astro):**
+    - Added VideoSection import
+    - Added video to config destructuring
+    - Added 'video' case to switch statement (feature-gated with VIDEO_EMBED)
+
+**URL parsing supports:**
+- YouTube: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID
+- Vimeo: vimeo.com/ID, player.vimeo.com/video/ID
+
+**Design decisions:**
+- VIDEO_EMBED is premium-only feature
+- Video section is feature-gated (must enable VIDEO_EMBED)
+- Videos display in a single-column layout for optimal viewing
+- YouTube thumbnails shown in admin UI for easy identification
+- No autoplay - videos only play on user interaction
+
+**PRD features now passing:**
+- "Admin can embed videos" ✓
+- "Video section displays on public site" ✓
+
+**Notes for next person:**
+- Could add drag-and-drop reordering for videos
+- Could support more platforms (TikTok, Instagram)
+- Could add video thumbnail preview for Vimeo (requires API call)
+- Could add video autoplay options (not recommended for UX)

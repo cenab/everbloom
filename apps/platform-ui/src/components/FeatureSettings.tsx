@@ -63,6 +63,10 @@ const FEATURE_INFO: Record<FeatureFlag, { label: string; description: string }> 
     label: 'Seating chart',
     description: 'Display table assignments for your guests',
   },
+  VIDEO_EMBED: {
+    label: 'Video embeds',
+    description: 'Embed YouTube or Vimeo videos on your site',
+  },
 };
 
 /**
@@ -82,6 +86,7 @@ const PLAN_AVAILABLE_FEATURES: Record<string, FeatureFlag[]> = {
     'GUESTBOOK',
     'MUSIC_REQUESTS',
     'SEATING_CHART',
+    'VIDEO_EMBED',
   ],
 };
 

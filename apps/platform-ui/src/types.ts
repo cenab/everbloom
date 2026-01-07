@@ -14,7 +14,8 @@ export type FeatureFlag =
   | 'ACCOMMODATIONS'
   | 'GUESTBOOK'
   | 'MUSIC_REQUESTS'
-  | 'SEATING_CHART';
+  | 'SEATING_CHART'
+  | 'VIDEO_EMBED';
 
 /**
  * Template categories matching product positioning
@@ -208,6 +209,7 @@ export interface RenderConfig {
   registry?: RegistryConfig;
   accommodations?: AccommodationsConfig;
   gallery?: GalleryConfig;
+  video?: VideoConfig;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -341,6 +343,7 @@ export interface Wedding {
   emailTemplates?: EmailTemplatesConfig;
   gallery?: GalleryConfig;
   photoModerationConfig?: PhotoModerationConfig;
+  video?: VideoConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -1118,4 +1121,49 @@ export interface EmailTemplatesConfig {
  */
 export interface UpdateEmailTemplatesResponse {
   wedding: Wedding;
+}
+
+// ============================================================================
+// Video Embed Types
+// PRD: "Admin can embed videos"
+// ============================================================================
+
+/**
+ * Supported video platforms for embedding
+ */
+export type VideoEmbedPlatform = 'youtube' | 'vimeo';
+
+/**
+ * A single embedded video (e.g., engagement video, proposal video)
+ */
+export interface VideoEmbed {
+  id: string;
+  /** Platform the video is hosted on */
+  platform: VideoEmbedPlatform;
+  /** Video ID from the platform (extracted from URL) */
+  videoId: string;
+  /** Original URL provided by user */
+  url: string;
+  /** Optional title for the video */
+  title?: string;
+  /** Display order (lower = first) */
+  order: number;
+  /** When the video was added */
+  addedAt: string;
+}
+
+/**
+ * Video embed configuration for the wedding
+ */
+export interface VideoConfig {
+  /** Array of embedded videos */
+  videos: VideoEmbed[];
+}
+
+/**
+ * Response after updating video embeds
+ */
+export interface UpdateVideoResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
 }

@@ -21,10 +21,11 @@ import { Communications } from './Communications';
 import { EmailTemplateSettings } from './EmailTemplateSettings';
 import { GallerySettings } from './GallerySettings';
 import { PhotoModerationSettings } from './PhotoModerationSettings';
+import { VideoSettings } from './VideoSettings';
 import { getAuthToken } from '../lib/auth';
 import type { Wedding, ApiResponse, RenderConfig } from '../types';
 
-type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'accommodations' | 'email-stats' | 'photo-stats' | 'guestbook' | 'music' | 'seating' | 'communications' | 'email-templates' | 'gallery' | 'photo-moderation';
+type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'accommodations' | 'email-stats' | 'photo-stats' | 'guestbook' | 'music' | 'seating' | 'communications' | 'email-templates' | 'gallery' | 'photo-moderation' | 'video';
 
 /**
  * Admin Dashboard component.
@@ -321,6 +322,18 @@ export function Dashboard() {
     );
   }
 
+  if (view === 'video' && selectedWedding) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <VideoSettings
+          wedding={selectedWedding}
+          onBack={() => setView('dashboard')}
+          onVideoChanged={fetchWeddings}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -365,6 +378,7 @@ export function Dashboard() {
           onNavigateToEmailTemplates={() => setView('email-templates')}
           onNavigateToGallery={() => setView('gallery')}
           onNavigateToPhotoModeration={() => setView('photo-moderation')}
+          onNavigateToVideo={() => setView('video')}
           onBack={weddings.length > 1 ? () => setSelectedWedding(null) : undefined}
         />
       )}
@@ -455,6 +469,7 @@ interface WeddingDashboardProps {
   onNavigateToEmailTemplates: () => void;
   onNavigateToGallery: () => void;
   onNavigateToPhotoModeration: () => void;
+  onNavigateToVideo: () => void;
   onBack?: () => void;
 }
 
@@ -485,6 +500,7 @@ function WeddingDashboard({
   onNavigateToEmailTemplates,
   onNavigateToGallery,
   onNavigateToPhotoModeration,
+  onNavigateToVideo,
   onBack,
 }: WeddingDashboardProps) {
   return (
@@ -519,6 +535,14 @@ function WeddingDashboard({
           icon={<ImageIcon className="w-6 h-6" />}
           onClick={onNavigateToGallery}
         />
+        {wedding.features.VIDEO_EMBED && (
+          <DashboardCard
+            title="Video embeds"
+            description="Add YouTube or Vimeo videos"
+            icon={<VideoIcon className="w-6 h-6" />}
+            onClick={onNavigateToVideo}
+          />
+        )}
         <DashboardCard
           title="Your guests"
           description="Add and manage your guest list"
@@ -1144,6 +1168,24 @@ function ShieldCheckIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+      />
+    </svg>
+  );
+}
+
+function VideoIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z"
       />
     </svg>
   );
