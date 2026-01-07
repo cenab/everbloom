@@ -603,6 +603,79 @@ const title = wedding
         box-shadow: 0 0 0 3px rgba(201, 130, 107, 0.2);
       }
 
+      /* Photo opt-out checkbox section */
+      .photo-optout-section {
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background: rgba(143, 172, 139, 0.08);
+        border-radius: 8px;
+      }
+
+      .photo-optout-label {
+        display: flex;
+        align-items: flex-start;
+        cursor: pointer;
+        position: relative;
+        padding-left: 32px;
+      }
+
+      .photo-optout-checkbox {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+      }
+
+      .photo-optout-checkmark {
+        position: absolute;
+        left: 0;
+        top: 2px;
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--neutral-border);
+        border-radius: 4px;
+        background: var(--neutral-surface);
+        transition: all 0.2s ease;
+      }
+
+      .photo-optout-checkbox:checked + .photo-optout-checkmark {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+
+      .photo-optout-checkbox:checked + .photo-optout-checkmark::after {
+        content: '';
+        position: absolute;
+        left: 6px;
+        top: 2px;
+        width: 5px;
+        height: 10px;
+        border: solid var(--neutral-light);
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+      }
+
+      .photo-optout-checkbox:focus-visible + .photo-optout-checkmark {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      .photo-optout-text {
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--neutral-dark);
+        line-height: 1.4;
+      }
+
+      .photo-optout-hint {
+        font-size: 0.8rem;
+        color: var(--neutral-dark);
+        opacity: 0.6;
+        margin: 0.5rem 0 0 32px;
+        line-height: 1.4;
+      }
+
       /* Visually hidden but accessible to screen readers */
       .visually-hidden {
         position: absolute;
@@ -743,6 +816,21 @@ const title = wedding
                   id="dietary-notes"
                   placeholder="Let us know about any allergies or dietary needs..."
                 >{guest.dietaryNotes || ''}</textarea>
+              </div>
+
+              <div class="photo-optout-section" id="photo-optout-section">
+                <label class="photo-optout-label">
+                  <input
+                    type="checkbox"
+                    name="photoOptOut"
+                    id="photo-optout"
+                    checked={guest.photoOptOut}
+                    class="photo-optout-checkbox"
+                  />
+                  <span class="photo-optout-checkmark" aria-hidden="true"></span>
+                  <span class="photo-optout-text">Please don't include me in event photos</span>
+                </label>
+                <p class="photo-optout-hint">Let us know if you'd prefer not to appear in shared photos from the event.</p>
               </div>
 
               <button type="submit" class="submit-btn" id="submit-btn">
@@ -1020,12 +1108,16 @@ const title = wedding
               return;
             }
 
+            const photoOptOutCheckbox = document.getElementById('photo-optout');
+            const photoOptOut = photoOptOutCheckbox?.checked || false;
+
             const data = {
               token: formData.get('token'),
               rsvpStatus: formData.get('rsvpStatus'),
               partySize: parseInt(formData.get('partySize')) || 1,
               dietaryNotes: formData.get('dietaryNotes') || undefined,
               plusOneGuests: plusOneGuests.length > 0 ? plusOneGuests : undefined,
+              photoOptOut,
             };
 
             try {

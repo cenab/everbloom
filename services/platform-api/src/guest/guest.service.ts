@@ -324,6 +324,7 @@ export class GuestService {
    * @param dietaryNotes - Dietary notes for the primary guest
    * @param plusOneGuests - Plus-one guest details (names, dietary notes, and meal options)
    * @param mealOptionId - Selected meal option for the primary guest
+   * @param photoOptOut - Guest opts out of being shown in photos
    * @returns Updated guest or null if not found
    * @throws Error with 'PLUS_ONE_LIMIT_EXCEEDED' if too many plus-ones provided
    */
@@ -334,6 +335,7 @@ export class GuestService {
     dietaryNotes?: string,
     plusOneGuests?: PlusOneGuest[],
     mealOptionId?: string,
+    photoOptOut?: boolean,
   ): Promise<Guest | null> {
     const guest = this.guests.get(guestId);
     if (!guest) {
@@ -363,13 +365,14 @@ export class GuestService {
       dietaryNotes: dietaryNotes ?? guest.dietaryNotes,
       plusOneGuests: rsvpStatus === 'attending' ? plusOneGuests : undefined,
       mealOptionId: rsvpStatus === 'attending' ? mealOptionId : undefined,
+      photoOptOut: photoOptOut ?? guest.photoOptOut,
       rsvpSubmittedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     this.guests.set(guestId, updated);
     this.logger.log(
-      `Updated RSVP for guest ${guestId}: ${rsvpStatus}${plusOnesCount > 0 ? ` with ${plusOnesCount} plus-one(s)` : ''}${mealOptionId ? ` meal: ${mealOptionId}` : ''}`,
+      `Updated RSVP for guest ${guestId}: ${rsvpStatus}${plusOnesCount > 0 ? ` with ${plusOnesCount} plus-one(s)` : ''}${mealOptionId ? ` meal: ${mealOptionId}` : ''}${photoOptOut ? ' (photo opt-out)' : ''}`,
     );
 
     return updated;

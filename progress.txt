@@ -4596,3 +4596,70 @@ Implemented email template customization feature allowing admins to personalize 
 - Consider adding aria-current="page" to navigation when pages are added
 - Progress bars should use <progress> or role="progressbar" with aria-valuenow (not yet implemented)
 - Consider adding loading state announcements with aria-busy
+
+---
+
+### 2026-01-07 - Guest Photo Opt-Out Feature
+
+**Feature worked on:** Guest can opt out of photo display (PRD: privacy category)
+
+**Priority rationale:** Privacy is a fundamental concern for wedding guests. This feature:
+1. Respects guest autonomy over their image
+2. Relatively contained change (follows established patterns)
+3. No external dependencies required
+4. High user value for privacy-conscious guests
+
+**What was done:**
+
+1. Updated platform-api types (services/platform-api/src/types/index.ts):
+   - Added `photoOptOut?: boolean` to Guest interface
+   - Added `photoOptOut?: boolean` to RsvpGuestView interface  
+   - Added `photoOptOut?: boolean` to RsvpSubmitRequest interface
+   - Added JSDoc comments referencing PRD requirement
+
+2. Updated GuestService (services/platform-api/src/guest/guest.service.ts):
+   - Added `photoOptOut?: boolean` parameter to `updateRsvpStatus` method
+   - Updated method implementation to store photoOptOut preference
+   - Preserves existing value if not provided (photoOptOut ?? guest.photoOptOut)
+
+3. Updated RsvpController (services/platform-api/src/rsvp/rsvp.controller.ts):
+   - Destructured `photoOptOut` from request body
+   - Passed `photoOptOut` to GuestService.updateRsvpStatus()
+   - Added `photoOptOut` field to both viewRsvp and submitRsvp response builders
+
+4. Updated wedding-site types (apps/wedding-site/src/types.ts):
+   - Added `photoOptOut?: boolean` to RsvpGuestView interface
+   - Added `photoOptOut?: boolean` to RsvpSubmitRequest interface
+
+5. Updated RSVP page UI (apps/wedding-site/src/pages/rsvp/index.astro):
+   - Added CSS styles for photo opt-out checkbox section (styled like dietary notes)
+   - Added accessible checkbox with custom checkmark styling (accent color)
+   - Added hint text explaining the preference
+   - Updated JavaScript to capture photoOptOut value and include in submission
+   - Checkbox properly reads initial value from guest data
+
+6. Updated platform-ui types (apps/platform-ui/src/types.ts):
+   - Added `photoOptOut?: boolean` to Guest interface
+
+7. Updated admin guests view (apps/platform-ui/src/components/Guests.tsx):
+   - Added PhotoOptOutBadge component with eye-slash icon
+   - Badge displays in GuestRow when guest.photoOptOut is true
+   - Added "No photos" indicator with title tooltip
+   - Added photo opt-out column to print view
+
+**Design system adherence:**
+- Checkbox uses accent color (#8fac8b) for checkmark
+- No pure black/white used (neutralDark/neutralLight tokens)
+- Minimal badge design (matches existing InviteStatusBadge, RsvpStatusBadge)
+- Human language: "Please don't include me in event photos"
+- Mobile-friendly checkbox with 24px tap target
+
+**PRD features now passing:**
+- "Guest can opt out of photo display" ✓
+
+**Notes for next person:**
+- The photo opt-out preference is stored but not yet enforced in photo display
+- Future work: Filter out opted-out guests when displaying guest photos
+- Future work: Add filtering in admin photo gallery to show opt-out status
+- The checkbox is opt-in (guest must actively check to opt out)
+- Print view includes "Notes" column showing "No photos" for opted-out guests

@@ -936,6 +936,11 @@ export interface Guest {
    * If undefined or empty, guest is invited to all events
    */
   invitedEventIds?: string[];
+  /**
+   * Guest has opted out of being shown in photos
+   * PRD: "Guest can opt out of photo display"
+   */
+  photoOptOut?: boolean;
   inviteSentAt?: string;
   rsvpSubmittedAt?: string;
   createdAt: string;
@@ -1022,6 +1027,11 @@ export interface RsvpGuestView {
     seatNumber?: number;
     tableNotes?: string;
   };
+  /**
+   * Guest has opted out of being shown in photos
+   * PRD: "Guest can opt out of photo display"
+   */
+  photoOptOut?: boolean;
 }
 
 /**
@@ -1068,6 +1078,11 @@ export interface RsvpSubmitRequest {
    * Maps event ID to RSVP data for that event
    */
   eventRsvps?: EventRsvpMap;
+  /**
+   * Guest opts out of being shown in photos
+   * PRD: "Guest can opt out of photo display"
+   */
+  photoOptOut?: boolean;
 }
 
 /**

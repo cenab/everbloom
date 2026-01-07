@@ -118,6 +118,7 @@ export class RsvpController {
       eventRsvps: guest.eventRsvps,
       invitedEventIds: guest.invitedEventIds,
       tableAssignment: tableAssignment || undefined,
+      photoOptOut: guest.photoOptOut,
     };
 
     // Get events the guest is invited to (for multi-event weddings)
@@ -178,7 +179,7 @@ export class RsvpController {
   async submitRsvp(
     @Body() body: RsvpSubmitRequest,
   ): Promise<ApiResponse<RsvpSubmitResponse>> {
-    const { token, rsvpStatus, partySize, dietaryNotes, plusOneGuests, mealOptionId, eventRsvps } = body;
+    const { token, rsvpStatus, partySize, dietaryNotes, plusOneGuests, mealOptionId, eventRsvps, photoOptOut } = body;
 
     if (!token) {
       throw new BadRequestException({
@@ -293,6 +294,7 @@ export class RsvpController {
           dietaryNotes,
           plusOneGuests,
           mealOptionId,
+          photoOptOut,
         );
       } catch (error) {
         if (error instanceof Error && error.message === 'PLUS_ONE_LIMIT_EXCEEDED') {
@@ -331,6 +333,7 @@ export class RsvpController {
       eventRsvps: updatedGuest.eventRsvps,
       invitedEventIds: updatedGuest.invitedEventIds,
       tableAssignment: submitTableAssignment || undefined,
+      photoOptOut: updatedGuest.photoOptOut,
     };
 
     // Build appropriate message based on submission type

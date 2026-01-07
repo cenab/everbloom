@@ -1401,7 +1401,7 @@
       "Verify preference is stored",
       "Verify admin sees opt-out status"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "custom-domain",

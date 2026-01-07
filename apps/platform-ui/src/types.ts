@@ -438,6 +438,11 @@ export interface Guest {
   plusOneGuests?: PlusOneGuest[];
   /** Selected meal option ID for the primary guest (if meal selection is enabled) */
   mealOptionId?: string;
+  /**
+   * Guest has opted out of being shown in photos
+   * PRD: "Guest can opt out of photo display"
+   */
+  photoOptOut?: boolean;
   inviteSentAt?: string;
   rsvpSubmittedAt?: string;
   createdAt: string;

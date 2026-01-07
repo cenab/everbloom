@@ -274,6 +274,11 @@ export interface RsvpGuestView {
   mealOptionId?: string;
   /** Table assignment (if seating chart is enabled and guest is assigned) */
   tableAssignment?: GuestTableAssignment;
+  /**
+   * Guest has opted out of being shown in photos
+   * PRD: "Guest can opt out of photo display"
+   */
+  photoOptOut?: boolean;
 }
 
 /**
@@ -310,6 +315,11 @@ export interface RsvpSubmitRequest {
   plusOneGuests?: PlusOneGuest[];
   /** Selected meal option ID for the primary guest (if meal selection is enabled) */
   mealOptionId?: string;
+  /**
+   * Guest opts out of being shown in photos
+   * PRD: "Guest can opt out of photo display"
+   */
+  photoOptOut?: boolean;
 }
 
 /**
