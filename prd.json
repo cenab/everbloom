@@ -716,7 +716,7 @@
       "Verify total photo count is displayed",
       "Verify recent uploads are shown"
     ],
-    "passes": false
+    "passes": true
   },
 
   {

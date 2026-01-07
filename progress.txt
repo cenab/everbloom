@@ -2236,3 +2236,75 @@ No stack traces, internal messages, or technical details are ever exposed.
 - Open rate tracking would require implementing tracking pixels in email templates
 - Statistics are calculated from in-memory email outbox (restart API = reset statistics)
 - The EmailStatisticsDashboard was already imported but not navigable until this change
+
+---
+
+### 2026-01-07 - Dashboard Shows Photo Upload Count
+
+**Feature worked on:** Dashboard shows photo upload count (PRD: analytics category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. It completes the analytics trifecta (email stats ✓, RSVP rate ✓, photo count ✗)
+2. Photos are already being stored with metadata, we just need to surface the count
+3. It provides immediate value to admins without external dependencies
+4. It follows established patterns in the codebase (summary endpoint + dashboard display)
+
+**What was done:**
+1. Added photo summary types to platform-api types (services/platform-api/src/types/index.ts):
+   - `PhotoSummary` interface with totalPhotos, totalSizeBytes, lastUploadedAt, recentUploads
+   - `PhotoSummaryResponse` for the API response wrapper
+
+2. Added `getPhotoSummary` method to PhotosService (services/platform-api/src/photos/photos.service.ts):
+   - Calculates total photo count and size
+   - Returns last 5 recent uploads sorted by date
+   - Returns last upload timestamp
+
+3. Added photo summary endpoint to PhotosAdminController:
+   - `GET /api/weddings/:weddingId/photos/summary` - authenticated endpoint
+   - Feature-gated (requires PHOTO_UPLOAD feature enabled)
+   - Returns summary with totalPhotos, totalSizeBytes, lastUploadedAt, recentUploads
+
+4. Added photo summary types to platform-ui types (apps/platform-ui/src/types.ts):
+   - Same `PhotoSummary` and `PhotoSummaryResponse` interfaces
+
+5. Created PhotoStatsDashboard component (apps/platform-ui/src/components/PhotoStatsDashboard.tsx):
+   - Three stat cards: Total photos, Total size, Last upload
+   - Recent uploads list with file names, sizes, and relative timestamps
+   - Empty state when no photos uploaded
+   - Human-friendly file size and time formatting
+   - Back button navigation
+   - Loading and error states
+
+6. Updated Dashboard component:
+   - Added 'photo-stats' to View type
+   - Added PhotoStatsDashboard import and view handler
+   - Added onNavigateToPhotoStats prop to WeddingDashboard
+   - Added "Photo uploads" card (conditionally shown when PHOTO_UPLOAD enabled)
+   - Added CameraIcon component
+
+**API Endpoints:**
+- `GET /api/weddings/:weddingId/photos/summary` - Get photo summary (requires auth)
+  - Returns: `{ summary: { totalPhotos, totalSizeBytes, lastUploadedAt?, recentUploads[] } }`
+  - Requires PHOTO_UPLOAD feature to be enabled
+
+**Design system adherence:**
+- Uses neutral-50 background for cards (no pure white)
+- Primary color for photo count, accent for size, neutral for time
+- Human language: "Photo uploads", "Photos shared by your guests"
+- Camera icon for photo-related UI elements
+- Consistent stat card styling with other dashboard components
+- Relative time formatting ("2 hours ago", "Just now")
+- Human-readable file sizes ("1.5 MB", "256 KB")
+
+**PRD features now passing:**
+- "Dashboard shows photo upload count" ✓
+  - ✓ Total photo count is displayed
+  - ✓ Recent uploads are shown (last 5)
+
+**Notes for next person:**
+- Photo summary endpoint is at GET /api/weddings/:weddingId/photos/summary
+- Dashboard card is feature-gated (only shown when PHOTO_UPLOAD enabled)
+- Summary includes totalSizeBytes for storage monitoring
+- Recent uploads list shows last 5 photos by upload date
+- Statistics are calculated from in-memory storage (restart API = reset)
+- The existing /api/weddings/:weddingId/photos endpoint still exists for full photo list

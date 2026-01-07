@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { PhotoMetadata } from '@wedding-bestie/shared';
+import type { PhotoMetadata, PhotoSummary } from '../types';
 import { createHmac, randomBytes } from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -67,6 +67,34 @@ export class PhotosService {
     return [...photos]
       .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))
       .map(({ storagePath, weddingId: _weddingId, ...photo }) => photo);
+  }
+
+  /**
+   * Get photo upload summary statistics for dashboard
+   * PRD: "Dashboard shows photo upload count"
+   */
+  getPhotoSummary(weddingId: string): PhotoSummary {
+    const photos = this.photosByWedding.get(weddingId) ?? [];
+
+    // Sort by most recent first
+    const sortedPhotos = [...photos].sort((a, b) =>
+      b.uploadedAt.localeCompare(a.uploadedAt),
+    );
+
+    // Calculate total size
+    const totalSizeBytes = photos.reduce((sum, photo) => sum + photo.fileSize, 0);
+
+    // Get recent uploads (last 5) - map to PhotoMetadata without internal fields
+    const recentUploads = sortedPhotos.slice(0, 5).map(
+      ({ storagePath: _sp, weddingId: _wid, ...photo }) => photo,
+    );
+
+    return {
+      totalPhotos: photos.length,
+      totalSizeBytes,
+      lastUploadedAt: sortedPhotos[0]?.uploadedAt,
+      recentUploads,
+    };
   }
 
   isUploadExpired(upload: UploadSession): boolean {

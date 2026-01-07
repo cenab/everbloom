@@ -472,6 +472,35 @@ export interface SendInvitationsResponse {
 }
 
 // ============================================================================
+// Email Statistics Types (Admin Dashboard)
+// ============================================================================
+
+/**
+ * Email delivery statistics for admin dashboard
+ * PRD: "Dashboard shows email delivery statistics"
+ */
+export interface EmailStatistics {
+  totalSent: number;
+  delivered: number;
+  failed: number;
+  pending: number;
+  /** Open rate - percentage of delivered emails that were opened (if tracking enabled) */
+  openRate?: number;
+  /** Breakdown by email type */
+  byType: {
+    invitation: { sent: number; delivered: number; failed: number };
+    reminder: { sent: number; delivered: number; failed: number };
+  };
+}
+
+/**
+ * Response from email statistics endpoint
+ */
+export interface EmailStatisticsResponse {
+  statistics: EmailStatistics;
+}
+
+// ============================================================================
 // Photo Metadata Types (Admin)
 // ============================================================================
 
@@ -491,6 +520,28 @@ export interface PhotoMetadata {
  */
 export interface PhotoListResponse {
   photos: PhotoMetadata[];
+}
+
+/**
+ * Photo summary statistics for admin dashboard
+ * PRD: "Dashboard shows photo upload count"
+ */
+export interface PhotoSummary {
+  /** Total number of photos uploaded */
+  totalPhotos: number;
+  /** Total size of all photos in bytes */
+  totalSizeBytes: number;
+  /** ISO timestamp of the most recent upload, if any */
+  lastUploadedAt?: string;
+  /** Recent uploads (last 5) for dashboard preview */
+  recentUploads: PhotoMetadata[];
+}
+
+/**
+ * Response from photo summary endpoint
+ */
+export interface PhotoSummaryResponse {
+  summary: PhotoSummary;
 }
 
 // ============================================================================

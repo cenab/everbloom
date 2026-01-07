@@ -7,7 +7,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { ApiResponse, PhotoListResponse } from '../types';
+import type { ApiResponse, PhotoListResponse, PhotoSummaryResponse } from '../types';
 import { FEATURE_DISABLED, WEDDING_NOT_FOUND, UNAUTHORIZED } from '../types';
 import { AuthService } from '../auth/auth.service';
 import { WeddingService } from '../wedding/wedding.service';
@@ -46,6 +46,34 @@ export class PhotosAdminController {
 
     const photos = this.photosService.listPhotos(weddingId);
     return { ok: true, data: { photos } };
+  }
+
+  /**
+   * Get photo upload summary statistics for dashboard
+   * GET /api/weddings/:weddingId/photos/summary
+   * PRD: "Dashboard shows photo upload count"
+   */
+  @Get(':weddingId/photos/summary')
+  async getPhotoSummary(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+  ): Promise<ApiResponse<PhotoSummaryResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(weddingId);
+
+    if (!wedding || wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (!wedding.features.PHOTO_UPLOAD) {
+      throw new ForbiddenException({
+        ok: false,
+        error: FEATURE_DISABLED,
+      });
+    }
+
+    const summary = this.photosService.getPhotoSummary(weddingId);
+    return { ok: true, data: { summary } };
   }
 
   /**
