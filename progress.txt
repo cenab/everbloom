@@ -2392,3 +2392,72 @@ No stack traces, internal messages, or technical details are ever exposed.
 - After updating email, admin can select guest and click "Send invites" to resend
 - Statistics (delivered/bounced counts) can be calculated from outbox records
 
+
+
+---
+
+### 2026-01-07 - Network Error Retry Option for RSVP Form
+
+**Feature worked on:** Network errors show retry option (PRD: errors category)
+
+**Priority rationale:** This is the highest-priority feature because:
+1. It's essential for guest experience - mobile users on flaky connections need retry capability
+2. The RSVP form was using browser `alert()` dialogs which are not mobile-friendly
+3. Photo uploads already had retry functionality - RSVP form needed parity
+4. It completes the error handling workflow: friendly message → retry button → success when network recovers
+5. It builds on the existing error handling infrastructure (friendly error pages, structured API errors)
+
+**What was done:**
+1. Added inline error display CSS to RSVP page:
+   - `.submission-error` container with warm background and primary color border
+   - `.submission-error-message` for the main error text
+   - `.submission-error-hint` for secondary helper text
+   - `.retry-btn` styled consistently with existing button patterns
+   - Visibility toggle via `.visible` class
+
+2. Added error display HTML to RSVP form:
+   - Error container with message, hint, and retry button
+   - Positioned before the form so it's immediately visible when errors occur
+   - IDs for all elements to enable JavaScript manipulation
+
+3. Rewrote form submission JavaScript:
+   - Replaced `alert()` calls with inline error display
+   - Extracted submission logic to reusable `submitRsvp()` function
+   - Added `showError(type)` function that distinguishes between:
+     - 'network' errors: "We couldn't send your response. Please check your connection and try again."
+     - 'api' errors: "Something went wrong while saving your response."
+   - Added `hideError()` function to clear error state before retry
+   - Added retry button click handler that re-invokes `submitRsvp()`
+   - Button states properly managed during submission and after errors
+
+**User experience improvements:**
+- No more browser `alert()` dialogs - error shown inline with the form
+- Form state preserved during errors - selections don't reset
+- Clear distinction between network issues and API errors
+- Retry button available immediately without closing dialogs
+- "Your selections have been saved" reassures users their input isn't lost
+- Submitting again hides error message (fresh start on each attempt)
+
+**Design system adherence:**
+- Error container uses subtle primary color background (rgba opacity)
+- Primary color text for error message (no pure black)
+- Muted hint text using neutral-dark with opacity
+- Retry button styled with primary color border and hover fill
+- Calm, non-alarming visual treatment
+- Human-friendly language throughout
+
+**PRD features now passing:**
+- "Network errors show retry option" ✓
+  - ✓ Simulate network failure → error caught and displayed inline
+  - ✓ Friendly error message shown (not technical, not alert dialog)
+  - ✓ Retry button available
+  - ✓ Click retry → resubmission succeeds when network recovers
+
+**Notes for next person:**
+- Error display elements are in the RSVP page at lines 481-489
+- JavaScript error handling is at lines 613-677
+- Network errors (fetch throws) vs API errors (result.ok === false) are distinguished
+- The retry button re-calls the same submitRsvp() function
+- lastErrorType variable tracks the error type but isn't currently used (could enable analytics)
+- Photo upload page already had retry functionality (for reference: lines 128-131, 214, 259)
+- This pattern could be applied to other forms like passcode verification if needed

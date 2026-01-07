@@ -9,7 +9,7 @@
  * - Mobile-first with large tap targets
  */
 import { fetchRsvpView } from '../../lib/api';
-import type { Theme } from '@wedding-bestie/shared';
+import type { Theme } from '../../types';
 
 // Get token from query string
 const token = Astro.url.searchParams.get('token');
@@ -389,6 +389,58 @@ const title = wedding
       .back-link:hover {
         text-decoration: underline;
       }
+
+      /* Inline error display */
+      .submission-error {
+        display: none;
+        background: rgba(201, 130, 107, 0.1);
+        border: 1px solid rgba(201, 130, 107, 0.3);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+      }
+
+      .submission-error.visible {
+        display: block;
+      }
+
+      .submission-error-message {
+        font-size: 0.95rem;
+        color: var(--primary);
+        margin: 0 0 0.75rem;
+        line-height: 1.5;
+      }
+
+      .submission-error-hint {
+        font-size: 0.85rem;
+        color: var(--neutral-dark);
+        opacity: 0.7;
+        margin: 0 0 1rem;
+      }
+
+      .retry-btn {
+        display: inline-block;
+        padding: 0.625rem 1.5rem;
+        background: transparent;
+        color: var(--primary);
+        border: 1px solid var(--primary);
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .retry-btn:hover {
+        background: var(--primary);
+        color: var(--neutral-light);
+      }
+
+      .retry-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
     </style>
   </head>
   <body>
@@ -425,6 +477,16 @@ const title = wedding
                 </strong>
               </div>
             )}
+
+            <div class="submission-error" id="submission-error">
+              <p class="submission-error-message" id="submission-error-message">
+                We couldn't send your response. Please check your connection and try again.
+              </p>
+              <p class="submission-error-hint" id="submission-error-hint">
+                Your selections have been saved. Click retry when you're ready.
+              </p>
+              <button type="button" class="retry-btn" id="retry-btn">Try again</button>
+            </div>
 
             <form id="rsvp-form">
               <input type="hidden" name="token" value={token} />
@@ -487,6 +549,15 @@ const title = wedding
           const decreaseBtn = document.getElementById('decrease-btn');
           const increaseBtn = document.getElementById('increase-btn');
 
+          // Error display elements
+          const submissionError = document.getElementById('submission-error');
+          const submissionErrorMessage = document.getElementById('submission-error-message');
+          const submissionErrorHint = document.getElementById('submission-error-hint');
+          const retryBtn = document.getElementById('retry-btn');
+
+          // Error type tracking
+          let lastErrorType = null; // 'network' or 'api'
+
           // Update UI based on current selection
           function updateUI() {
             const selected = document.querySelector('input[name="rsvpStatus"]:checked');
@@ -539,11 +610,36 @@ const title = wedding
 
           updatePartySize();
 
-          // Form submission
-          form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+          // Show inline error with appropriate message
+          function showError(type) {
+            lastErrorType = type;
+
+            if (type === 'network') {
+              submissionErrorMessage.textContent = "We couldn't send your response. Please check your connection and try again.";
+              submissionErrorHint.textContent = "Your selections have been saved. Click retry when you're ready.";
+            } else {
+              // API error (server returned an error)
+              submissionErrorMessage.textContent = "Something went wrong while saving your response.";
+              submissionErrorHint.textContent = "Please try again in a moment.";
+            }
+
+            submissionError.classList.add('visible');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Send response';
+          }
+
+          // Hide error display
+          function hideError() {
+            submissionError.classList.remove('visible');
+            lastErrorType = null;
+          }
+
+          // Submit RSVP data
+          async function submitRsvp() {
+            hideError();
             submitBtn.disabled = true;
             submitBtn.textContent = 'Sending...';
+            retryBtn.disabled = true;
 
             const formData = new FormData(form);
             const data = {
@@ -569,16 +665,27 @@ const title = wedding
                 successContainer.classList.add('visible');
                 successMessage.textContent = result.data.message;
               } else {
-                alert('Something went wrong. Please try again.');
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Send response';
+                // API returned an error response
+                showError('api');
               }
             } catch (error) {
+              // Network error (fetch failed, timeout, no connection, etc.)
               console.error('Error submitting RSVP:', error);
-              alert('Something went wrong. Please try again.');
-              submitBtn.disabled = false;
-              submitBtn.textContent = 'Send response';
+              showError('network');
+            } finally {
+              retryBtn.disabled = false;
             }
+          }
+
+          // Form submission
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await submitRsvp();
+          });
+
+          // Retry button click
+          retryBtn.addEventListener('click', async () => {
+            await submitRsvp();
           });
         });
       </script>
