@@ -111,6 +111,105 @@ export class GuestController {
   }
 
   /**
+   * Export RSVP data for caterer
+   * PRD: "Admin can export RSVPs for caterer"
+   * Exports attending guests with meal selections, dietary restrictions, and headcount
+   */
+  @Get('export-caterer')
+  async exportForCaterer(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { wedding } = await this.requireWeddingOwner(authHeader, weddingId);
+
+    const guests = this.guestService.getGuestsForWedding(weddingId);
+    const attendingGuests = guests.filter((g) => g.rsvpStatus === 'attending');
+
+    // Get meal options mapping for readable names
+    const mealOptions = wedding.mealConfig?.options || [];
+    const mealOptionMap = new Map<string, string>();
+    for (const option of mealOptions) {
+      mealOptionMap.set(option.id, option.name);
+    }
+
+    // Build CSV content for caterer
+    const headers = ['Guest Name', 'Meal Selection', 'Dietary Restrictions', 'Party Size', 'Is Plus-One'];
+    const rows: string[][] = [];
+
+    // Add primary guests and their plus-ones
+    for (const guest of attendingGuests) {
+      // Primary guest row
+      const mealName = guest.mealOptionId
+        ? mealOptionMap.get(guest.mealOptionId) || guest.mealOptionId
+        : 'No selection';
+
+      rows.push([
+        this.escapeCsvField(guest.name),
+        this.escapeCsvField(mealName),
+        this.escapeCsvField(guest.dietaryNotes || ''),
+        '1', // Primary guest counts as 1
+        'No',
+      ]);
+
+      // Plus-one guests
+      if (guest.plusOneGuests && guest.plusOneGuests.length > 0) {
+        for (const plusOne of guest.plusOneGuests) {
+          const plusOneMealName = plusOne.mealOptionId
+            ? mealOptionMap.get(plusOne.mealOptionId) || plusOne.mealOptionId
+            : 'No selection';
+
+          rows.push([
+            this.escapeCsvField(`${plusOne.name} (guest of ${guest.name})`),
+            this.escapeCsvField(plusOneMealName),
+            this.escapeCsvField(plusOne.dietaryNotes || ''),
+            '1',
+            'Yes',
+          ]);
+        }
+      }
+    }
+
+    // Calculate totals for summary
+    const totalHeadcount = rows.length;
+    const mealCounts: Record<string, number> = {};
+    for (const row of rows) {
+      const meal = row[1]; // Meal Selection column
+      mealCounts[meal] = (mealCounts[meal] || 0) + 1;
+    }
+
+    // Add summary section at the end
+    rows.push([]); // Empty row
+    rows.push(['--- SUMMARY ---', '', '', '', '']);
+    rows.push(['Total Headcount', totalHeadcount.toString(), '', '', '']);
+    rows.push([]); // Empty row
+    rows.push(['Meal Selection', 'Count', '', '', '']);
+    for (const [meal, count] of Object.entries(mealCounts).sort()) {
+      rows.push([meal, count.toString(), '', '', '']);
+    }
+
+    // Add dietary restrictions summary
+    const dietaryNotes = rows
+      .filter((r) => r[2] && r[2].trim() !== '' && r[0] !== '--- SUMMARY ---')
+      .map((r) => ({ name: r[0], notes: r[2] }));
+
+    if (dietaryNotes.length > 0) {
+      rows.push([]); // Empty row
+      rows.push(['--- DIETARY RESTRICTIONS ---', '', '', '', '']);
+      for (const { name, notes } of dietaryNotes) {
+        rows.push([name, notes, '', '', '']);
+      }
+    }
+
+    const csv = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+
+    // Set headers for file download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="catering-export.csv"');
+    res.send(csv);
+  }
+
+  /**
    * Export guest list to CSV
    * PRD: "Admin can export guest list to CSV"
    */

@@ -2965,3 +2965,62 @@ No stack traces, internal messages, or technical details are ever exposed.
 - Download uses browser's native file download via Blob URL
 - The export button is always visible but disabled when guest list is empty
 - This pattern can be reused for the "Export RSVPs for caterer" feature (add meal selections, dietary info)
+
+---
+
+### 2026-01-07 - Caterer Export Feature
+
+**Feature worked on:** Admin can export RSVPs for caterer (PRD: export category)
+
+**Priority rationale:** This is a high-priority feature because:
+1. It directly supports wedding planning workflows - couples need to provide catering counts
+2. Builds on existing infrastructure (guest management, meal options, CSV export pattern)
+3. Relatively straightforward to implement with high user value
+4. Completes the operational workflow: guests RSVP with meal selections → admin exports for caterer
+
+**What was done:**
+1. Added caterer export endpoint to GuestController:
+   - `GET /api/weddings/:weddingId/guests/export-caterer` (auth required)
+   - Exports only attending guests (filters by rsvpStatus === 'attending')
+   - Includes primary guests and their plus-one guests
+   - Maps meal option IDs to human-readable names from wedding.mealConfig
+   - CSV columns: Guest Name, Meal Selection, Dietary Restrictions, Party Size, Is Plus-One
+
+2. Added summary section to CSV export:
+   - Total headcount at the end
+   - Meal selection counts by option
+   - Consolidated dietary restrictions list with guest names
+
+3. Added export button to RsvpDashboard component:
+   - "Export for caterer" button with download icon
+   - Only visible when there are attending guests
+   - Loading state during export
+   - Triggers automatic file download
+
+**API Endpoints:**
+- `GET /api/weddings/:weddingId/guests/export-caterer` - Export for caterer (requires auth)
+  - Response: CSV file download with filename "catering-export.csv"
+  - Content includes:
+    - All attending guests (primary + plus-ones)
+    - Meal selections (resolved to names from mealConfig)
+    - Dietary restrictions
+    - Summary section with totals and breakdowns
+
+**Design system adherence:**
+- Export button uses neutral styling with border
+- Download icon consistent with other icons
+- Human language: "Export for caterer", "Exporting..."
+- Button only shows when there are attending guests to export
+- No pure black/white colors
+
+**PRD features now passing:**
+- "Admin can export RSVPs for caterer" ✓
+
+**Notes for next person:**
+- Caterer export endpoint is at GET /api/weddings/:weddingId/guests/export-caterer
+- Export includes both primary guests and plus-one guests (with "(guest of X)" annotation)
+- Meal option IDs are resolved to names using wedding.mealConfig.options
+- Summary section at end includes: total headcount, meal counts by option, dietary restrictions
+- Export is only useful when there are attending guests with RSVP responses
+- The existing meal-summary endpoint can still be used for JSON-based meal counts
+

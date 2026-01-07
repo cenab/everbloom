@@ -1580,7 +1580,7 @@
       "Verify export includes dietary restrictions",
       "Verify export includes headcount"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "export",
