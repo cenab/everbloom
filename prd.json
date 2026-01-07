@@ -1591,7 +1591,7 @@
       "Export email addresses only",
       "Verify export is in usable format for mail merge"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "export",

@@ -210,6 +210,36 @@ export class GuestController {
   }
 
   /**
+   * Export email addresses for mail merge
+   * PRD: "Admin can export email addresses for mailing"
+   * Exports just email addresses in a format suitable for mail merge
+   */
+  @Get('export-emails')
+  async exportEmails(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    await this.requireWeddingOwner(authHeader, weddingId);
+
+    const guests = this.guestService.getGuestsForWedding(weddingId);
+
+    // Build CSV content - simple format for mail merge
+    const headers = ['Name', 'Email'];
+    const rows = guests.map((guest) => [
+      this.escapeCsvField(guest.name),
+      this.escapeCsvField(guest.email),
+    ]);
+
+    const csv = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+
+    // Set headers for file download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="email-list.csv"');
+    res.send(csv);
+  }
+
+  /**
    * Export guest list to CSV
    * PRD: "Admin can export guest list to CSV"
    */

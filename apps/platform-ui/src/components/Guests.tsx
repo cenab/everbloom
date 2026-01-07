@@ -253,6 +253,47 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
     }
   };
 
+  /**
+   * Export filtered guests' emails for mail merge
+   * PRD: "Admin can export email addresses for mailing"
+   * Respects current tag filter and outputs simple Name,Email CSV
+   */
+  const handleExportEmails = () => {
+    // Use filtered guests if filtering, otherwise use all guests
+    const guestsToExport = filterTagIds.length > 0 ? filteredGuests : guests;
+
+    if (guestsToExport.length === 0) return;
+
+    // Escape CSV field (handle commas, quotes)
+    const escapeCsvField = (value: string) => {
+      if (!value) return '';
+      if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    };
+
+    // Build CSV content - simple format for mail merge
+    const headers = ['Name', 'Email'];
+    const rows = guestsToExport.map((guest) => [
+      escapeCsvField(guest.name),
+      escapeCsvField(guest.email),
+    ]);
+
+    const csv = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+
+    // Create download link and trigger download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'email-list.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
   // Filter guests by selected tags
   const filteredGuests = filterTagIds.length > 0
     ? guests.filter((g) => g.tagIds?.some((tid) => filterTagIds.includes(tid)))
@@ -308,6 +349,15 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
             >
               <DownloadIcon className="w-4 h-4" />
               Export
+            </button>
+            <button
+              onClick={handleExportEmails}
+              className="btn-secondary flex items-center gap-2"
+              disabled={filteredGuests.length === 0}
+              title={filterTagIds.length > 0 ? `Export ${filteredGuests.length} filtered emails` : 'Export all emails'}
+            >
+              <MailIcon className="w-4 h-4" />
+              Emails
             </button>
             <button
               onClick={() => setShowCsvImport(true)}
@@ -2221,6 +2271,28 @@ function XIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M6 18L18 6M6 6l12 12"
+      />
+    </svg>
+  );
+}
+
+/**
+ * Mail icon for email export button
+ * PRD: "Admin can export email addresses for mailing"
+ */
+function MailIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V17.25z"
       />
     </svg>
   );

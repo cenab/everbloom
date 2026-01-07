@@ -3024,3 +3024,59 @@ No stack traces, internal messages, or technical details are ever exposed.
 - Export is only useful when there are attending guests with RSVP responses
 - The existing meal-summary endpoint can still be used for JSON-based meal counts
 
+
+---
+
+### 2026-01-07 - Export Email Addresses for Mail Merge
+
+**Feature worked on:** Admin can export email addresses for mailing (PRD: export category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. It's a simple, high-value feature that builds on existing export patterns
+2. Couples need email lists for external mail merge tools (wedding stationery, etc.)
+3. It respects the tag filtering feature, completing the segmentation workflow
+4. It's a single feature that can be completed quickly with minimal code changes
+
+**What was done:**
+1. Added email export API endpoint to GuestController:
+   - `GET /api/weddings/:weddingId/guests/export-emails` (auth required)
+   - Returns simple CSV with Name, Email columns
+   - Exports all guests (client-side filtering handles segments)
+
+2. Added client-side email export function to Guests.tsx:
+   - `handleExportEmails()` respects current tag filter (filterTagIds)
+   - Exports only filtered guests when filter is active
+   - Uses same CSV escaping logic as full guest export
+   - Generates email-list.csv download
+
+3. Added "Emails" button to Guests page toolbar:
+   - Located next to existing "Export" button
+   - Disabled when no guests to export
+   - Tooltip shows "Export X filtered emails" when filtering
+   - Uses new MailIcon component
+
+4. Added MailIcon component for the button visual
+
+**Design system adherence:**
+- Button uses same btn-secondary styling as other toolbar buttons
+- MailIcon consistent with other icons
+- Human language: "Emails" button, tooltip with filter count
+- Disabled state when no guests to export
+
+**PRD steps verification:**
+- ✓ Navigate to Guests page - existing page
+- ✓ Filter to desired segment - tag filtering already exists
+- ✓ Export email addresses only - new "Emails" button exports filtered guests
+- ✓ Verify export is in usable format for mail merge - CSV with Name,Email columns
+
+**PRD features now passing:**
+- "Admin can export email addresses for mailing" ✓
+
+**Notes for next person:**
+- Email export is client-side to respect current filter state
+- Server-side endpoint at GET /api/weddings/:weddingId/guests/export-emails exists for bulk export
+- Export file is email-list.csv (distinct from guest-list.csv for full export)
+- The export respects tag filters - if filtering by "Bride's side", only those guests' emails are exported
+- No API call needed when exporting filtered view - uses already-loaded guest data
+- To test: add guests → assign tags → filter by tag → click "Emails" → verify CSV has only filtered guests
+
