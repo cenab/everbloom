@@ -5035,3 +5035,75 @@ Implemented email template customization feature allowing admins to personalize 
   - Cookie/localStorage persistence for guest language preference
   - These are separate PRD items and not part of "Admin can set site language"
 - Remaining incomplete features: i18n (2 more), custom-domain (3)
+
+---
+
+### 2026-01-07 - Multi-Language Guest Site Support
+
+**Feature worked on:** Site supports multiple languages + Guest can set language preference (PRD: i18n category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. The i18n infrastructure was already built (admin can set language, translations exist)
+2. But guests couldn't switch languages on the public site
+3. It's a self-contained frontend feature that completes the i18n story
+4. Custom domains require external infrastructure that may not be testable locally
+
+**What was done:**
+1. Extended i18n.ts with language selector translations:
+   - Added languageSelect, languageEnglish, languageSpanish, etc. for all 10 languages
+   - Added LANGUAGE_OPTIONS constant with code and nativeName for each language
+   - Added translations in all 10 languages for the selector UI
+
+2. Created LanguageSelector.astro component:
+   - Dropdown button showing current language in native name
+   - Dropdown menu with all 10 language options
+   - Stores preference in localStorage (`everbloom_language_{slug}`)
+   - Uses ?lang= URL parameter for server-side rendering
+   - Calm, minimal design matching wedding site aesthetic
+   - Keyboard accessible (Escape to close, focus management)
+
+3. Updated WeddingLayout.astro:
+   - Added language prop for passing effective language
+   - Updated html lang attribute to use effective language
+   - Updated og:locale meta tag for social sharing
+
+4. Updated wedding page (/w/[slug]/index.astro):
+   - Added language priority logic: URL param > admin setting
+   - Added LanguageSelector to top-right corner (fixed position)
+   - Added script to check localStorage on load and redirect if preference exists
+   - Passes effective language to WeddingLayout and SectionRenderer
+
+5. Updated photos page (/w/[slug]/photos.astro):
+   - Same language handling as main wedding page
+   - Added LanguageSelector component
+   - Uses translations for page title, description, buttons
+   - Added localStorage redirect script
+
+**Language selection flow:**
+1. Guest visits /w/{slug}
+2. Client-side script checks localStorage for `everbloom_language_{slug}`
+3. If found and different from current URL, redirects with ?lang= param
+4. Server renders page using: URL lang param || admin-set language || 'en'
+5. Guest clicks language dropdown → selects new language
+6. Language stored in localStorage and page reloads with ?lang= param
+7. On return visits, stored preference is applied automatically
+
+**Design system adherence:**
+- Dropdown button uses theme border and colors
+- Dropdown menu matches neutral-light background
+- No pure black/white - uses theme variables
+- Language names shown in native script for easy identification
+- Mobile-responsive with larger tap targets on small screens
+- Minimal animation (chevron rotation, dropdown fade)
+
+**PRD features now passing:**
+- "Site supports multiple languages" ✓
+- "Guest can set language preference" ✓
+
+**Notes for next person:**
+- Language preference is per-wedding-site (slug-specific localStorage key)
+- URL param takes precedence for shareable links in specific languages
+- The admin-set language is the default when no guest preference exists
+- To add more languages: add to SupportedLanguage type, add translations in i18n.ts, add to LANGUAGE_OPTIONS
+- RsvpSection and photos page use translations; other sections can be updated similarly
+- Remaining incomplete features: custom-domain (3 items)

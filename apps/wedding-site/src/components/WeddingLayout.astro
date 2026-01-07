@@ -3,10 +3,13 @@ import type { RenderConfig } from '../types';
 
 interface Props {
   config: RenderConfig;
+  language?: string;
 }
 
-const { config } = Astro.props;
+const { config, language } = Astro.props;
 const { wedding, theme } = config;
+// Use passed language, fall back to config.language, then to 'en'
+const effectiveLanguage = language || config.language || 'en';
 const title = `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`;
 const description = `Join us to celebrate the wedding of ${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`;
 
@@ -34,7 +37,7 @@ const ogImageHeight = '630';
 ---
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang={effectiveLanguage}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -53,7 +56,7 @@ const ogImageHeight = '630';
     <meta property="og:image:type" content={ogImageType} />
     <meta property="og:image:alt" content={`Wedding invitation for ${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`} />
     <meta property="og:site_name" content="Everbloom" />
-    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale" content={effectiveLanguage === 'en' ? 'en_US' : effectiveLanguage} />
 
     <!-- Twitter Card meta tags -->
     <meta name="twitter:card" content="summary_large_image" />

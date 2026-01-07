@@ -104,6 +104,19 @@ export interface TranslationStrings {
   cancel: string;
   back: string;
   viewAll: string;
+
+  // Language Selector
+  languageSelect: string;
+  languageEnglish: string;
+  languageSpanish: string;
+  languageFrench: string;
+  languagePortuguese: string;
+  languageGerman: string;
+  languageItalian: string;
+  languageDutch: string;
+  languageJapanese: string;
+  languageChinese: string;
+  languageKorean: string;
 }
 
 const translations: Record<SupportedLanguage, TranslationStrings> = {
@@ -206,6 +219,19 @@ const translations: Record<SupportedLanguage, TranslationStrings> = {
     cancel: 'Cancel',
     back: 'Back',
     viewAll: 'View All',
+
+    // Language Selector
+    languageSelect: 'Language',
+    languageEnglish: 'English',
+    languageSpanish: 'Español',
+    languageFrench: 'Français',
+    languagePortuguese: 'Português',
+    languageGerman: 'Deutsch',
+    languageItalian: 'Italiano',
+    languageDutch: 'Nederlands',
+    languageJapanese: '日本語',
+    languageChinese: '中文',
+    languageKorean: '한국어',
   },
 
   es: {
@@ -291,6 +317,19 @@ const translations: Record<SupportedLanguage, TranslationStrings> = {
     cancel: 'Cancelar',
     back: 'Volver',
     viewAll: 'Ver todo',
+
+    // Language Selector
+    languageSelect: 'Idioma',
+    languageEnglish: 'English',
+    languageSpanish: 'Español',
+    languageFrench: 'Français',
+    languagePortuguese: 'Português',
+    languageGerman: 'Deutsch',
+    languageItalian: 'Italiano',
+    languageDutch: 'Nederlands',
+    languageJapanese: '日本語',
+    languageChinese: '中文',
+    languageKorean: '한국어',
   },
 
   fr: {
@@ -376,6 +415,19 @@ const translations: Record<SupportedLanguage, TranslationStrings> = {
     cancel: 'Annuler',
     back: 'Retour',
     viewAll: 'Voir tout',
+
+    // Language Selector
+    languageSelect: 'Langue',
+    languageEnglish: 'English',
+    languageSpanish: 'Español',
+    languageFrench: 'Français',
+    languagePortuguese: 'Português',
+    languageGerman: 'Deutsch',
+    languageItalian: 'Italiano',
+    languageDutch: 'Nederlands',
+    languageJapanese: '日本語',
+    languageChinese: '中文',
+    languageKorean: '한국어',
   },
 
   pt: {
@@ -461,6 +513,19 @@ const translations: Record<SupportedLanguage, TranslationStrings> = {
     cancel: 'Cancelar',
     back: 'Voltar',
     viewAll: 'Ver tudo',
+
+    // Language Selector
+    languageSelect: 'Idioma',
+    languageEnglish: 'English',
+    languageSpanish: 'Español',
+    languageFrench: 'Français',
+    languagePortuguese: 'Português',
+    languageGerman: 'Deutsch',
+    languageItalian: 'Italiano',
+    languageDutch: 'Nederlands',
+    languageJapanese: '日本語',
+    languageChinese: '中文',
+    languageKorean: '한국어',
   },
 
   de: {
@@ -546,6 +611,19 @@ const translations: Record<SupportedLanguage, TranslationStrings> = {
     cancel: 'Abbrechen',
     back: 'Zurück',
     viewAll: 'Alle ansehen',
+
+    // Language Selector
+    languageSelect: 'Sprache',
+    languageEnglish: 'English',
+    languageSpanish: 'Español',
+    languageFrench: 'Français',
+    languagePortuguese: 'Português',
+    languageGerman: 'Deutsch',
+    languageItalian: 'Italiano',
+    languageDutch: 'Nederlands',
+    languageJapanese: '日本語',
+    languageChinese: '中文',
+    languageKorean: '한국어',
   },
 
   it: {
@@ -631,6 +709,19 @@ const translations: Record<SupportedLanguage, TranslationStrings> = {
     cancel: 'Annulla',
     back: 'Indietro',
     viewAll: 'Vedi tutto',
+
+    // Language Selector
+    languageSelect: 'Lingua',
+    languageEnglish: 'English',
+    languageSpanish: 'Español',
+    languageFrench: 'Français',
+    languagePortuguese: 'Português',
+    languageGerman: 'Deutsch',
+    languageItalian: 'Italiano',
+    languageDutch: 'Nederlands',
+    languageJapanese: '日本語',
+    languageChinese: '中文',
+    languageKorean: '한국어',
   },
 
   nl: {
@@ -716,6 +807,19 @@ const translations: Record<SupportedLanguage, TranslationStrings> = {
     cancel: 'Annuleren',
     back: 'Terug',
     viewAll: 'Alles bekijken',
+
+    // Language Selector
+    languageSelect: 'Taal',
+    languageEnglish: 'English',
+    languageSpanish: 'Español',
+    languageFrench: 'Français',
+    languagePortuguese: 'Português',
+    languageGerman: 'Deutsch',
+    languageItalian: 'Italiano',
+    languageDutch: 'Nederlands',
+    languageJapanese: '日本語',
+    languageChinese: '中文',
+    languageKorean: '한국어',
   },
 
   ja: {
@@ -801,6 +905,19 @@ const translations: Record<SupportedLanguage, TranslationStrings> = {
     cancel: 'キャンセル',
     back: '戻る',
     viewAll: 'すべて見る',
+
+    // Language Selector
+    languageSelect: '言語',
+    languageEnglish: 'English',
+    languageSpanish: 'Español',
+    languageFrench: 'Français',
+    languagePortuguese: 'Português',
+    languageGerman: 'Deutsch',
+    languageItalian: 'Italiano',
+    languageDutch: 'Nederlands',
+    languageJapanese: '日本語',
+    languageChinese: '中文',
+    languageKorean: '한국어',
   },
 
   zh: {
@@ -886,6 +1003,19 @@ const translations: Record<SupportedLanguage, TranslationStrings> = {
     cancel: '取消',
     back: '返回',
     viewAll: '查看全部',
+
+    // Language Selector
+    languageSelect: '语言',
+    languageEnglish: 'English',
+    languageSpanish: 'Español',
+    languageFrench: 'Français',
+    languagePortuguese: 'Português',
+    languageGerman: 'Deutsch',
+    languageItalian: 'Italiano',
+    languageDutch: 'Nederlands',
+    languageJapanese: '日本語',
+    languageChinese: '中文',
+    languageKorean: '한국어',
   },
 
   ko: {
@@ -971,8 +1101,37 @@ const translations: Record<SupportedLanguage, TranslationStrings> = {
     cancel: '취소',
     back: '뒤로',
     viewAll: '전체 보기',
+
+    // Language Selector
+    languageSelect: '언어',
+    languageEnglish: 'English',
+    languageSpanish: 'Español',
+    languageFrench: 'Français',
+    languagePortuguese: 'Português',
+    languageGerman: 'Deutsch',
+    languageItalian: 'Italiano',
+    languageDutch: 'Nederlands',
+    languageJapanese: '日本語',
+    languageChinese: '中文',
+    languageKorean: '한국어',
   },
 };
+
+/**
+ * Language code to native name mapping for the selector
+ */
+export const LANGUAGE_OPTIONS: { code: SupportedLanguage; nativeName: string }[] = [
+  { code: 'en', nativeName: 'English' },
+  { code: 'es', nativeName: 'Español' },
+  { code: 'fr', nativeName: 'Français' },
+  { code: 'pt', nativeName: 'Português' },
+  { code: 'de', nativeName: 'Deutsch' },
+  { code: 'it', nativeName: 'Italiano' },
+  { code: 'nl', nativeName: 'Nederlands' },
+  { code: 'ja', nativeName: '日本語' },
+  { code: 'zh', nativeName: '中文' },
+  { code: 'ko', nativeName: '한국어' },
+];
 
 /**
  * Get translations for a specific language

@@ -1,0 +1,241 @@
+---
+/**
+ * LanguageSelector component for guest-facing language switching
+ * PRD: "Site supports multiple languages" + "Guest can set language preference"
+ *
+ * Features:
+ * - Displays current language with dropdown to switch
+ * - Stores preference in localStorage for returning visitors
+ * - Shows languages in their native names for easy identification
+ * - Calm, minimal design matching the wedding site aesthetic
+ */
+import { getTranslations, LANGUAGE_OPTIONS } from '../lib/i18n';
+
+interface Props {
+  currentLanguage: string;
+  slug: string;
+}
+
+const { currentLanguage, slug } = Astro.props;
+const t = getTranslations(currentLanguage);
+const currentLangOption = LANGUAGE_OPTIONS.find(l => l.code === currentLanguage) || LANGUAGE_OPTIONS[0];
+---
+
+<div class="language-selector" data-slug={slug} data-current-language={currentLanguage}>
+  <button
+    class="language-button"
+    type="button"
+    aria-haspopup="listbox"
+    aria-expanded="false"
+    aria-label={t.languageSelect}
+  >
+    <span class="current-language">{currentLangOption.nativeName}</span>
+    <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  </button>
+
+  <ul class="language-dropdown" role="listbox" aria-label={t.languageSelect}>
+    {LANGUAGE_OPTIONS.map((option) => (
+      <li
+        role="option"
+        aria-selected={option.code === currentLanguage}
+        data-language={option.code}
+        class:list={['language-option', { 'is-selected': option.code === currentLanguage }]}
+      >
+        <button type="button" class="language-option-button">
+          {option.nativeName}
+        </button>
+      </li>
+    ))}
+  </ul>
+</div>
+
+<style>
+  .language-selector {
+    position: relative;
+    display: inline-block;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .language-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    border: 1px solid var(--neutral-dark, #2d2d2d);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--neutral-dark, #2d2d2d);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .language-button:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  .language-button:focus-visible {
+    outline: 2px solid var(--primary, #c9826b);
+    outline-offset: 2px;
+  }
+
+  .chevron-icon {
+    transition: transform 0.2s ease;
+  }
+
+  .language-selector[data-open="true"] .chevron-icon {
+    transform: rotate(180deg);
+  }
+
+  .language-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 160px;
+    max-height: 320px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0.25rem 0;
+    list-style: none;
+    background: var(--neutral-light, #faf8f5);
+    border: 1px solid rgba(45, 45, 45, 0.15);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+  }
+
+  .language-selector[data-open="true"] .language-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .language-option {
+    margin: 0;
+    padding: 0;
+  }
+
+  .language-option-button {
+    display: block;
+    width: 100%;
+    padding: 0.625rem 1rem;
+    background: transparent;
+    border: none;
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--neutral-dark, #2d2d2d);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+  }
+
+  .language-option-button:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  .language-option-button:focus-visible {
+    outline: 2px solid var(--primary, #c9826b);
+    outline-offset: -2px;
+  }
+
+  .language-option.is-selected .language-option-button {
+    font-weight: 600;
+    color: var(--primary, #c9826b);
+    background-color: rgba(201, 130, 107, 0.08);
+  }
+
+  /* Mobile-friendly sizing */
+  @media (max-width: 640px) {
+    .language-button {
+      padding: 0.625rem 0.875rem;
+    }
+
+    .language-dropdown {
+      min-width: 140px;
+    }
+
+    .language-option-button {
+      padding: 0.75rem 1rem;
+    }
+  }
+</style>
+
+<script>
+  /**
+   * Language selector client-side functionality
+   * - Handles dropdown open/close
+   * - Stores preference in localStorage
+   * - Reloads page with new language parameter or redirects if needed
+   */
+  document.addEventListener('DOMContentLoaded', () => {
+    const selectors = document.querySelectorAll('.language-selector');
+
+    selectors.forEach((selector) => {
+      const button = selector.querySelector('.language-button') as HTMLButtonElement;
+      const options = selector.querySelectorAll('.language-option-button');
+      const slug = selector.getAttribute('data-slug') || '';
+      const currentLanguage = selector.getAttribute('data-current-language') || 'en';
+
+      // Toggle dropdown
+      button?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = selector.getAttribute('data-open') === 'true';
+        selector.setAttribute('data-open', isOpen ? 'false' : 'true');
+        button.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+      });
+
+      // Handle language selection
+      options.forEach((option) => {
+        option.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const listItem = (option as HTMLElement).closest('.language-option');
+          const language = listItem?.getAttribute('data-language');
+
+          if (language && language !== currentLanguage) {
+            // Store preference in localStorage for persistence
+            // Key format: everbloom_language_{slug}
+            try {
+              localStorage.setItem(`everbloom_language_${slug}`, language);
+            } catch {
+              // localStorage might not be available
+            }
+
+            // Reload page - the page will read the stored preference
+            // The page server-side component will check localStorage via URL param fallback
+            const url = new URL(window.location.href);
+            url.searchParams.set('lang', language);
+            window.location.href = url.toString();
+          }
+
+          // Close dropdown
+          selector.setAttribute('data-open', 'false');
+          button?.setAttribute('aria-expanded', 'false');
+        });
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!selector.contains(e.target as Node)) {
+          selector.setAttribute('data-open', 'false');
+          button?.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      // Close dropdown on Escape key
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && selector.getAttribute('data-open') === 'true') {
+          selector.setAttribute('data-open', 'false');
+          button?.setAttribute('aria-expanded', 'false');
+          button?.focus();
+        }
+      });
+    });
+  });
+</script>
