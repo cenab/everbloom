@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { CreateWedding } from './CreateWedding';
+
 /**
  * Admin Dashboard component.
  * Shows empty state when no wedding is selected.
@@ -7,11 +10,23 @@ export function Dashboard() {
   // TODO: Fetch weddings from API and check if any exist
   const hasWeddings = false;
   const selectedWedding = null;
+  const [showCreateWedding, setShowCreateWedding] = useState(false);
+
+  if (showCreateWedding) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <CreateWedding onCancel={() => setShowCreateWedding(false)} />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
       {!selectedWedding && (
-        <EmptyState hasWeddings={hasWeddings} />
+        <EmptyState
+          hasWeddings={hasWeddings}
+          onCreateWedding={() => setShowCreateWedding(true)}
+        />
       )}
     </div>
   );
@@ -19,13 +34,14 @@ export function Dashboard() {
 
 interface EmptyStateProps {
   hasWeddings: boolean;
+  onCreateWedding: () => void;
 }
 
 /**
  * Empty state shown when no wedding is selected.
  * Uses calm, human language per design system microcopy rules.
  */
-function EmptyState({ hasWeddings }: EmptyStateProps) {
+function EmptyState({ hasWeddings, onCreateWedding }: EmptyStateProps) {
   return (
     <div className="text-center py-16">
       <div className="max-w-md mx-auto space-y-6">
@@ -48,7 +64,7 @@ function EmptyState({ hasWeddings }: EmptyStateProps) {
         </p>
 
         <div className="pt-4">
-          <button className="btn-primary">
+          <button className="btn-primary" onClick={onCreateWedding}>
             Create your wedding site
           </button>
         </div>

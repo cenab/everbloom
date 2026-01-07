@@ -98,3 +98,76 @@
 - Sessions are stored in-memory (restart API = logout all users)
 - Run `pnpm dev` to start both UI and API together
 - To test: enter email on login page, copy magic link from API console, paste in browser
+
+---
+
+### 2026-01-06 - Stripe Checkout Session Creation
+
+**Feature worked on:** Stripe checkout session can be created for a new wedding (PRD: billing category)
+
+**Priority rationale:** This is the next critical feature after auth because:
+1. It enables the billing flow - couples can't create weddings without paying
+2. It unblocks all downstream features (wedding provisioning, render_config, site rendering)
+3. It's the gateway to all wedding-specific functionality
+
+**What was done:**
+1. Added Stripe SDK to platform-api:
+   - Added `stripe` and `@nestjs/config` dependencies
+   - Created BillingModule with controller and service
+
+2. Created billing types in shared package:
+   - `PlanTier` (starter | premium)
+   - `Plan` interface with id, name, priceId, features
+   - `CreateCheckoutSessionRequest` and `CreateCheckoutSessionResponse`
+   - `CHECKOUT_SESSION_FAILED` error code
+
+3. Implemented BillingService:
+   - `getPlans()` - returns available plans with features
+   - `createCheckoutSession()` - creates Stripe checkout session with wedding metadata
+
+4. Implemented BillingController:
+   - `GET /api/billing/plans` - public endpoint to get plans
+   - `POST /api/billing/checkout-session` - authenticated endpoint to start checkout
+
+5. Created UI flow for wedding creation:
+   - CreateWedding component with 2-step form
+   - Step 1: Enter wedding name and partner names
+   - Step 2: Select plan (Starter or Premium)
+   - Redirects to Stripe Checkout on submit
+
+6. Created billing result pages:
+   - BillingSuccess: Confirmation page with redirect to dashboard
+   - BillingCancel: Friendly cancel page with return option
+
+7. Updated Dashboard to integrate CreateWedding:
+   - "Create your wedding site" button now triggers the creation flow
+   - Added routes for /billing/success and /billing/cancel
+
+**API Endpoints:**
+- `GET /api/billing/plans` - Get available plans (public)
+- `POST /api/billing/checkout-session` - Create checkout session (requires auth)
+  - Request: `{ planId, weddingName, partnerNames }`
+  - Response: `{ checkoutUrl, sessionId }`
+
+**Design system adherence:**
+- Step indicator with calm transitions
+- Plan cards with clear feature lists
+- Human language: "Tell us about your wedding", "Your wedding site is being created"
+- No pure black/white colors
+- Minimal, focused forms
+
+**PRD features now passing:**
+- "Stripe checkout session can be created for a new wedding" ✓
+
+**Next steps:**
+- Implement Stripe webhook handler for checkout.session.completed
+- Provision wedding record on successful payment
+- Generate render_config on wedding creation
+- Set up Stripe test prices for local development
+
+**Notes for next person:**
+- Stripe uses test mode by default (set STRIPE_SECRET_KEY for production)
+- Plans use placeholder price IDs (price_starter_test, price_premium_test)
+- Set STRIPE_PRICE_STARTER and STRIPE_PRICE_PREMIUM env vars for real prices
+- Wedding metadata (name, partners) is stored in checkout session metadata
+- The checkout.session.completed webhook will read this metadata to create the wedding

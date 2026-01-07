@@ -8,6 +8,8 @@ import { Layout } from '../components/Layout';
 import { Dashboard } from '../components/Dashboard';
 import { Login } from '../components/Login';
 import { VerifyMagicLink } from '../components/VerifyMagicLink';
+import { BillingSuccess } from '../components/BillingSuccess';
+import { BillingCancel } from '../components/BillingCancel';
 
 // Check if user is authenticated (simple localStorage check)
 // AuthProvider will handle the actual validation
@@ -60,9 +62,35 @@ const authVerifyRoute = createRoute({
   component: VerifyMagicLink,
 });
 
+// Billing success route (protected)
+const billingSuccessRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/billing/success',
+  beforeLoad: () => {
+    if (!isAuthenticated()) {
+      throw redirect({ to: '/login' });
+    }
+  },
+  component: BillingSuccess,
+});
+
+// Billing cancel route (protected)
+const billingCancelRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/billing/cancel',
+  beforeLoad: () => {
+    if (!isAuthenticated()) {
+      throw redirect({ to: '/login' });
+    }
+  },
+  component: BillingCancel,
+});
+
 // Export route tree
 export const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
   authVerifyRoute,
+  billingSuccessRoute,
+  billingCancelRoute,
 ]);

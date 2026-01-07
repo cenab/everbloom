@@ -164,3 +164,44 @@ export type MagicLinkVerifyResponse = AuthSession;
  * Response for current user endpoint
  */
 export type MeResponse = User;
+
+// ============================================================================
+// Billing Types
+// ============================================================================
+
+/**
+ * Available plan tiers
+ */
+export type PlanTier = 'starter' | 'premium';
+
+/**
+ * Plan details for display
+ */
+export interface Plan {
+  id: PlanTier;
+  name: string;
+  priceId: string;
+  features: string[];
+}
+
+/**
+ * Request body for creating a checkout session
+ */
+export interface CreateCheckoutSessionRequest {
+  planId: PlanTier;
+  weddingName: string;
+  partnerNames: [string, string];
+}
+
+/**
+ * Response for checkout session creation
+ */
+export interface CreateCheckoutSessionResponse {
+  checkoutUrl: string;
+  sessionId: string;
+}
+
+/**
+ * Checkout session creation failed error code
+ */
+export const CHECKOUT_SESSION_FAILED = 'CHECKOUT_SESSION_FAILED' as const;

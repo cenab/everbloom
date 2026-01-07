@@ -156,7 +156,7 @@
       "Redirect to Stripe Checkout",
       "Verify checkout session is created successfully"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "billing",
