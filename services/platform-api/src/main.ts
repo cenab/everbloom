@@ -2,7 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    // Enable raw body parsing for Stripe webhook signature verification
+    rawBody: true,
+  });
 
   // Set global API prefix
   app.setGlobalPrefix('api');

@@ -171,3 +171,73 @@
 - Set STRIPE_PRICE_STARTER and STRIPE_PRICE_PREMIUM env vars for real prices
 - Wedding metadata (name, partners) is stored in checkout session metadata
 - The checkout.session.completed webhook will read this metadata to create the wedding
+
+---
+
+### 2026-01-06 - Stripe Webhook and Wedding Provisioning
+
+**Feature worked on:** Successful Stripe checkout provisions a wedding (PRD: billing category)
+
+**Priority rationale:** This is the critical next step after checkout session creation because:
+1. Without webhook handling, users can pay but no wedding is created
+2. Blocks all downstream features (render_config generation, site rendering, guest management)
+3. This is the gateway between payment and actual product delivery
+
+**What was done:**
+1. Added Wedding types to shared package:
+   - `Wedding` interface with id, userId, slug, name, partnerNames, planId, status, features
+   - `CreateWeddingPayload` for provisioning from checkout metadata
+   - `WeddingProvisionResponse` for webhook response
+   - `WEBHOOK_SIGNATURE_INVALID` error code
+
+2. Created WeddingService (services/platform-api/src/wedding/):
+   - In-memory storage for weddings and render_configs (dev mode)
+   - `generateSlug()` - creates URL-safe slug from partner names with random suffix
+   - `buildFeatureFlags()` - enables features based on plan tier (starter vs premium)
+   - `generateRenderConfig()` - creates initial render_config with default template and sections
+   - `provisionWedding()` - idempotent wedding creation from checkout completion
+   - Session tracking for idempotency (prevents duplicate weddings on webhook replay)
+
+3. Created WeddingModule and wired to BillingModule
+
+4. Added Stripe webhook handler to BillingController:
+   - `POST /api/billing/stripe-webhook` endpoint
+   - Signature verification using Stripe SDK
+   - Handles `checkout.session.completed` event
+   - Extracts wedding metadata from session
+   - Calls WeddingService.provisionWedding()
+   - Returns wedding and render_config on success
+
+5. Updated main.ts to enable raw body parsing for webhook signature verification
+
+**Feature flags by plan:**
+- Starter: RSVP, CALENDAR_INVITE
+- Premium: All flags (RSVP, CALENDAR_INVITE, PHOTO_UPLOAD, ANNOUNCEMENT_BANNER, FAQ_SECTION, PASSCODE_SITE)
+
+**Default theme:**
+- Primary: #c9826b (terracotta)
+- Accent: #8fac8b (sage)
+- Neutral Light: #faf8f5 (warm off-white)
+- Neutral Dark: #2d2d2d (soft black)
+
+**API Endpoints:**
+- `POST /api/billing/stripe-webhook` - Stripe webhook handler
+  - Requires `stripe-signature` header
+  - Requires raw body for signature verification
+  - Handles `checkout.session.completed` to provision weddings
+  - Idempotent - same session ID will not create duplicate weddings
+
+**PRD features now passing:**
+- "Successful Stripe checkout provisions a wedding" ✓
+
+**Next steps:**
+- Note: "Wedding site render_config is generated on provisioning" is already implemented as part of this feature
+- Next feature should be wedding site rendering from render_config
+- Or implement feature toggle UI in admin dashboard
+
+**Notes for next person:**
+- In dev mode, weddings and render_configs are stored in-memory (restart API = lose data)
+- Webhook requires `STRIPE_WEBHOOK_SECRET` env var for production
+- For local testing, use Stripe CLI: `stripe listen --forward-to localhost:3001/api/billing/stripe-webhook`
+- Slugs are generated as `partner1-and-partner2-{random}` (URL-safe, lowercase)
+- The render_config generation is already in place - provisioning feature passes

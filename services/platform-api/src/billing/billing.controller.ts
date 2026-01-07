@@ -8,22 +8,28 @@ import {
   HttpStatus,
   UnauthorizedException,
   BadRequestException,
+  Req,
+  RawBodyRequest,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { BillingService } from './billing.service';
 import { AuthService } from '../auth/auth.service';
+import { WeddingService } from '../wedding/wedding.service';
 import type {
   ApiResponse,
   CreateCheckoutSessionRequest,
   CreateCheckoutSessionResponse,
   Plan,
+  WeddingProvisionResponse,
 } from '@wedding-bestie/shared';
-import { CHECKOUT_SESSION_FAILED } from '@wedding-bestie/shared';
+import { CHECKOUT_SESSION_FAILED, WEBHOOK_SIGNATURE_INVALID } from '@wedding-bestie/shared';
 
 @Controller('billing')
 export class BillingController {
   constructor(
     private readonly billingService: BillingService,
     private readonly authService: AuthService,
+    private readonly weddingService: WeddingService,
   ) {}
 
   /**
@@ -81,6 +87,63 @@ export class BillingController {
     } catch {
       return { ok: false, error: CHECKOUT_SESSION_FAILED };
     }
+  }
+
+  /**
+   * Stripe webhook handler for checkout events
+   * Provisions wedding on checkout.session.completed
+   */
+  @Post('stripe-webhook')
+  @HttpCode(HttpStatus.OK)
+  async handleStripeWebhook(
+    @Headers('stripe-signature') signature: string,
+    @Req() request: RawBodyRequest<Request>,
+  ): Promise<ApiResponse<WeddingProvisionResponse | { received: true }>> {
+    const rawBody = request.rawBody;
+
+    if (!rawBody) {
+      throw new BadRequestException('Missing request body');
+    }
+
+    // Verify webhook signature
+    const event = await this.billingService.verifyWebhookSignature(
+      rawBody,
+      signature,
+    );
+
+    if (!event) {
+      return { ok: false, error: WEBHOOK_SIGNATURE_INVALID };
+    }
+
+    // Handle checkout.session.completed event
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      const metadata = session.metadata;
+
+      if (!metadata?.userId || !metadata?.planId || !metadata?.weddingName) {
+        // Not a wedding checkout session, ignore
+        return { ok: true, data: { received: true } };
+      }
+
+      const result = await this.weddingService.provisionWedding({
+        userId: metadata.userId,
+        planId: metadata.planId as 'starter' | 'premium',
+        weddingName: metadata.weddingName,
+        partnerNames: [metadata.partner1 || '', metadata.partner2 || ''],
+        stripeSessionId: session.id,
+      });
+
+      return {
+        ok: true,
+        data: {
+          wedding: result.wedding,
+          renderConfig: result.renderConfig,
+        },
+      };
+    }
+
+    // Acknowledge other event types
+    return { ok: true, data: { received: true } };
   }
 
   /**

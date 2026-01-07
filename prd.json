@@ -168,7 +168,7 @@
       "Verify wedding status is active",
       "Verify slug is generated"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "provisioning",

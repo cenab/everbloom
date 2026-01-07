@@ -205,3 +205,47 @@ export interface CreateCheckoutSessionResponse {
  * Checkout session creation failed error code
  */
 export const CHECKOUT_SESSION_FAILED = 'CHECKOUT_SESSION_FAILED' as const;
+
+/**
+ * Webhook signature verification failed error code
+ */
+export const WEBHOOK_SIGNATURE_INVALID = 'WEBHOOK_SIGNATURE_INVALID' as const;
+
+// ============================================================================
+// Wedding Types
+// ============================================================================
+
+/**
+ * Wedding record in the platform system
+ */
+export interface Wedding {
+  id: string;
+  userId: string;
+  slug: string;
+  name: string;
+  partnerNames: [string, string];
+  planId: PlanTier;
+  status: WeddingStatus;
+  features: Record<FeatureFlag, boolean>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Wedding creation payload (from checkout metadata)
+ */
+export interface CreateWeddingPayload {
+  userId: string;
+  planId: PlanTier;
+  weddingName: string;
+  partnerNames: [string, string];
+  stripeSessionId: string;
+}
+
+/**
+ * Wedding provisioning response
+ */
+export interface WeddingProvisionResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}

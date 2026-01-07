@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import Stripe from 'stripe';
 import type { PlanTier, CreateCheckoutSessionRequest } from '@wedding-bestie/shared';
 
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test_placeholder';
+
 /**
  * Plan configuration with Stripe price IDs
  * In production, these would come from environment variables
@@ -101,6 +103,28 @@ export class BillingService {
     } catch (error) {
       this.logger.error(`Failed to create checkout session: ${error}`);
       throw error;
+    }
+  }
+
+  /**
+   * Verify Stripe webhook signature and construct event
+   * Returns null if verification fails
+   */
+  async verifyWebhookSignature(
+    rawBody: Buffer,
+    signature: string,
+  ): Promise<Stripe.Event | null> {
+    try {
+      const event = this.stripe.webhooks.constructEvent(
+        rawBody,
+        signature,
+        STRIPE_WEBHOOK_SECRET,
+      );
+      this.logger.log(`Verified webhook event: ${event.type}`);
+      return event;
+    } catch (error) {
+      this.logger.error(`Webhook signature verification failed: ${error}`);
+      return null;
     }
   }
 }
