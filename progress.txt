@@ -4189,3 +4189,82 @@ Implemented email template customization feature allowing admins to personalize 
 - Consider adding drag-and-drop reordering for better UX
 - Lightbox could be enhanced with zoom, pinch-to-zoom on mobile
 - Gallery section appears after other sections (order 10), admin could configure order in future
+
+### 2026-01-07 - Photo Moderation Feature
+
+**Feature worked on:** Photo moderation (PRD: photo-moderation category)
+
+**Priority rationale:** Photo uploads were already working, but admins had no control over what photos guests could see. Without moderation, inappropriate or unwanted photos could appear on the wedding site gallery. Photo moderation is foundational for protecting wedding sites from inappropriate content and follows existing patterns in the codebase.
+
+**What was done:**
+
+1. **Updated platform-api types (services/platform-api/src/types/index.ts):**
+   - Added PhotoModerationStatus type ('pending' | 'approved' | 'rejected')
+   - Added PhotoModerationConfig interface with moderationRequired boolean
+   - Updated PhotoMetadata to include moderationStatus and moderatedAt fields
+   - Updated PhotoSummary with pendingModerationCount, approvedCount, rejectedCount
+   - Updated Wedding interface with photoModerationConfig?: PhotoModerationConfig
+   - Added PHOTO_NOT_FOUND error constant
+   - Added new response types: UpdatePhotoModerationResponse, ModeratePhotoResponse
+
+2. **Updated PhotosService (services/platform-api/src/photos/photos.service.ts):**
+   - Extended createUpload to accept moderationRequired parameter
+   - Updated storeUpload to set moderationStatus based on moderationRequired flag
+   - Added listPhotos method with optional status filter
+   - Added getPhoto method to retrieve single photo metadata
+   - Added moderatePhoto method to approve/reject photos
+   - Added removePhoto method to delete photos
+   - Updated getPhotoSummary to include moderation counts
+
+3. **Updated PhotosController (services/platform-api/src/photos/photos.controller.ts):**
+   - Added call to weddingService.isPhotoModerationRequired to check moderation settings
+   - Passes moderationRequired to createUpload when generating signed URLs
+
+4. **Updated PhotosAdminController (services/platform-api/src/photos/photos.admin.controller.ts):**
+   - Updated listPhotos endpoint to support status query parameter filter
+   - Added PUT /weddings/:weddingId/photos/moderation endpoint for settings
+   - Added POST /weddings/:weddingId/photos/:photoId/moderate endpoint for approve/reject
+   - Added DELETE /weddings/:weddingId/photos/:photoId endpoint for removal
+
+5. **Updated WeddingService (services/platform-api/src/wedding/wedding.service.ts):**
+   - Added updatePhotoModeration method to toggle moderation requirement
+   - Added isPhotoModerationRequired helper method
+   - Updated wedding in-memory storage to include photoModerationConfig
+
+6. **Updated platform-ui types (apps/platform-ui/src/types.ts):**
+   - Added PhotoModerationStatus, PhotoModerationConfig types
+   - Updated PhotoMetadata, PhotoSummary, Wedding interfaces to match API
+
+7. **Created PhotoModerationSettings component (apps/platform-ui/src/components/PhotoModerationSettings.tsx):**
+   - Toggle for enabling/disabling moderation requirement
+   - Tabs for viewing pending, approved, and rejected photos
+   - Approve/reject actions for pending photos
+   - Remove action for approved photos
+   - Photo count badges on tabs
+   - Empty states for each tab
+
+8. **Updated Dashboard (apps/platform-ui/src/components/Dashboard.tsx):**
+   - Added 'photo-moderation' to View type
+   - Added PhotoModerationSettings import and view handler
+   - Added onNavigateToPhotoModeration to WeddingDashboard props
+   - Added "Photo moderation" dashboard card with ShieldCheckIcon
+   - Added ShieldCheckIcon SVG component
+
+**Design decisions:**
+- When moderation is disabled, new uploads go directly to 'approved' status
+- When moderation is enabled, new uploads go to 'pending' status
+- Removing a photo deletes it entirely (not just hiding it)
+- Feature is gated behind PHOTO_UPLOAD feature flag
+- Admin UI uses tabs to separate photos by moderation status
+
+**PRD features now passing:**
+- "Admin can enable photo moderation" ✓
+- "Admin can approve or reject guest photos" ✓
+- "Admin can remove previously approved photos" ✓
+
+**Notes for next person:**
+- Photo storage is currently in-memory; production should use persistent storage
+- Consider adding batch approve/reject for efficiency
+- Could add a "reason" field for rejected photos
+- Could send notifications when photos are approved/rejected
+- Wedding site gallery should filter to only show approved photos

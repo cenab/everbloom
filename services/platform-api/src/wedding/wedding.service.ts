@@ -1017,6 +1017,44 @@ export class WeddingService {
   }
 
   /**
+   * Update photo moderation settings for a wedding
+   * PRD: "Admin can enable photo moderation"
+   */
+  updatePhotoModeration(
+    weddingId: string,
+    moderationRequired: boolean,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    wedding.photoModerationConfig = { moderationRequired };
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    const existingConfig = this.renderConfigs.get(weddingId);
+    if (!existingConfig) {
+      return null;
+    }
+
+    // Render config doesn't need moderation config - it's admin-only setting
+    this.logger.log(
+      `Updated photo moderation for wedding ${weddingId}: moderationRequired=${moderationRequired}`,
+    );
+
+    return { wedding, renderConfig: existingConfig };
+  }
+
+  /**
+   * Check if photo moderation is required for a wedding
+   */
+  isPhotoModerationRequired(weddingId: string): boolean {
+    const wedding = this.weddings.get(weddingId);
+    return wedding?.photoModerationConfig?.moderationRequired ?? false;
+  }
+
+  /**
    * Change a wedding's template while preserving content
    * This updates the render_config with the new template and its theme,
    * but keeps the existing sections data (content) intact.

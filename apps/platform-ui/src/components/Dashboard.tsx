@@ -20,10 +20,11 @@ import { SeatingManager } from './SeatingManager';
 import { Communications } from './Communications';
 import { EmailTemplateSettings } from './EmailTemplateSettings';
 import { GallerySettings } from './GallerySettings';
+import { PhotoModerationSettings } from './PhotoModerationSettings';
 import { getAuthToken } from '../lib/auth';
 import type { Wedding, ApiResponse, RenderConfig } from '../types';
 
-type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'accommodations' | 'email-stats' | 'photo-stats' | 'guestbook' | 'music' | 'seating' | 'communications' | 'email-templates' | 'gallery';
+type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'accommodations' | 'email-stats' | 'photo-stats' | 'guestbook' | 'music' | 'seating' | 'communications' | 'email-templates' | 'gallery' | 'photo-moderation';
 
 /**
  * Admin Dashboard component.
@@ -308,6 +309,18 @@ export function Dashboard() {
     );
   }
 
+  if (view === 'photo-moderation' && selectedWedding) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <PhotoModerationSettings
+          wedding={selectedWedding}
+          onBack={() => setView('dashboard')}
+          onWeddingChanged={fetchWeddings}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -351,6 +364,7 @@ export function Dashboard() {
           onNavigateToCommunications={() => setView('communications')}
           onNavigateToEmailTemplates={() => setView('email-templates')}
           onNavigateToGallery={() => setView('gallery')}
+          onNavigateToPhotoModeration={() => setView('photo-moderation')}
           onBack={weddings.length > 1 ? () => setSelectedWedding(null) : undefined}
         />
       )}
@@ -440,6 +454,7 @@ interface WeddingDashboardProps {
   onNavigateToCommunications: () => void;
   onNavigateToEmailTemplates: () => void;
   onNavigateToGallery: () => void;
+  onNavigateToPhotoModeration: () => void;
   onBack?: () => void;
 }
 
@@ -469,6 +484,7 @@ function WeddingDashboard({
   onNavigateToCommunications,
   onNavigateToEmailTemplates,
   onNavigateToGallery,
+  onNavigateToPhotoModeration,
   onBack,
 }: WeddingDashboardProps) {
   return (
@@ -607,6 +623,14 @@ function WeddingDashboard({
             description="View photos shared by your guests"
             icon={<CameraIcon className="w-6 h-6" />}
             onClick={onNavigateToPhotoStats}
+          />
+        )}
+        {wedding.features.PHOTO_UPLOAD && (
+          <DashboardCard
+            title="Photo moderation"
+            description="Review and approve guest photo uploads"
+            icon={<ShieldCheckIcon className="w-6 h-6" />}
+            onClick={onNavigateToPhotoModeration}
           />
         )}
         {wedding.features.GUESTBOOK && (
@@ -1102,6 +1126,24 @@ function ImageIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
+      />
+    </svg>
+  );
+}
+
+function ShieldCheckIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
       />
     </svg>
   );

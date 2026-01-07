@@ -1252,7 +1252,7 @@
       "Save settings",
       "Verify new uploads go to pending state"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "photo-moderation",
@@ -1265,7 +1265,7 @@
       "Verify approved photos appear in gallery",
       "Verify rejected photos are hidden"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "photo-moderation",
@@ -1276,7 +1276,7 @@
       "Confirm removal",
       "Verify photo is hidden from public gallery"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "i18n",

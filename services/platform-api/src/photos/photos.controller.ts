@@ -96,11 +96,15 @@ export class PhotosController {
       });
     }
 
+    // Check if moderation is required for this wedding
+    const moderationRequired = this.weddingService.isPhotoModerationRequired(wedding.id);
+
     const { uploadId, signature, expiresAt } = this.photosService.createUpload(
       wedding.id,
       fileName,
       contentType,
       normalizedSize,
+      moderationRequired,
     );
 
     const baseUrl = `${req.protocol}://${req.get('host')}`;

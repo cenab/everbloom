@@ -672,6 +672,8 @@ export interface Wedding {
   emailTemplates?: EmailTemplatesConfig;
   /** Admin curated photo gallery */
   gallery?: GalleryConfig;
+  /** Photo moderation settings (guest uploads) */
+  photoModerationConfig?: PhotoModerationConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -978,6 +980,58 @@ export const PHOTO_UPLOAD_VALIDATION_ERROR = 'PHOTO_UPLOAD_VALIDATION_ERROR' as 
 export const PHOTO_UPLOAD_INVALID = 'PHOTO_UPLOAD_INVALID' as const;
 
 // ============================================================================
+// Photo Moderation Types
+// ============================================================================
+
+/**
+ * Moderation status for guest-uploaded photos
+ * PRD: "Admin can enable photo moderation", "Admin can approve or reject guest photos"
+ */
+export type PhotoModerationStatus = 'pending' | 'approved' | 'rejected';
+
+/**
+ * Configuration for photo moderation settings on a wedding
+ */
+export interface PhotoModerationConfig {
+  /** Whether moderation is required for new uploads */
+  moderationRequired: boolean;
+}
+
+/**
+ * Request to update photo moderation settings
+ */
+export interface UpdatePhotoModerationRequest {
+  moderationRequired: boolean;
+}
+
+/**
+ * Response after updating photo moderation settings
+ */
+export interface UpdatePhotoModerationResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+/**
+ * Request to moderate a photo (approve or reject)
+ */
+export interface ModeratePhotoRequest {
+  status: 'approved' | 'rejected';
+}
+
+/**
+ * Response after moderating a photo
+ */
+export interface ModeratePhotoResponse {
+  photo: PhotoMetadata;
+}
+
+/**
+ * Photo not found error code
+ */
+export const PHOTO_NOT_FOUND = 'PHOTO_NOT_FOUND' as const;
+
+// ============================================================================
 // Photo Metadata Types (Admin)
 // ============================================================================
 
@@ -990,6 +1044,10 @@ export interface PhotoMetadata {
   contentType: string;
   fileSize: number;
   uploadedAt: string;
+  /** Moderation status - defaults to 'approved' if moderation is not required */
+  moderationStatus: PhotoModerationStatus;
+  /** When the photo was moderated */
+  moderatedAt?: string;
 }
 
 /**
@@ -1012,6 +1070,12 @@ export interface PhotoSummary {
   lastUploadedAt?: string;
   /** Recent uploads (last 5) for dashboard preview */
   recentUploads: PhotoMetadata[];
+  /** Count of photos pending moderation */
+  pendingModerationCount: number;
+  /** Count of approved photos */
+  approvedCount: number;
+  /** Count of rejected photos */
+  rejectedCount: number;
 }
 
 /**

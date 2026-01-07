@@ -340,6 +340,7 @@ export interface Wedding {
   accommodations?: AccommodationsConfig;
   emailTemplates?: EmailTemplatesConfig;
   gallery?: GalleryConfig;
+  photoModerationConfig?: PhotoModerationConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -698,6 +699,24 @@ export interface EmailStatisticsResponse {
 }
 
 // ============================================================================
+// Photo Moderation Types
+// ============================================================================
+
+/**
+ * Moderation status for guest-uploaded photos
+ * PRD: "Admin can enable photo moderation", "Admin can approve or reject guest photos"
+ */
+export type PhotoModerationStatus = 'pending' | 'approved' | 'rejected';
+
+/**
+ * Configuration for photo moderation settings on a wedding
+ */
+export interface PhotoModerationConfig {
+  /** Whether moderation is required for new uploads */
+  moderationRequired: boolean;
+}
+
+// ============================================================================
 // Photo Metadata Types (Admin)
 // ============================================================================
 
@@ -710,6 +729,10 @@ export interface PhotoMetadata {
   contentType: string;
   fileSize: number;
   uploadedAt: string;
+  /** Moderation status - defaults to 'approved' if moderation is not required */
+  moderationStatus: PhotoModerationStatus;
+  /** When the photo was moderated */
+  moderatedAt?: string;
 }
 
 /**
@@ -732,6 +755,12 @@ export interface PhotoSummary {
   lastUploadedAt?: string;
   /** Recent uploads (last 5) for dashboard preview */
   recentUploads: PhotoMetadata[];
+  /** Count of photos pending moderation */
+  pendingModerationCount: number;
+  /** Count of approved photos */
+  approvedCount: number;
+  /** Count of rejected photos */
+  rejectedCount: number;
 }
 
 /**
@@ -739,6 +768,21 @@ export interface PhotoSummary {
  */
 export interface PhotoSummaryResponse {
   summary: PhotoSummary;
+}
+
+/**
+ * Response after updating photo moderation settings
+ */
+export interface UpdatePhotoModerationResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+/**
+ * Response after moderating a photo
+ */
+export interface ModeratePhotoResponse {
+  photo: PhotoMetadata;
 }
 
 // ============================================================================

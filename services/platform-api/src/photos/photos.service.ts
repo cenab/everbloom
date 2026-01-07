@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { PhotoMetadata, PhotoSummary } from '../types';
+import type { PhotoMetadata, PhotoModerationStatus, PhotoSummary } from '../types';
 import { createHmac, randomBytes } from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -15,6 +15,8 @@ export interface UploadSession {
   createdAt: string;
   uploadedAt?: string;
   storagePath?: string;
+  /** Whether moderation is required for this upload */
+  moderationRequired?: boolean;
 }
 
 interface StoredPhoto extends PhotoMetadata {
@@ -39,6 +41,7 @@ export class PhotosService {
     fileName: string,
     contentType: string,
     fileSize: number,
+    moderationRequired = false,
   ): { uploadId: string; signature: string; expiresAt: number } {
     const uploadId = randomBytes(16).toString('hex');
     const expiresAt = Date.now() + PHOTO_UPLOAD_TTL_MS;
@@ -53,6 +56,7 @@ export class PhotosService {
       fileSize,
       expiresAt,
       createdAt,
+      moderationRequired,
     });
 
     return { uploadId, signature, expiresAt };
@@ -62,11 +66,80 @@ export class PhotosService {
     return this.uploads.get(uploadId) || null;
   }
 
-  listPhotos(weddingId: string): PhotoMetadata[] {
-    const photos = this.photosByWedding.get(weddingId) ?? [];
+  /**
+   * List photos for a wedding, optionally filtered by moderation status
+   * @param weddingId The wedding ID
+   * @param statusFilter Optional filter by moderation status
+   */
+  listPhotos(weddingId: string, statusFilter?: PhotoModerationStatus): PhotoMetadata[] {
+    let photos = this.photosByWedding.get(weddingId) ?? [];
+
+    if (statusFilter) {
+      photos = photos.filter((p) => p.moderationStatus === statusFilter);
+    }
+
     return [...photos]
       .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))
       .map(({ storagePath, weddingId: _weddingId, ...photo }) => photo);
+  }
+
+  /**
+   * Get a single photo by ID
+   */
+  getPhoto(weddingId: string, photoId: string): PhotoMetadata | null {
+    const photos = this.photosByWedding.get(weddingId) ?? [];
+    const photo = photos.find((p) => p.id === photoId);
+    if (!photo) return null;
+    const { storagePath: _sp, weddingId: _wid, ...result } = photo;
+    return result;
+  }
+
+  /**
+   * Moderate a photo (approve or reject)
+   * PRD: "Admin can approve or reject guest photos"
+   */
+  moderatePhoto(
+    weddingId: string,
+    photoId: string,
+    status: 'approved' | 'rejected',
+  ): PhotoMetadata | null {
+    const photos = this.photosByWedding.get(weddingId) ?? [];
+    const photoIndex = photos.findIndex((p) => p.id === photoId);
+
+    if (photoIndex === -1) {
+      return null;
+    }
+
+    const photo = photos[photoIndex];
+    photo.moderationStatus = status;
+    photo.moderatedAt = new Date().toISOString();
+    photos[photoIndex] = photo;
+    this.photosByWedding.set(weddingId, photos);
+
+    this.logger.log(`Photo ${photoId} moderated to ${status} for wedding ${weddingId}`);
+
+    const { storagePath: _sp, weddingId: _wid, ...result } = photo;
+    return result;
+  }
+
+  /**
+   * Remove a photo (for admin to remove previously approved photos)
+   * PRD: "Admin can remove previously approved photos"
+   */
+  removePhoto(weddingId: string, photoId: string): boolean {
+    const photos = this.photosByWedding.get(weddingId) ?? [];
+    const photoIndex = photos.findIndex((p) => p.id === photoId);
+
+    if (photoIndex === -1) {
+      return false;
+    }
+
+    // Remove the photo from the list
+    photos.splice(photoIndex, 1);
+    this.photosByWedding.set(weddingId, photos);
+
+    this.logger.log(`Photo ${photoId} removed from wedding ${weddingId}`);
+    return true;
   }
 
   /**
@@ -89,11 +162,21 @@ export class PhotosService {
       ({ storagePath: _sp, weddingId: _wid, ...photo }) => photo,
     );
 
+    // Count by moderation status
+    const pendingModerationCount = photos.filter(
+      (p) => p.moderationStatus === 'pending',
+    ).length;
+    const approvedCount = photos.filter((p) => p.moderationStatus === 'approved').length;
+    const rejectedCount = photos.filter((p) => p.moderationStatus === 'rejected').length;
+
     return {
       totalPhotos: photos.length,
       totalSizeBytes,
       lastUploadedAt: sortedPhotos[0]?.uploadedAt,
       recentUploads,
+      pendingModerationCount,
+      approvedCount,
+      rejectedCount,
     };
   }
 
@@ -137,6 +220,12 @@ export class PhotosService {
     upload.uploadedAt = uploadedAt;
     this.uploads.set(upload.id, upload);
 
+    // Set moderation status based on whether moderation is required
+    // If moderation is required, photos go to 'pending'; otherwise 'approved'
+    const moderationStatus: PhotoModerationStatus = upload.moderationRequired
+      ? 'pending'
+      : 'approved';
+
     this.addPhotoRecord({
       id: upload.id,
       weddingId: upload.weddingId,
@@ -145,6 +234,7 @@ export class PhotosService {
       fileSize: buffer.length,
       uploadedAt,
       storagePath: filePath,
+      moderationStatus,
     });
 
     this.logger.log(`Stored photo upload ${upload.id} to ${filePath}`);
