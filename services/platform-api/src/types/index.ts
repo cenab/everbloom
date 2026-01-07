@@ -117,6 +117,8 @@ export interface RenderConfig {
   announcement?: Announcement;
   eventDetails?: EventDetailsData;
   faq?: FaqConfig;
+  /** Whether passcode protection is enabled (hash is never exposed) */
+  passcodeProtected?: boolean;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -287,6 +289,15 @@ export interface EventDetailsData {
 }
 
 /**
+ * Passcode protection configuration for a wedding site (forward declaration)
+ */
+export interface PasscodeConfigBase {
+  enabled: boolean;
+  /** bcrypt hash of the passcode - raw passcode is never stored */
+  passcodeHash?: string;
+}
+
+/**
  * Wedding record in the platform system
  */
 export interface Wedding {
@@ -301,6 +312,7 @@ export interface Wedding {
   announcement?: Announcement;
   eventDetails?: EventDetailsData;
   faq?: FaqConfig;
+  passcodeConfig?: PasscodeConfigBase;
   createdAt: string;
   updatedAt: string;
 }
@@ -786,3 +798,51 @@ export const CALENDAR_INVITE_DISABLED = 'CALENDAR_INVITE_DISABLED' as const;
  * Event details not configured error code
  */
 export const EVENT_DETAILS_NOT_CONFIGURED = 'EVENT_DETAILS_NOT_CONFIGURED' as const;
+
+// ============================================================================
+// Passcode Site Protection Types
+// ============================================================================
+
+/**
+ * Request to update passcode settings for a wedding
+ */
+export interface UpdatePasscodeRequest {
+  enabled: boolean;
+  /** Raw passcode to set (will be hashed before storage) */
+  passcode?: string;
+}
+
+/**
+ * Response after updating passcode settings
+ */
+export interface UpdatePasscodeResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+/**
+ * Request body for verifying a site passcode (guest-facing)
+ */
+export interface VerifyPasscodeRequest {
+  slug: string;
+  passcode: string;
+}
+
+/**
+ * Response from passcode verification
+ */
+export interface VerifyPasscodeResponse {
+  valid: boolean;
+  /** Token for session persistence (only returned if valid) */
+  sessionToken?: string;
+}
+
+/**
+ * Invalid passcode error code
+ */
+export const INVALID_PASSCODE = 'INVALID_PASSCODE' as const;
+
+/**
+ * Passcode not configured error code
+ */
+export const PASSCODE_NOT_CONFIGURED = 'PASSCODE_NOT_CONFIGURED' as const;

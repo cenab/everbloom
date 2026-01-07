@@ -207,6 +207,15 @@ export interface CreateCheckoutSessionResponse {
 // ============================================================================
 
 /**
+ * Passcode protection configuration (admin view - no hash exposed)
+ */
+export interface PasscodeConfig {
+  enabled: boolean;
+  /** Whether a passcode is currently set (hash exists) */
+  hasPasscode?: boolean;
+}
+
+/**
  * Wedding record in the platform system
  */
 export interface Wedding {
@@ -221,6 +230,7 @@ export interface Wedding {
   announcement?: Announcement;
   eventDetails?: EventDetailsData;
   faq?: FaqConfig;
+  passcodeConfig?: PasscodeConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -397,4 +407,16 @@ export interface PhotoMetadata {
  */
 export interface PhotoListResponse {
   photos: PhotoMetadata[];
+}
+
+// ============================================================================
+// Passcode Types
+// ============================================================================
+
+/**
+ * Response after updating passcode settings
+ */
+export interface UpdatePasscodeResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
 }

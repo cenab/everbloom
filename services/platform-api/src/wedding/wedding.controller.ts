@@ -26,8 +26,10 @@ import type {
   UpdateEventDetailsResponse,
   UpdateFaqRequest,
   UpdateFaqResponse,
+  UpdatePasscodeRequest,
+  UpdatePasscodeResponse,
 } from '../types';
-import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, CALENDAR_INVITE_DISABLED } from '../types';
+import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED } from '../types';
 
 @Controller('weddings')
 export class WeddingController {
@@ -308,6 +310,58 @@ export class WeddingController {
 
     if (!result) {
       throw new NotFoundException('Failed to update event details');
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Update passcode settings for a wedding
+   * Requires PASSCODE_SITE feature to be enabled
+   */
+  @Put(':id/passcode')
+  async updatePasscode(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: UpdatePasscodeRequest,
+  ): Promise<ApiResponse<UpdatePasscodeResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException('Wedding not found');
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException('Wedding not found');
+    }
+
+    // Check if PASSCODE_SITE feature is enabled
+    if (!wedding.features.PASSCODE_SITE) {
+      throw new ForbiddenException({
+        ok: false,
+        error: FEATURE_DISABLED,
+      });
+    }
+
+    if (typeof body.enabled !== 'boolean') {
+      throw new BadRequestException('enabled must be a boolean');
+    }
+
+    // If enabling passcode, require the passcode unless already configured
+    if (body.enabled && !body.passcode && !wedding.passcodeConfig?.passcodeHash) {
+      throw new BadRequestException('Passcode is required when enabling protection');
+    }
+
+    // If providing a passcode, validate length
+    if (body.passcode && body.passcode.length < 4) {
+      throw new BadRequestException('Passcode must be at least 4 characters');
+    }
+
+    const result = await this.weddingService.updatePasscode(id, body.enabled, body.passcode);
+
+    if (!result) {
+      throw new NotFoundException('Failed to update passcode settings');
     }
 
     return { ok: true, data: result };

@@ -484,7 +484,7 @@
       "Save changes",
       "Verify passcode is stored (hashed)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "passcode",
@@ -498,7 +498,7 @@
       "Enter correct passcode",
       "Verify full site content is accessible"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "passcode",
@@ -511,7 +511,7 @@
       "Return to site",
       "Verify passcode gate appears again"
     ],
-    "passes": false
+    "passes": true
   },
 
   {

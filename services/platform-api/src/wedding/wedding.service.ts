@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { randomBytes } from 'crypto';
+import { randomBytes, scrypt, timingSafeEqual } from 'crypto';
+import { promisify } from 'util';
 import type {
   Wedding,
   WeddingStatus,
@@ -14,7 +15,38 @@ import type {
   Section,
   EventDetailsData,
   FaqConfig,
+  PasscodeConfigBase,
 } from '../types';
+
+const scryptAsync = promisify(scrypt);
+
+/**
+ * Hash a passcode using scrypt
+ * Format: salt:hash (both hex-encoded)
+ */
+async function hashPasscode(passcode: string): Promise<string> {
+  const salt = randomBytes(16).toString('hex');
+  const derivedKey = (await scryptAsync(passcode, salt, 64)) as Buffer;
+  return `${salt}:${derivedKey.toString('hex')}`;
+}
+
+/**
+ * Verify a passcode against a stored hash using timing-safe comparison
+ */
+async function verifyPasscode(passcode: string, storedHash: string): Promise<boolean> {
+  const [salt, hash] = storedHash.split(':');
+  if (!salt || !hash) {
+    return false;
+  }
+  const derivedKey = (await scryptAsync(passcode, salt, 64)) as Buffer;
+  const storedBuffer = Buffer.from(hash, 'hex');
+
+  // Use timing-safe comparison to prevent timing attacks
+  if (derivedKey.length !== storedBuffer.length) {
+    return false;
+  }
+  return timingSafeEqual(derivedKey, storedBuffer);
+}
 
 /**
  * Default theme for new weddings - calm, warm palette
@@ -276,6 +308,13 @@ export class WeddingService {
       config.wedding.date = wedding.eventDetails.date;
       config.wedding.venue = wedding.eventDetails.venue;
       config.wedding.city = wedding.eventDetails.city;
+    }
+
+    // Add passcode protection status (never expose the hash)
+    if (wedding.passcodeConfig?.enabled && wedding.passcodeConfig?.passcodeHash) {
+      config.passcodeProtected = true;
+    } else {
+      config.passcodeProtected = false;
     }
 
     return config;
@@ -628,5 +667,99 @@ export class WeddingService {
     this.logger.log(`Changed template for wedding ${weddingId} to ${templateId}`);
 
     return updatedConfig;
+  }
+
+  /**
+   * Update passcode settings for a wedding
+   * If enabled=true and passcode is provided, hash and store the passcode
+   * If enabled=false, disable passcode protection
+   */
+  async updatePasscode(
+    weddingId: string,
+    enabled: boolean,
+    passcode?: string,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    // Build the passcode config
+    let passcodeConfig: PasscodeConfigBase;
+    if (enabled) {
+      // When enabling, we need a passcode to hash
+      if (!passcode) {
+        // If no new passcode and already has one, keep existing hash
+        if (wedding.passcodeConfig?.passcodeHash) {
+          passcodeConfig = {
+            enabled: true,
+            passcodeHash: wedding.passcodeConfig.passcodeHash,
+          };
+        } else {
+          // Cannot enable without a passcode
+          return null;
+        }
+      } else {
+        // Hash the new passcode
+        const passcodeHash = await hashPasscode(passcode);
+        passcodeConfig = {
+          enabled: true,
+          passcodeHash,
+        };
+      }
+    } else {
+      // Disable passcode (keep the hash in case they re-enable)
+      passcodeConfig = {
+        enabled: false,
+        passcodeHash: wedding.passcodeConfig?.passcodeHash,
+      };
+    }
+
+    wedding.passcodeConfig = passcodeConfig;
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    // Regenerate render_config to update passcodeProtected flag
+    const updatedConfig = this.generateRenderConfig(wedding);
+    this.renderConfigs.set(weddingId, updatedConfig);
+
+    this.logger.log(`Updated passcode settings for wedding ${weddingId}: enabled=${enabled}`);
+
+    return { wedding, renderConfig: updatedConfig };
+  }
+
+  /**
+   * Verify a passcode for a wedding (guest-facing)
+   * Returns true if the passcode matches, false otherwise
+   * Uses timing-safe comparison to prevent timing attacks
+   */
+  async verifyWeddingPasscode(slug: string, passcode: string): Promise<boolean> {
+    const wedding = this.getWeddingBySlug(slug);
+    if (!wedding) {
+      return false;
+    }
+
+    // If passcode is not enabled or not configured, deny access
+    if (!wedding.passcodeConfig?.enabled || !wedding.passcodeConfig?.passcodeHash) {
+      return false;
+    }
+
+    return verifyPasscode(passcode, wedding.passcodeConfig.passcodeHash);
+  }
+
+  /**
+   * Check if a wedding requires passcode to access
+   */
+  isPasscodeRequired(slug: string): boolean {
+    const wedding = this.getWeddingBySlug(slug);
+    if (!wedding) {
+      return false;
+    }
+
+    return !!(
+      wedding.features.PASSCODE_SITE &&
+      wedding.passcodeConfig?.enabled &&
+      wedding.passcodeConfig?.passcodeHash
+    );
   }
 }

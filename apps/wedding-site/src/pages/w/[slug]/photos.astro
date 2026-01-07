@@ -5,6 +5,7 @@
  */
 import { fetchSiteConfig } from '../../../lib/api';
 import WeddingLayout from '../../../components/WeddingLayout.astro';
+import PasscodeGateWrapper from '../../../components/PasscodeGateWrapper.astro';
 
 const { slug } = Astro.params;
 
@@ -22,7 +23,8 @@ const photoEnabled = config.features.PHOTO_UPLOAD;
 const weddingTitle = `${config.wedding.partnerNames[0]} & ${config.wedding.partnerNames[1]}`;
 ---
 
-<WeddingLayout config={config}>
+<PasscodeGateWrapper config={config}>
+  <WeddingLayout config={config}>
   <section
     class="photo-page"
     style={`--primary: ${config.theme.primary}; --accent: ${config.theme.accent}; --neutral-light: ${config.theme.neutralLight}; --neutral-dark: ${config.theme.neutralDark};`}
@@ -51,7 +53,8 @@ const weddingTitle = `${config.wedding.partnerNames[0]} & ${config.wedding.partn
       )}
     </div>
   </section>
-</WeddingLayout>
+  </WeddingLayout>
+</PasscodeGateWrapper>
 
 {photoEnabled && (
   <script

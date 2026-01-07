@@ -7,6 +7,7 @@ import { fetchSiteConfig } from '../../../lib/api';
 import WeddingLayout from '../../../components/WeddingLayout.astro';
 import AnnouncementBanner from '../../../components/AnnouncementBanner.astro';
 import SectionRenderer from '../../../components/SectionRenderer.astro';
+import PasscodeGateWrapper from '../../../components/PasscodeGateWrapper.astro';
 
 const { slug } = Astro.params;
 
@@ -29,7 +30,9 @@ const showAnnouncement =
   Boolean(announcement.title.trim() || announcement.message.trim());
 ---
 
-<WeddingLayout config={config}>
-  {showAnnouncement && <AnnouncementBanner announcement={announcement} theme={config.theme} />}
-  <SectionRenderer config={config} />
-</WeddingLayout>
+<PasscodeGateWrapper config={config}>
+  <WeddingLayout config={config}>
+    {showAnnouncement && <AnnouncementBanner announcement={announcement} theme={config.theme} />}
+    <SectionRenderer config={config} />
+  </WeddingLayout>
+</PasscodeGateWrapper>

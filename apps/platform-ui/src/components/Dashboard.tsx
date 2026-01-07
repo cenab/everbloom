@@ -7,10 +7,11 @@ import { FeatureSettings } from './FeatureSettings';
 import { AnnouncementSettings } from './AnnouncementSettings';
 import { EventSettings } from './EventSettings';
 import { FaqSettings } from './FaqSettings';
+import { PasscodeSettings } from './PasscodeSettings';
 import { getAuthToken } from '../lib/auth';
 import type { Wedding, ApiResponse, RenderConfig } from '../types';
 
-type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq';
+type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode';
 
 /**
  * Admin Dashboard component.
@@ -144,6 +145,18 @@ export function Dashboard() {
     );
   }
 
+  if (view === 'passcode' && selectedWedding) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <PasscodeSettings
+          wedding={selectedWedding}
+          onBack={() => setView('dashboard')}
+          onPasscodeChanged={fetchWeddings}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -174,6 +187,7 @@ export function Dashboard() {
           onNavigateToAnnouncement={() => setView('announcement')}
           onNavigateToEventDetails={() => setView('event-details')}
           onNavigateToFaq={() => setView('faq')}
+          onNavigateToPasscode={() => setView('passcode')}
           onBack={weddings.length > 1 ? () => setSelectedWedding(null) : undefined}
         />
       )}
@@ -250,6 +264,7 @@ interface WeddingDashboardProps {
   onNavigateToAnnouncement: () => void;
   onNavigateToEventDetails: () => void;
   onNavigateToFaq: () => void;
+  onNavigateToPasscode: () => void;
   onBack?: () => void;
 }
 
@@ -266,6 +281,7 @@ function WeddingDashboard({
   onNavigateToAnnouncement,
   onNavigateToEventDetails,
   onNavigateToFaq,
+  onNavigateToPasscode,
   onBack,
 }: WeddingDashboardProps) {
   return (
@@ -332,6 +348,14 @@ function WeddingDashboard({
             description="Answer common questions for your guests"
             icon={<QuestionMarkIcon className="w-6 h-6" />}
             onClick={onNavigateToFaq}
+          />
+        )}
+        {wedding.features.PASSCODE_SITE && (
+          <DashboardCard
+            title="Site protection"
+            description="Protect your site with a passcode"
+            icon={<LockIcon className="w-6 h-6" />}
+            onClick={onNavigateToPasscode}
           />
         )}
         <DashboardCard
@@ -564,6 +588,24 @@ function QuestionMarkIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"
+      />
+    </svg>
+  );
+}
+
+function LockIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
       />
     </svg>
   );

@@ -1364,3 +1364,115 @@
 - FAQ section appears after photo-upload section (order 4) by default
 - Reordering works via up/down buttons; order is persisted on save
 - FAQ_SECTION is a premium-only feature (not available on starter plan)
+
+---
+
+### 2026-01-07 - Passcode Site Protection Feature
+
+**Feature worked on:** Passcode site protection (PRD: passcode category)
+
+**Priority rationale:** This is the highest-priority remaining feature because:
+1. PASSCODE_SITE is an existing feature flag with no implementation
+2. Privacy is increasingly important for couples who want private wedding sites
+3. It's a complete end-to-end security feature (admin CRUD + guest verification + session persistence)
+4. It follows the existing pattern but adds security considerations (hashing, timing-safe comparison)
+
+**What was done:**
+1. Added passcode types to platform-api types:
+   - `PasscodeConfigBase` interface with enabled and passcodeHash fields
+   - Extended Wedding interface with passcodeConfig field
+   - Extended RenderConfig with passcodeProtected boolean (hash never exposed)
+   - `UpdatePasscodeRequest` and `UpdatePasscodeResponse` types
+   - `VerifyPasscodeRequest` and `VerifyPasscodeResponse` types
+   - `INVALID_PASSCODE` and `PASSCODE_NOT_CONFIGURED` error codes
+
+2. Implemented passcode storage and verification in WeddingService:
+   - `hashPasscode()` function using Node's scrypt with random salt
+   - `verifyPasscode()` function with timing-safe comparison to prevent timing attacks
+   - `updatePasscode()` method for enabling/disabling protection and setting passcode
+   - `verifyWeddingPasscode()` method for guest-facing verification
+   - `isPasscodeRequired()` helper to check if a wedding requires passcode
+
+3. Added passcode API endpoints:
+   - `PUT /api/weddings/:id/passcode` - Admin endpoint to update passcode settings (auth required)
+   - `POST /api/site-config/:slug/verify-passcode` - Public endpoint for guest verification
+   - `GET /api/site-config/:slug/passcode-required` - Public endpoint to check if passcode needed
+
+4. Added passcode types to platform-ui types:
+   - `PasscodeConfig` interface (no hash, just enabled + hasPasscode flags)
+   - `UpdatePasscodeResponse` type
+   - Extended Wedding interface with passcodeConfig
+
+5. Created PasscodeSettings component (platform-ui):
+   - Enable/disable toggle for passcode protection
+   - Password input with show/hide toggle
+   - Confirm passcode field when setting new passcode
+   - Minimum 4 character validation
+   - Info box explaining how it works
+   - Disabled state when PASSCODE_SITE feature is off
+   - Success/error feedback
+
+6. Updated Dashboard component:
+   - Added 'passcode' to View type
+   - Added PasscodeSettings import and view handler
+   - Added onNavigateToPasscode prop
+   - Added LockIcon component
+   - Added "Site protection" card (conditionally shown when PASSCODE_SITE enabled)
+
+7. Added passcode types to wedding-site types:
+   - Extended RenderConfig with passcodeProtected field
+   - Added VerifyPasscodeResponse type
+
+8. Created PasscodeGateWrapper.astro component:
+   - Checks if passcode protection is enabled from config
+   - Shows passcode entry form if protected and no valid session
+   - Stores session token in localStorage for returning visitors
+   - Clean, themed UI matching wedding site design
+   - Client-side JavaScript for form submission and session management
+
+9. Updated wedding site pages to use PasscodeGateWrapper:
+   - /w/[slug]/index.astro - Main wedding page
+   - /w/[slug]/photos.astro - Photo upload page
+
+**API Endpoints:**
+- `PUT /api/weddings/:id/passcode` - Update passcode settings (requires auth)
+  - Request: `{ enabled: boolean, passcode?: string }`
+  - Response: `{ wedding, renderConfig }`
+  - Returns FEATURE_DISABLED if PASSCODE_SITE is off
+- `POST /api/site-config/:slug/verify-passcode` - Verify passcode (public)
+  - Request: `{ passcode: string }`
+  - Response: `{ valid: boolean, sessionToken?: string }`
+- `GET /api/site-config/:slug/passcode-required` - Check if passcode needed (public)
+  - Response: `{ required: boolean }`
+
+**Security implementation:**
+- Passcodes are hashed using scrypt with random 16-byte salt
+- Format: `salt:hash` (both hex-encoded)
+- Verification uses timing-safe comparison to prevent timing attacks
+- Raw passcode is never stored, only the hash
+- Session tokens are random 32-byte hex strings
+- localStorage used for client-side session persistence
+
+**Design system adherence:**
+- Lock icon and themed colors for passcode gate
+- Human language: "This wedding site is private", "Please enter the passcode"
+- No pure black/white colors - uses theme variables
+- Serif heading (Cormorant Garamond), sans body (Inter)
+- Mobile-friendly form with centered layout
+- Clear error states with friendly messages
+
+**PRD features now passing:**
+- "Admin can set site passcode" ✓
+- "Guests must enter passcode to view protected site" ✓
+- "Passcode session persists for returning visitors" ✓
+
+**Notes for next person:**
+- Passcode endpoint is at PUT /api/weddings/:id/passcode
+- Passcode card only shows in dashboard when PASSCODE_SITE feature is enabled
+- PASSCODE_SITE is a premium-only feature (not available on starter plan)
+- Session persistence uses localStorage with key `everbloom_passcode_{slug}`
+- Clearing browser storage resets the session and requires re-entering passcode
+- Both main wedding page and photos page are protected
+- The passcode gate checks for existing session before showing form
+- Passcode verification endpoint returns sessionToken for client storage
+- PasscodeGateWrapper is a pure Astro component (no React dependency needed)

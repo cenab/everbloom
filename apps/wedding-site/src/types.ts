@@ -82,6 +82,8 @@ export interface RenderConfig {
   announcement?: Announcement;
   eventDetails?: EventDetailsData;
   faq?: FaqConfig;
+  /** Whether passcode protection is enabled (hash is never exposed) */
+  passcodeProtected?: boolean;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -166,4 +168,17 @@ export interface RsvpSubmitRequest {
 export interface RsvpSubmitResponse {
   message: string;
   guest: RsvpGuestView;
+}
+
+// ============================================================================
+// Passcode Types
+// ============================================================================
+
+/**
+ * Response from passcode verification
+ */
+export interface VerifyPasscodeResponse {
+  valid: boolean;
+  /** Token for session persistence (only returned if valid) */
+  sessionToken?: string;
 }
