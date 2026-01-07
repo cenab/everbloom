@@ -26,7 +26,7 @@ import type {
   Guest,
   GuestListResponse,
 } from '../types';
-import { TAG_NOT_FOUND, TAG_ALREADY_EXISTS } from '../types';
+import { TAG_NOT_FOUND, TAG_ALREADY_EXISTS, UNAUTHORIZED, WEDDING_NOT_FOUND } from '../types';
 
 @Controller('weddings/:weddingId/tags')
 export class TagController {
@@ -333,17 +333,17 @@ export class TagController {
   ) {
     const token = this.extractBearerToken(authHeader);
     if (!token) {
-      throw new UnauthorizedException('Authentication required');
+      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
     const user = await this.authService.validateSession(token);
     if (!user) {
-      throw new UnauthorizedException('Invalid or expired session');
+      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
     const wedding = this.weddingService.getWedding(weddingId);
     if (!wedding || wedding.userId !== user.id) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     return { user, wedding };

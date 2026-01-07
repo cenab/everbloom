@@ -668,7 +668,7 @@
       "Verify no stack traces or internal details are exposed",
       "Verify error codes are documented and consistent"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "errors",

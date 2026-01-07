@@ -22,12 +22,14 @@ import type {
   EmailOutbox,
   UpdateOutboxStatusRequest,
   ApiResponse,
-} from '@wedding-bestie/shared';
+} from '../types';
 import {
   FEATURE_DISABLED,
   NO_GUESTS_SELECTED,
   REMINDER_QUEUE_FAILED,
-} from '@wedding-bestie/shared';
+  UNAUTHORIZED,
+  WEDDING_NOT_FOUND,
+} from '../types';
 
 @Controller('weddings/:weddingId/invitations')
 export class InvitationController {
@@ -187,17 +189,17 @@ export class InvitationController {
   ) {
     const token = this.extractBearerToken(authHeader);
     if (!token) {
-      throw new UnauthorizedException('Authentication required');
+      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
     const user = await this.authService.validateSession(token);
     if (!user) {
-      throw new UnauthorizedException('Invalid or expired session');
+      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
     const wedding = this.weddingService.getWedding(weddingId);
     if (!wedding || wedding.userId !== user.id) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     return { user, wedding };
@@ -229,7 +231,7 @@ export class InvitationController {
     }
 
     if (!workerToken || workerToken !== expected) {
-      throw new UnauthorizedException('Worker authentication required');
+      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
   }
 }

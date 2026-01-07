@@ -16,12 +16,12 @@ import type {
   RsvpSubmitRequest,
   RsvpSubmitResponse,
   RsvpGuestView,
-} from '@wedding-bestie/shared';
+} from '../types';
 import {
   INVALID_TOKEN,
   FEATURE_DISABLED,
   WEDDING_NOT_FOUND,
-} from '@wedding-bestie/shared';
+} from '../types';
 
 /**
  * Public controller for guest RSVP operations

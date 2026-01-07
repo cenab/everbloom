@@ -24,7 +24,7 @@ import type {
   CsvImportRequest,
   CsvImportResponse,
 } from '../types';
-import { GUEST_NOT_FOUND, GUEST_ALREADY_EXISTS, CSV_IMPORT_VALIDATION_ERROR } from '../types';
+import { GUEST_NOT_FOUND, GUEST_ALREADY_EXISTS, CSV_IMPORT_VALIDATION_ERROR, UNAUTHORIZED, WEDDING_NOT_FOUND } from '../types';
 
 @Controller('weddings/:weddingId/guests')
 export class GuestController {
@@ -94,7 +94,6 @@ export class GuestController {
       throw new ConflictException({
         ok: false,
         error: CSV_IMPORT_VALIDATION_ERROR,
-        message: 'No guests provided for import',
       });
     }
 
@@ -104,7 +103,6 @@ export class GuestController {
       throw new ConflictException({
         ok: false,
         error: CSV_IMPORT_VALIDATION_ERROR,
-        message: `Cannot import more than ${maxImportSize} guests at once`,
       });
     }
 
@@ -150,7 +148,6 @@ export class GuestController {
         throw new ConflictException({
           ok: false,
           error: GUEST_ALREADY_EXISTS,
-          message: 'A guest with this email already exists for this wedding',
         });
       }
       throw error;
@@ -174,7 +171,6 @@ export class GuestController {
       throw new NotFoundException({
         ok: false,
         error: GUEST_NOT_FOUND,
-        message: 'Guest not found',
       });
     }
 
@@ -198,7 +194,6 @@ export class GuestController {
       throw new NotFoundException({
         ok: false,
         error: GUEST_NOT_FOUND,
-        message: 'Guest not found',
       });
     }
 
@@ -207,7 +202,6 @@ export class GuestController {
       throw new NotFoundException({
         ok: false,
         error: GUEST_NOT_FOUND,
-        message: 'Guest not found',
       });
     }
 
@@ -230,7 +224,6 @@ export class GuestController {
       throw new NotFoundException({
         ok: false,
         error: GUEST_NOT_FOUND,
-        message: 'Guest not found',
       });
     }
 
@@ -247,17 +240,17 @@ export class GuestController {
   ) {
     const token = this.extractBearerToken(authHeader);
     if (!token) {
-      throw new UnauthorizedException('Authentication required');
+      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
     const user = await this.authService.validateSession(token);
     if (!user) {
-      throw new UnauthorizedException('Invalid or expired session');
+      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
     const wedding = this.weddingService.getWedding(weddingId);
     if (!wedding || wedding.userId !== user.id) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     return { user, wedding };

@@ -1948,3 +1948,75 @@
 - Reception event auto-inherits date and timezone from ceremony when added
 - Wedding site renders multi-event with side-by-side cards on desktop
 - To test: go to dashboard → "Event details" → add ceremony → "Add reception details" → fill both → save → view wedding site
+
+---
+
+### 2026-01-07 - API Structured Error Responses
+
+**Feature worked on:** API returns structured errors for all failure modes (PRD: errors category)
+
+**Priority rationale:** This is a high-priority feature because:
+1. It's foundational for production readiness
+2. Consistent error responses improve both DX and UX
+3. It prevents internal details (stack traces) from being exposed
+4. Error codes need to be documented and deterministic
+
+**What was done:**
+1. Created global exception filter (services/platform-api/src/filters/http-exception.filter.ts):
+   - `@Catch()` decorator catches all exceptions
+   - Normalizes all errors to `{ ok: false, error: 'ERROR_CODE' }` format
+   - Maps HTTP status codes to appropriate error codes (400→VALIDATION_ERROR, 401→UNAUTHORIZED, etc.)
+   - Logs internal errors without exposing stack traces to clients
+   - Passes through already-structured error responses unchanged
+
+2. Added new error code constants to types/index.ts:
+   - `VALIDATION_ERROR` - for malformed input
+   - `UNAUTHORIZED` - for missing/invalid auth
+   - `FORBIDDEN` - for permission denied
+   - `NOT_FOUND` - for missing resources
+   - `INTERNAL_ERROR` - for unexpected server errors
+   - `ErrorCode` union type documenting all valid error codes
+
+3. Registered exception filter globally in main.ts:
+   - `app.useGlobalFilters(new HttpExceptionFilter())`
+
+4. Updated all controllers to throw structured errors:
+   - auth.controller.ts
+   - billing.controller.ts
+   - guest.controller.ts
+   - tag.controller.ts
+   - wedding.controller.ts
+   - site-config.controller.ts
+   - calendar.controller.ts
+   - invitation.controller.ts
+   - photos.admin.controller.ts
+   - Changed from `throw new BadRequestException('message')` to `throw new BadRequestException({ ok: false, error: VALIDATION_ERROR })`
+
+**Error response format:**
+All API errors now return:
+```json
+{
+  "ok": false,
+  "error": "ERROR_CODE"
+}
+```
+
+No stack traces, internal messages, or technical details are ever exposed.
+
+**Error code mapping:**
+- 400 Bad Request → VALIDATION_ERROR
+- 401 Unauthorized → UNAUTHORIZED
+- 403 Forbidden → FORBIDDEN
+- 404 Not Found → NOT_FOUND
+- 409 Conflict → (uses domain-specific code like GUEST_ALREADY_EXISTS)
+- 500+ → INTERNAL_ERROR
+
+**PRD features now passing:**
+- "API returns structured errors for all failure modes" ✓
+
+**Notes for next person:**
+- HttpExceptionFilter is at services/platform-api/src/filters/http-exception.filter.ts
+- To add new error codes, add constant in types/index.ts and update ErrorCode union type
+- Domain-specific errors (GUEST_NOT_FOUND, FEATURE_DISABLED, etc.) are preserved unchanged
+- The filter logs unhandled exceptions to console but returns sanitized INTERNAL_ERROR to client
+- All controllers now consistently use `{ ok: false, error: CODE }` format for exception bodies

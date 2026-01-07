@@ -2,7 +2,7 @@ import { Controller, Get, Post, Param, Body, NotFoundException, BadRequestExcept
 import { WeddingService } from './wedding.service';
 import { randomBytes } from 'crypto';
 import type { ApiResponse, RenderConfig, VerifyPasscodeRequest, VerifyPasscodeResponse } from '../types';
-import { INVALID_PASSCODE } from '../types';
+import { INVALID_PASSCODE, WEDDING_NOT_FOUND, NOT_FOUND, VALIDATION_ERROR } from '../types';
 
 /**
  * Public controller for wedding site rendering
@@ -24,18 +24,18 @@ export class SiteConfigController {
     const wedding = this.weddingService.getWeddingBySlug(slug);
 
     if (!wedding) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     // Check if the wedding is active
     if (wedding.status !== 'active') {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     const renderConfig = this.weddingService.getRenderConfig(wedding.id);
 
     if (!renderConfig) {
-      throw new NotFoundException('Site configuration not found');
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
     }
 
     return { ok: true, data: renderConfig };
@@ -53,12 +53,12 @@ export class SiteConfigController {
     const wedding = this.weddingService.getWeddingBySlug(slug);
 
     if (!wedding) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     // Check if the wedding is active
     if (wedding.status !== 'active') {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     // Check if passcode is required for this wedding
@@ -71,7 +71,7 @@ export class SiteConfigController {
     }
 
     if (!body.passcode) {
-      throw new BadRequestException('Passcode is required');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     // Verify the passcode using timing-safe comparison
@@ -107,12 +107,12 @@ export class SiteConfigController {
     const wedding = this.weddingService.getWeddingBySlug(slug);
 
     if (!wedding) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     // Check if the wedding is active
     if (wedding.status !== 'active') {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     const required = this.weddingService.isPasscodeRequired(slug);

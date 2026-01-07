@@ -22,8 +22,8 @@ import type {
   FeatureFlag,
   Plan,
   WeddingProvisionResponse,
-} from '@wedding-bestie/shared';
-import { CHECKOUT_SESSION_FAILED, WEBHOOK_SIGNATURE_INVALID } from '@wedding-bestie/shared';
+} from '../types';
+import { CHECKOUT_SESSION_FAILED, WEBHOOK_SIGNATURE_INVALID, VALIDATION_ERROR, UNAUTHORIZED } from '../types';
 
 @Controller('billing')
 export class BillingController {
@@ -55,21 +55,21 @@ export class BillingController {
     // Validate authentication
     const token = this.extractBearerToken(authHeader);
     if (!token) {
-      throw new UnauthorizedException('Authentication required');
+      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
     const user = await this.authService.validateSession(token);
     if (!user) {
-      throw new UnauthorizedException('Invalid or expired session');
+      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
     // Validate request body
     if (!body.planId || !['starter', 'premium'].includes(body.planId)) {
-      throw new BadRequestException('Valid plan selection is required');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     if (!body.weddingName || typeof body.weddingName !== 'string') {
-      throw new BadRequestException('Wedding name is required');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     if (
@@ -79,14 +79,14 @@ export class BillingController {
       !body.partnerNames[0] ||
       !body.partnerNames[1]
     ) {
-      throw new BadRequestException('Both partner names are required');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     try {
       const result = await this.billingService.createCheckoutSession(user.id, body);
       return { ok: true, data: result };
     } catch {
-      return { ok: false, error: CHECKOUT_SESSION_FAILED };
+      throw new BadRequestException({ ok: false, error: CHECKOUT_SESSION_FAILED });
     }
   }
 
@@ -103,7 +103,7 @@ export class BillingController {
     const rawBody = request.rawBody;
 
     if (!rawBody) {
-      throw new BadRequestException('Missing request body');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     // Verify webhook signature
@@ -113,7 +113,7 @@ export class BillingController {
     );
 
     if (!event) {
-      return { ok: false, error: WEBHOOK_SIGNATURE_INVALID };
+      throw new UnauthorizedException({ ok: false, error: WEBHOOK_SIGNATURE_INVALID });
     }
 
     // Handle checkout.session.completed event

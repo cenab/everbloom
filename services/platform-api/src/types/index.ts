@@ -957,3 +957,64 @@ export const TAG_NOT_FOUND = 'TAG_NOT_FOUND' as const;
  * Tag already exists error code
  */
 export const TAG_ALREADY_EXISTS = 'TAG_ALREADY_EXISTS' as const;
+
+// ============================================================================
+// Generic Error Codes
+// ============================================================================
+
+/**
+ * Validation error code (invalid input data)
+ */
+export const VALIDATION_ERROR = 'VALIDATION_ERROR' as const;
+
+/**
+ * Unauthorized error code (authentication required)
+ */
+export const UNAUTHORIZED = 'UNAUTHORIZED' as const;
+
+/**
+ * Forbidden error code (authenticated but not authorized)
+ */
+export const FORBIDDEN = 'FORBIDDEN' as const;
+
+/**
+ * Not found error code (resource doesn't exist)
+ */
+export const NOT_FOUND = 'NOT_FOUND' as const;
+
+/**
+ * Internal server error code (unexpected errors)
+ */
+export const INTERNAL_ERROR = 'INTERNAL_ERROR' as const;
+
+/**
+ * All error codes as a union type for documentation
+ */
+export type ErrorCode =
+  | typeof TEMPLATE_NOT_FOUND
+  | typeof FEATURE_DISABLED
+  | typeof INVALID_TOKEN
+  | typeof MAGIC_LINK_INVALID
+  | typeof MAGIC_LINK_EXPIRED
+  | typeof CHECKOUT_SESSION_FAILED
+  | typeof WEBHOOK_SIGNATURE_INVALID
+  | typeof GUEST_NOT_FOUND
+  | typeof GUEST_ALREADY_EXISTS
+  | typeof WEDDING_NOT_FOUND
+  | typeof PHOTO_UPLOAD_VALIDATION_ERROR
+  | typeof PHOTO_UPLOAD_INVALID
+  | typeof CSV_IMPORT_VALIDATION_ERROR
+  | typeof EMAIL_SEND_FAILED
+  | typeof NO_GUESTS_SELECTED
+  | typeof REMINDER_QUEUE_FAILED
+  | typeof CALENDAR_INVITE_DISABLED
+  | typeof EVENT_DETAILS_NOT_CONFIGURED
+  | typeof INVALID_PASSCODE
+  | typeof PASSCODE_NOT_CONFIGURED
+  | typeof TAG_NOT_FOUND
+  | typeof TAG_ALREADY_EXISTS
+  | typeof VALIDATION_ERROR
+  | typeof UNAUTHORIZED
+  | typeof FORBIDDEN
+  | typeof NOT_FOUND
+  | typeof INTERNAL_ERROR;

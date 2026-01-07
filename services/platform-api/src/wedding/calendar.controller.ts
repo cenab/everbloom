@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { WeddingService } from './wedding.service';
-import { FEATURE_DISABLED, EVENT_DETAILS_NOT_CONFIGURED } from '../types';
+import { FEATURE_DISABLED, EVENT_DETAILS_NOT_CONFIGURED, WEDDING_NOT_FOUND } from '../types';
 
 /**
  * Public controller for calendar invite functionality
@@ -30,11 +30,11 @@ export class CalendarController {
     const wedding = this.weddingService.getWeddingBySlug(slug);
 
     if (!wedding) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     if (wedding.status !== 'active') {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     // Check if CALENDAR_INVITE feature is enabled
@@ -86,11 +86,11 @@ export class CalendarController {
     const wedding = this.weddingService.getWeddingBySlug(slug);
 
     if (!wedding) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     if (wedding.status !== 'active') {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     // Check if CALENDAR_INVITE feature is enabled

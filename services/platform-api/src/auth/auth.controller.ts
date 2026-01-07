@@ -17,8 +17,8 @@ import type {
   MagicLinkVerifyBody,
   MagicLinkVerifyResponse,
   MeResponse,
-} from '@wedding-bestie/shared';
-import { MAGIC_LINK_INVALID } from '@wedding-bestie/shared';
+} from '../types';
+import { MAGIC_LINK_INVALID, VALIDATION_ERROR, UNAUTHORIZED } from '../types';
 
 @Controller('auth')
 export class AuthController {
@@ -33,13 +33,13 @@ export class AuthController {
     @Body() body: MagicLinkRequestBody,
   ): Promise<ApiResponse<MagicLinkRequestResponse>> {
     if (!body.email || typeof body.email !== 'string') {
-      throw new BadRequestException('Email is required');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(body.email)) {
-      throw new BadRequestException('Invalid email format');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     const result = await this.authService.requestMagicLink(body.email.toLowerCase().trim());
@@ -55,13 +55,13 @@ export class AuthController {
     @Body() body: MagicLinkVerifyBody,
   ): Promise<ApiResponse<MagicLinkVerifyResponse>> {
     if (!body.token || typeof body.token !== 'string') {
-      throw new BadRequestException('Token is required');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     const session = await this.authService.verifyMagicLink(body.token);
 
     if (!session) {
-      return { ok: false, error: MAGIC_LINK_INVALID };
+      throw new UnauthorizedException({ ok: false, error: MAGIC_LINK_INVALID });
     }
 
     return { ok: true, data: session };
@@ -77,13 +77,13 @@ export class AuthController {
     const token = this.extractBearerToken(authHeader);
 
     if (!token) {
-      throw new UnauthorizedException('No token provided');
+      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
     const user = await this.authService.validateSession(token);
 
     if (!user) {
-      throw new UnauthorizedException('Invalid or expired session');
+      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
     return { ok: true, data: user };

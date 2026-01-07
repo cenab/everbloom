@@ -7,8 +7,8 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { ApiResponse, PhotoListResponse } from '@wedding-bestie/shared';
-import { FEATURE_DISABLED } from '@wedding-bestie/shared';
+import type { ApiResponse, PhotoListResponse } from '../types';
+import { FEATURE_DISABLED, WEDDING_NOT_FOUND, UNAUTHORIZED } from '../types';
 import { AuthService } from '../auth/auth.service';
 import { WeddingService } from '../wedding/wedding.service';
 import { PhotosService } from './photos.service';
@@ -34,7 +34,7 @@ export class PhotosAdminController {
     const wedding = this.weddingService.getWedding(weddingId);
 
     if (!wedding || wedding.userId !== user.id) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     if (!wedding.features.PHOTO_UPLOAD) {
@@ -54,12 +54,12 @@ export class PhotosAdminController {
   private async requireAuth(authHeader: string | undefined) {
     const token = this.extractBearerToken(authHeader);
     if (!token) {
-      throw new UnauthorizedException('Authentication required');
+      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
     const user = await this.authService.validateSession(token);
     if (!user) {
-      throw new UnauthorizedException('Invalid or expired session');
+      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
     return user;

@@ -31,7 +31,7 @@ import type {
   UpdateHeroContentRequest,
   UpdateHeroContentResponse,
 } from '../types';
-import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED } from '../types';
+import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, WEDDING_NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, NOT_FOUND } from '../types';
 
 @Controller('weddings')
 export class WeddingController {
@@ -64,12 +64,12 @@ export class WeddingController {
     const wedding = this.weddingService.getWedding(id);
 
     if (!wedding) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     // Ensure user owns this wedding
     if (wedding.userId !== user.id) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     return { ok: true, data: wedding };
@@ -88,18 +88,18 @@ export class WeddingController {
     const wedding = this.weddingService.getWedding(id);
 
     if (!wedding) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     // Ensure user owns this wedding
     if (wedding.userId !== user.id) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     const renderConfig = this.weddingService.getRenderConfig(id);
 
     if (!renderConfig) {
-      throw new NotFoundException('Render config not found');
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
     }
 
     return { ok: true, data: renderConfig };
@@ -129,22 +129,22 @@ export class WeddingController {
     const wedding = this.weddingService.getWedding(id);
 
     if (!wedding) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     // Ensure user owns this wedding
     if (wedding.userId !== user.id) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     if (!body.features || typeof body.features !== 'object') {
-      throw new BadRequestException('Features object is required');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     const result = this.weddingService.updateFeatures(id, body.features);
 
     if (!result) {
-      throw new NotFoundException('Failed to update features');
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
     }
 
     return { ok: true, data: result };
@@ -163,11 +163,11 @@ export class WeddingController {
     const wedding = this.weddingService.getWedding(id);
 
     if (!wedding) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     if (wedding.userId !== user.id) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     if (!wedding.features.ANNOUNCEMENT_BANNER) {
@@ -178,7 +178,7 @@ export class WeddingController {
     }
 
     if (!body.announcement) {
-      throw new BadRequestException('Announcement data is required');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     const title = body.announcement.title?.trim();
@@ -186,7 +186,7 @@ export class WeddingController {
     const enabled = Boolean(body.announcement.enabled);
 
     if (enabled && (!title || !message)) {
-      throw new BadRequestException('Title and message are required when enabled');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     const announcement = {
@@ -198,7 +198,7 @@ export class WeddingController {
     const result = this.weddingService.updateAnnouncement(id, announcement);
 
     if (!result) {
-      throw new NotFoundException('Failed to update announcement');
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
     }
 
     return { ok: true, data: result };
@@ -217,11 +217,11 @@ export class WeddingController {
     const wedding = this.weddingService.getWedding(id);
 
     if (!wedding) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     if (wedding.userId !== user.id) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     if (!wedding.features.FAQ_SECTION) {
@@ -232,14 +232,14 @@ export class WeddingController {
     }
 
     if (!body.faq) {
-      throw new BadRequestException('FAQ data is required');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     // Validate FAQ items
     const items = body.faq.items || [];
     for (const item of items) {
       if (!item.question?.trim() || !item.answer?.trim()) {
-        throw new BadRequestException('Each FAQ item must have a question and answer');
+        throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
       }
     }
 
@@ -256,7 +256,7 @@ export class WeddingController {
     const result = this.weddingService.updateFaq(id, normalizedFaq);
 
     if (!result) {
-      throw new NotFoundException('Failed to update FAQ');
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
     }
 
     return { ok: true, data: result };
@@ -276,22 +276,22 @@ export class WeddingController {
     const wedding = this.weddingService.getWedding(id);
 
     if (!wedding) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     if (wedding.userId !== user.id) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     if (!body.heroContent) {
-      throw new BadRequestException('Hero content is required');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     const headline = body.heroContent.headline?.trim();
     const subheadline = body.heroContent.subheadline?.trim();
 
     if (!headline) {
-      throw new BadRequestException('Headline is required');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     const heroContent = {
@@ -302,7 +302,7 @@ export class WeddingController {
     const result = this.weddingService.updateHeroContent(id, heroContent);
 
     if (!result) {
-      throw new NotFoundException('Failed to update hero content');
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
     }
 
     return { ok: true, data: result };
@@ -323,18 +323,18 @@ export class WeddingController {
     const wedding = this.weddingService.getWedding(id);
 
     if (!wedding) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     if (wedding.userId !== user.id) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     // Event details can be set regardless of CALENDAR_INVITE feature status
     // (the feature flag controls display of calendar buttons, not storage of event data)
 
     if (!body.eventDetails) {
-      throw new BadRequestException('Event details are required');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     const { date, startTime, endTime, venue, address, city, events } = body.eventDetails;
@@ -344,42 +344,38 @@ export class WeddingController {
       for (let i = 0; i < events.length; i++) {
         const event = events[i];
         if (!event.name || !event.type || !event.date || !event.startTime || !event.endTime || !event.venue || !event.address || !event.city) {
-          throw new BadRequestException(
-            `Event ${i + 1} is missing required fields: name, type, date, startTime, endTime, venue, address, city`,
-          );
+          throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
         }
         // Validate event date format
         if (!/^\d{4}-\d{2}-\d{2}$/.test(event.date)) {
-          throw new BadRequestException(`Event ${i + 1}: Date must be in YYYY-MM-DD format`);
+          throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
         }
         // Validate event time format
         if (!/^\d{2}:\d{2}$/.test(event.startTime) || !/^\d{2}:\d{2}$/.test(event.endTime)) {
-          throw new BadRequestException(`Event ${i + 1}: Times must be in HH:MM format`);
+          throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
         }
       }
     } else {
       // Legacy single-event validation
       if (!date || !startTime || !endTime || !venue || !address || !city) {
-        throw new BadRequestException(
-          'All event details fields are required: date, startTime, endTime, venue, address, city',
-        );
+        throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
       }
 
       // Validate date format (YYYY-MM-DD)
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        throw new BadRequestException('Date must be in YYYY-MM-DD format');
+        throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
       }
 
       // Validate time format (HH:MM)
       if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) {
-        throw new BadRequestException('Times must be in HH:MM format');
+        throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
       }
     }
 
     const result = this.weddingService.updateEventDetails(id, body.eventDetails);
 
     if (!result) {
-      throw new NotFoundException('Failed to update event details');
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
     }
 
     return { ok: true, data: result };
@@ -399,11 +395,11 @@ export class WeddingController {
     const wedding = this.weddingService.getWedding(id);
 
     if (!wedding) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     if (wedding.userId !== user.id) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     // Check if PASSCODE_SITE feature is enabled
@@ -415,23 +411,23 @@ export class WeddingController {
     }
 
     if (typeof body.enabled !== 'boolean') {
-      throw new BadRequestException('enabled must be a boolean');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     // If enabling passcode, require the passcode unless already configured
     if (body.enabled && !body.passcode && !wedding.passcodeConfig?.passcodeHash) {
-      throw new BadRequestException('Passcode is required when enabling protection');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     // If providing a passcode, validate length
     if (body.passcode && body.passcode.length < 4) {
-      throw new BadRequestException('Passcode must be at least 4 characters');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     const result = await this.weddingService.updatePasscode(id, body.enabled, body.passcode);
 
     if (!result) {
-      throw new NotFoundException('Failed to update passcode settings');
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
     }
 
     return { ok: true, data: result };
@@ -451,16 +447,16 @@ export class WeddingController {
     const wedding = this.weddingService.getWedding(id);
 
     if (!wedding) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     // Ensure user owns this wedding
     if (wedding.userId !== user.id) {
-      throw new NotFoundException('Wedding not found');
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
     if (!body.templateId) {
-      throw new BadRequestException('Template ID is required');
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
     // Check if template exists
@@ -475,7 +471,7 @@ export class WeddingController {
     const renderConfig = this.weddingService.changeTemplate(id, body.templateId);
 
     if (!renderConfig) {
-      throw new NotFoundException('Failed to update template');
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
     }
 
     return { ok: true, data: renderConfig };
@@ -487,12 +483,12 @@ export class WeddingController {
   private async requireAuth(authHeader: string | undefined) {
     const token = this.extractBearerToken(authHeader);
     if (!token) {
-      throw new UnauthorizedException('Authentication required');
+      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
     const user = await this.authService.validateSession(token);
     if (!user) {
-      throw new UnauthorizedException('Invalid or expired session');
+      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
     return user;
