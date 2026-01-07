@@ -3148,3 +3148,99 @@ No stack traces, internal messages, or technical details are ever exposed.
 - Works with any printer configured in the browser
 - The print layout includes guest tags if assigned
 - To test: add guests → optionally filter by tag → click "Print" → verify print preview shows formatted list
+
+---
+
+## Accommodations Feature (Admin can add hotel recommendations)
+
+**Date:** 2026-01-07
+
+**Implemented by:** Claude Code (Opus 4.5)
+
+**Summary:** Implemented the accommodations feature allowing admins to add hotel recommendations and travel information for their wedding guests.
+
+**Changes made:**
+
+### Platform API (services/platform-api)
+
+1. **Types (src/types/index.ts):**
+   - Added `ACCOMMODATIONS` to `FeatureFlag` type
+   - Added `Hotel` interface with id, name, address, bookingUrl, roomBlockCode, notes, order
+   - Added `TravelInfo` interface with airportDirections, parkingInfo, mapUrl
+   - Added `AccommodationsConfig` interface combining hotels and travelInfo
+   - Added `UpdateAccommodationsRequest` and `UpdateAccommodationsResponse` types
+   - Added `accommodations?: AccommodationsConfig` to Wedding and RenderConfig
+
+2. **WeddingService (src/wedding/wedding.service.ts):**
+   - Added `ACCOMMODATIONS` to `PLAN_FEATURES` (premium tier)
+   - Added `ACCOMMODATIONS` to `ALL_FEATURES`
+   - Created section helpers: `ACCOMMODATIONS_SECTION_ID`, `DEFAULT_ACCOMMODATIONS_SECTION_DATA`, `DEFAULT_ACCOMMODATIONS`, `createAccommodationsSection`
+   - Updated `generateRenderConfig` to include accommodations section at order 6
+   - Added accommodations to render_config output when hotels or travel info exist
+   - Updated `updateFeatures` to handle accommodations section enabled state
+   - Added `hasAccommodationsSection` check to create section if missing
+   - Added `updateAccommodations` method for updating hotels and travel info
+
+3. **WeddingController (src/wedding/wedding.controller.ts):**
+   - Added `UpdateAccommodationsRequest`, `UpdateAccommodationsResponse` imports
+   - Added `PUT /:id/accommodations` endpoint with:
+     - Auth validation
+     - Feature flag check (ACCOMMODATIONS must be enabled)
+     - Hotel validation (name, address required; booking URL validated if provided)
+     - Travel info map URL validation if provided
+     - Normalization of hotels and travel info
+
+### Platform UI (apps/platform-ui)
+
+1. **Types (src/types.ts):**
+   - Added `ACCOMMODATIONS` to `FeatureFlag` type
+   - Added `Hotel`, `TravelInfo`, `AccommodationsConfig` interfaces
+   - Added `UpdateAccommodationsResponse` interface
+   - Added `accommodations?: AccommodationsConfig` to Wedding and RenderConfig
+
+2. **AccommodationsSettings component (src/components/AccommodationsSettings.tsx):**
+   - Created new component for managing accommodations
+   - Hotels section with:
+     - Add/edit/delete hotels
+     - Name, address (required), booking URL, room block code, notes (optional)
+     - Reorder hotels (move up/down)
+   - Travel information section with:
+     - Airport directions (textarea)
+     - Parking information (textarea)
+     - Map URL (with validation)
+   - Save/cancel functionality with loading state
+   - Error and success message handling
+   - Disabled state when ACCOMMODATIONS feature is off
+
+3. **Dashboard (src/components/Dashboard.tsx):**
+   - Added `AccommodationsSettings` import
+   - Added 'accommodations' to View type
+   - Added accommodations view handler
+   - Added `onNavigateToAccommodations` prop
+   - Added accommodations dashboard card with BuildingIcon
+   - Added `BuildingIcon` SVG component
+
+4. **CreateWedding (src/components/CreateWedding.tsx):**
+   - Added `ACCOMMODATIONS` to `FEATURE_INFO` with label and description
+   - Added `ACCOMMODATIONS` to `PLAN_AVAILABLE_FEATURES` premium tier
+   - Added `ACCOMMODATIONS: false` to `DEFAULT_FEATURE_SELECTION`
+
+5. **FeatureSettings (src/components/FeatureSettings.tsx):**
+   - Added `ACCOMMODATIONS` to `FEATURE_INFO`
+   - Added `ACCOMMODATIONS` to `PLAN_AVAILABLE_FEATURES` premium tier
+
+**Verification:**
+- `pnpm typecheck` passes
+- `pnpm test` passes
+
+**PRD features now passing:**
+- "Admin can add hotel recommendations" ✓
+- "Admin can add travel directions" ✓
+
+**Notes for next person:**
+- The public site rendering component (AccommodationsSection) still needs to be created for the wedding-site
+- The accommodations section type is 'accommodations' in render_config
+- Accommodations data is stored in wedding.accommodations and included in render_config when non-empty
+- Hotels have an order field for sorting display
+- The feature is gated behind the ACCOMMODATIONS feature flag (premium tier only)
+- Travel info is stored alongside hotels in the same config

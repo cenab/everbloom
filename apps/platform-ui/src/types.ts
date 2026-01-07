@@ -10,7 +10,8 @@ export type FeatureFlag =
   | 'ANNOUNCEMENT_BANNER'
   | 'FAQ_SECTION'
   | 'PASSCODE_SITE'
-  | 'REGISTRY';
+  | 'REGISTRY'
+  | 'ACCOMMODATIONS';
 
 /**
  * Template categories matching product positioning
@@ -110,6 +111,48 @@ export interface UpdateRegistryResponse {
   renderConfig: RenderConfig;
 }
 
+// ============================================================================
+// Accommodations Types
+// ============================================================================
+
+/**
+ * A single hotel recommendation
+ */
+export interface Hotel {
+  id: string;
+  name: string;
+  address: string;
+  bookingUrl?: string;
+  roomBlockCode?: string;
+  notes?: string;
+  order: number;
+}
+
+/**
+ * Travel information for guests
+ */
+export interface TravelInfo {
+  airportDirections?: string;
+  parkingInfo?: string;
+  mapUrl?: string;
+}
+
+/**
+ * Accommodations configuration for the wedding
+ */
+export interface AccommodationsConfig {
+  hotels: Hotel[];
+  travelInfo?: TravelInfo;
+}
+
+/**
+ * Response after updating accommodations
+ */
+export interface UpdateAccommodationsResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
 /**
  * Type of event in a wedding
  */
@@ -160,6 +203,7 @@ export interface RenderConfig {
   faq?: FaqConfig;
   mealConfig?: MealConfig;
   registry?: RegistryConfig;
+  accommodations?: AccommodationsConfig;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -289,6 +333,7 @@ export interface Wedding {
   passcodeConfig?: PasscodeConfig;
   mealConfig?: MealConfig;
   registry?: RegistryConfig;
+  accommodations?: AccommodationsConfig;
   createdAt: string;
   updatedAt: string;
 }

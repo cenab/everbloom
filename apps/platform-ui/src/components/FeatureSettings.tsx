@@ -47,6 +47,10 @@ const FEATURE_INFO: Record<FeatureFlag, { label: string; description: string }> 
     label: 'Gift registry',
     description: 'Share links to your gift registries with guests',
   },
+  ACCOMMODATIONS: {
+    label: 'Accommodations',
+    description: 'Share hotel and travel information with guests',
+  },
 };
 
 /**
@@ -62,6 +66,7 @@ const PLAN_AVAILABLE_FEATURES: Record<string, FeatureFlag[]> = {
     'FAQ_SECTION',
     'PASSCODE_SITE',
     'REGISTRY',
+    'ACCOMMODATIONS',
   ],
 };
 

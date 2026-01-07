@@ -34,6 +34,8 @@ import type {
   UpdateMealOptionsResponse,
   UpdateRegistryRequest,
   UpdateRegistryResponse,
+  UpdateAccommodationsRequest,
+  UpdateAccommodationsResponse,
 } from '../types';
 import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, WEDDING_NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, NOT_FOUND } from '../types';
 
@@ -569,6 +571,93 @@ export class WeddingController {
     };
 
     const result = this.weddingService.updateRegistry(id, normalizedRegistry);
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Update accommodations and travel info for a wedding
+   * PRD: "Admin can add hotel recommendations"
+   */
+  @Put(':id/accommodations')
+  async updateAccommodations(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: UpdateAccommodationsRequest,
+  ): Promise<ApiResponse<UpdateAccommodationsResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (!wedding.features.ACCOMMODATIONS) {
+      throw new ForbiddenException({
+        ok: false,
+        error: FEATURE_DISABLED,
+      });
+    }
+
+    if (!body.accommodations) {
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+    }
+
+    // Validate hotel entries
+    const hotels = body.accommodations.hotels || [];
+    for (const hotel of hotels) {
+      if (!hotel.name?.trim()) {
+        throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+      }
+      if (!hotel.address?.trim()) {
+        throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+      }
+      // Validate booking URL if provided
+      if (hotel.bookingUrl?.trim()) {
+        try {
+          new URL(hotel.bookingUrl);
+        } catch {
+          throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+        }
+      }
+    }
+
+    // Validate map URL if provided
+    if (body.accommodations.travelInfo?.mapUrl?.trim()) {
+      try {
+        new URL(body.accommodations.travelInfo.mapUrl);
+      } catch {
+        throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+      }
+    }
+
+    // Normalize the accommodations
+    const normalizedAccommodations = {
+      hotels: hotels.map((hotel, index) => ({
+        id: hotel.id || `hotel-${Date.now()}-${index}`,
+        name: hotel.name.trim(),
+        address: hotel.address.trim(),
+        bookingUrl: hotel.bookingUrl?.trim() || undefined,
+        roomBlockCode: hotel.roomBlockCode?.trim() || undefined,
+        notes: hotel.notes?.trim() || undefined,
+        order: hotel.order ?? index,
+      })),
+      travelInfo: body.accommodations.travelInfo ? {
+        airportDirections: body.accommodations.travelInfo.airportDirections?.trim() || undefined,
+        parkingInfo: body.accommodations.travelInfo.parkingInfo?.trim() || undefined,
+        mapUrl: body.accommodations.travelInfo.mapUrl?.trim() || undefined,
+      } : undefined,
+    };
+
+    const result = this.weddingService.updateAccommodations(id, normalizedAccommodations);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });

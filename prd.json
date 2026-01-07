@@ -905,7 +905,7 @@
       "Add multiple hotels",
       "Save accommodations"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "accommodations",
@@ -917,7 +917,7 @@
       "Add map embed or link",
       "Save travel info"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "accommodations",

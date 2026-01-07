@@ -11,12 +11,13 @@ import { PasscodeSettings } from './PasscodeSettings';
 import { HeroSettings } from './HeroSettings';
 import { MealSettings } from './MealSettings';
 import { RegistrySettings } from './RegistrySettings';
+import { AccommodationsSettings } from './AccommodationsSettings';
 import { EmailStatisticsDashboard } from './EmailStatistics';
 import { PhotoStatsDashboard } from './PhotoStatsDashboard';
 import { getAuthToken } from '../lib/auth';
 import type { Wedding, ApiResponse, RenderConfig } from '../types';
 
-type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'email-stats' | 'photo-stats';
+type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'accommodations' | 'email-stats' | 'photo-stats';
 
 /**
  * Admin Dashboard component.
@@ -162,6 +163,18 @@ export function Dashboard() {
     );
   }
 
+  if (view === 'accommodations' && selectedWedding) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <AccommodationsSettings
+          wedding={selectedWedding}
+          onBack={() => setView('dashboard')}
+          onAccommodationsChanged={fetchWeddings}
+        />
+      </div>
+    );
+  }
+
   if (view === 'passcode' && selectedWedding) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -251,6 +264,7 @@ export function Dashboard() {
           onNavigateToEventDetails={() => setView('event-details')}
           onNavigateToFaq={() => setView('faq')}
           onNavigateToRegistry={() => setView('registry')}
+          onNavigateToAccommodations={() => setView('accommodations')}
           onNavigateToPasscode={() => setView('passcode')}
           onNavigateToHero={() => setView('hero')}
           onNavigateToMealOptions={() => setView('meal-options')}
@@ -333,6 +347,7 @@ interface WeddingDashboardProps {
   onNavigateToEventDetails: () => void;
   onNavigateToFaq: () => void;
   onNavigateToRegistry: () => void;
+  onNavigateToAccommodations: () => void;
   onNavigateToPasscode: () => void;
   onNavigateToHero: () => void;
   onNavigateToMealOptions: () => void;
@@ -355,6 +370,7 @@ function WeddingDashboard({
   onNavigateToEventDetails,
   onNavigateToFaq,
   onNavigateToRegistry,
+  onNavigateToAccommodations,
   onNavigateToPasscode,
   onNavigateToHero,
   onNavigateToMealOptions,
@@ -450,6 +466,14 @@ function WeddingDashboard({
             description="Add links to your registries"
             icon={<GiftIcon className="w-6 h-6" />}
             onClick={onNavigateToRegistry}
+          />
+        )}
+        {wedding.features.ACCOMMODATIONS && (
+          <DashboardCard
+            title="Accommodations"
+            description="Add hotel and travel information"
+            icon={<BuildingIcon className="w-6 h-6" />}
+            onClick={onNavigateToAccommodations}
           />
         )}
         {wedding.features.PASSCODE_SITE && (
@@ -817,6 +841,24 @@ function ForkKnifeIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.87c1.355 0 2.697.055 4.024.165C17.155 8.51 18 9.473 18 10.608v2.513m-3-4.87v-1.5m-6 1.5v-1.5m12 9.75l-1.5.75a3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0L3 16.5m15-3.38a48.474 48.474 0 00-6-.37c-2.032 0-4.034.125-6 .37m12 0c.39.049.777.102 1.163.16 1.07.16 1.837 1.094 1.837 2.175v5.17c0 .62-.504 1.124-1.125 1.124H4.125A1.125 1.125 0 013 20.625v-5.17c0-1.08.768-2.014 1.837-2.174A47.78 47.78 0 016 13.12M12.265 3.11a.375.375 0 11-.53 0L12 2.845l.265.265zm-3 0a.375.375 0 11-.53 0L9 2.845l.265.265zm6 0a.375.375 0 11-.53 0L15 2.845l.265.265z"
+      />
+    </svg>
+  );
+}
+
+function BuildingIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z"
       />
     </svg>
   );

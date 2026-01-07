@@ -19,6 +19,7 @@ import type {
   HeroContentData,
   MealConfig,
   RegistryConfig,
+  AccommodationsConfig,
 } from '../types';
 
 const scryptAsync = promisify(scrypt);
@@ -120,6 +121,26 @@ const createRegistrySection = (order: number, enabled: boolean): Section => ({
   data: { ...DEFAULT_REGISTRY_SECTION_DATA },
 });
 
+const ACCOMMODATIONS_SECTION_ID = 'accommodations';
+
+const DEFAULT_ACCOMMODATIONS_SECTION_DATA = {
+  title: 'Accommodations & Travel',
+  description: 'Information about lodging and getting to our celebration.',
+};
+
+const DEFAULT_ACCOMMODATIONS: AccommodationsConfig = {
+  hotels: [],
+  travelInfo: {},
+};
+
+const createAccommodationsSection = (order: number, enabled: boolean): Section => ({
+  id: ACCOMMODATIONS_SECTION_ID,
+  type: 'accommodations',
+  enabled,
+  order,
+  data: { ...DEFAULT_ACCOMMODATIONS_SECTION_DATA },
+});
+
 /**
  * Features enabled by plan tier
  */
@@ -133,6 +154,7 @@ const PLAN_FEATURES: Record<PlanTier, FeatureFlag[]> = {
     'FAQ_SECTION',
     'PASSCODE_SITE',
     'REGISTRY',
+    'ACCOMMODATIONS',
   ],
 };
 
@@ -147,6 +169,7 @@ const ALL_FEATURES: FeatureFlag[] = [
   'FAQ_SECTION',
   'PASSCODE_SITE',
   'REGISTRY',
+  'ACCOMMODATIONS',
 ];
 
 /**
@@ -320,6 +343,7 @@ export class WeddingService {
         createPhotoUploadSection(3, wedding.features.PHOTO_UPLOAD),
         createFaqSection(4, wedding.features.FAQ_SECTION),
         createRegistrySection(5, wedding.features.REGISTRY),
+        createAccommodationsSection(6, wedding.features.ACCOMMODATIONS),
       ],
       wedding: {
         slug: wedding.slug,
@@ -350,6 +374,14 @@ export class WeddingService {
     // Add registry configuration if present
     if (wedding.registry && wedding.registry.links.length > 0) {
       config.registry = wedding.registry;
+    }
+
+    // Add accommodations configuration if present
+    if (wedding.accommodations && (wedding.accommodations.hotels.length > 0 ||
+        wedding.accommodations.travelInfo?.airportDirections ||
+        wedding.accommodations.travelInfo?.parkingInfo ||
+        wedding.accommodations.travelInfo?.mapUrl)) {
+      config.accommodations = wedding.accommodations;
     }
 
     return config;
@@ -532,6 +564,9 @@ export class WeddingService {
         if (section.type === 'registry') {
           return { ...section, enabled: updatedFeatures.REGISTRY };
         }
+        if (section.type === 'accommodations') {
+          return { ...section, enabled: updatedFeatures.ACCOMMODATIONS };
+        }
         return section;
       }),
     };
@@ -557,6 +592,15 @@ export class WeddingService {
       updatedConfig.sections = [
         ...updatedConfig.sections,
         createRegistrySection(maxOrder + 1, updatedFeatures.REGISTRY),
+      ];
+    }
+
+    const hasAccommodationsSection = updatedConfig.sections.some((section) => section.type === 'accommodations');
+    if (!hasAccommodationsSection) {
+      const maxOrder = updatedConfig.sections.reduce((max, section) => Math.max(max, section.order), -1);
+      updatedConfig.sections = [
+        ...updatedConfig.sections,
+        createAccommodationsSection(maxOrder + 1, updatedFeatures.ACCOMMODATIONS),
       ];
     }
 
@@ -775,6 +819,46 @@ export class WeddingService {
     this.renderConfigs.set(weddingId, updatedConfig);
 
     this.logger.log(`Updated registry for wedding ${weddingId} with ${registry.links.length} links`);
+
+    return { wedding, renderConfig: updatedConfig };
+  }
+
+  /**
+   * Update accommodations and travel info for a wedding
+   * PRD: "Admin can add hotel recommendations"
+   */
+  updateAccommodations(
+    weddingId: string,
+    accommodations: AccommodationsConfig,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    wedding.accommodations = accommodations;
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    const existingConfig = this.renderConfigs.get(weddingId);
+    if (!existingConfig) {
+      return null;
+    }
+
+    // Update accommodations in render_config
+    const hasContent = accommodations.hotels.length > 0 ||
+      accommodations.travelInfo?.airportDirections ||
+      accommodations.travelInfo?.parkingInfo ||
+      accommodations.travelInfo?.mapUrl;
+
+    const updatedConfig: RenderConfig = {
+      ...existingConfig,
+      accommodations: hasContent ? accommodations : undefined,
+    };
+
+    this.renderConfigs.set(weddingId, updatedConfig);
+
+    this.logger.log(`Updated accommodations for wedding ${weddingId} with ${accommodations.hotels.length} hotels`);
 
     return { wedding, renderConfig: updatedConfig };
   }

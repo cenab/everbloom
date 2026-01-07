@@ -10,7 +10,8 @@ export type FeatureFlag =
   | 'ANNOUNCEMENT_BANNER'
   | 'FAQ_SECTION'
   | 'PASSCODE_SITE'
-  | 'REGISTRY';
+  | 'REGISTRY'
+  | 'ACCOMMODATIONS';
 
 /**
  * Template categories matching product positioning
@@ -143,6 +144,60 @@ export interface UpdateRegistryResponse {
   renderConfig: RenderConfig;
 }
 
+// ============================================================================
+// Accommodations Types
+// ============================================================================
+
+/**
+ * A single hotel/accommodation recommendation
+ */
+export interface Hotel {
+  id: string;
+  name: string;
+  address: string;
+  bookingUrl?: string;
+  /** Room block code for group discounts */
+  roomBlockCode?: string;
+  /** Optional notes (e.g., "10 min walk from venue") */
+  notes?: string;
+  order: number;
+}
+
+/**
+ * Travel/transportation directions
+ */
+export interface TravelInfo {
+  /** Directions from airport (e.g., "Take I-95 South...") */
+  airportDirections?: string;
+  /** Parking information */
+  parkingInfo?: string;
+  /** Google Maps or embed URL */
+  mapUrl?: string;
+}
+
+/**
+ * Accommodations configuration for the wedding
+ */
+export interface AccommodationsConfig {
+  hotels: Hotel[];
+  travelInfo?: TravelInfo;
+}
+
+/**
+ * Request to update accommodations
+ */
+export interface UpdateAccommodationsRequest {
+  accommodations: AccommodationsConfig;
+}
+
+/**
+ * Response after updating accommodations
+ */
+export interface UpdateAccommodationsResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
 /**
  * The render_config contract - wedding site renders exclusively from this
  */
@@ -160,6 +215,8 @@ export interface RenderConfig {
   mealConfig?: MealConfig;
   /** Gift registry links */
   registry?: RegistryConfig;
+  /** Accommodations and travel info */
+  accommodations?: AccommodationsConfig;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -382,6 +439,8 @@ export interface Wedding {
   mealConfig?: MealConfig;
   /** Gift registry configuration */
   registry?: RegistryConfig;
+  /** Accommodations and travel info */
+  accommodations?: AccommodationsConfig;
   createdAt: string;
   updatedAt: string;
 }
