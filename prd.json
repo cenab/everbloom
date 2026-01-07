@@ -1181,7 +1181,7 @@
       "Verify email colors match wedding palette",
       "Verify email fonts match wedding theme"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "gallery",

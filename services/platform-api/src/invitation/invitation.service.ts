@@ -185,6 +185,7 @@ export class InvitationService {
   /**
    * Send invitations to selected guests
    * PRD: "Admin can send invitation emails"
+   * PRD: "Email design matches wedding theme"
    */
   async sendInvitations(
     weddingId: string,
@@ -199,6 +200,10 @@ export class InvitationService {
     if (!wedding) {
       throw new Error('WEDDING_NOT_FOUND');
     }
+
+    // Get the theme from render_config so emails match the wedding site
+    const renderConfig = this.weddingService.getRenderConfig(weddingId);
+    const theme = renderConfig?.theme;
 
     const results: SendInvitationResult[] = [];
     let sent = 0;
@@ -247,10 +252,12 @@ export class InvitationService {
       }
 
       // Build invitation email with the new raw token
+      // PRD: "Email design matches wedding theme" - pass theme for branded emails
       const emailContent = this.emailService.buildInvitationEmail(
         tokenResult.guest,
         wedding,
         tokenResult.rawToken,
+        theme,
       );
 
       // Create outbox record (tracks email)
@@ -312,6 +319,7 @@ export class InvitationService {
   /**
    * Enqueue reminder emails for pending guests
    * PRD: "Reminder emails are sent via worker queue"
+   * PRD: "Email design matches wedding theme"
    */
   async enqueueReminders(
     weddingId: string,
@@ -325,6 +333,10 @@ export class InvitationService {
     if (!wedding.features.RSVP) {
       throw new Error('FEATURE_DISABLED');
     }
+
+    // Get the theme from render_config so emails match the wedding site
+    const renderConfig = this.weddingService.getRenderConfig(weddingId);
+    const theme = renderConfig?.theme;
 
     let guests = this.guestService
       .getGuestsForWedding(weddingId)
@@ -349,10 +361,12 @@ export class InvitationService {
         continue;
       }
 
+      // PRD: "Email design matches wedding theme" - pass theme for branded emails
       const emailContent = this.emailService.buildReminderEmail(
         tokenResult.guest,
         wedding,
         tokenResult.rawToken,
+        theme,
       );
       const outboxRecord = this.createOutboxRecord(
         tokenResult.guest,

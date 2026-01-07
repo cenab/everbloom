@@ -3541,3 +3541,63 @@ With HTTP status 429 Too Many Requests.
 - Passcode protection is respected on the music page
 - No moderation required for song requests (unlike guestbook messages)
 - Consider adding Spotify/Apple Music integration for song lookup in future iterations
+
+---
+
+### 2026-01-07 - Email Design Matches Wedding Theme
+
+**Feature worked on:** Email design matches wedding theme (PRD: email-templates category)
+
+**Priority rationale:** This is a high-priority feature because:
+1. It enhances the couples' brand consistency across all touchpoints
+2. The email service and theme infrastructure already existed
+3. It's a relatively simple change that adds significant visual value
+4. Wedding invitations are a key touchpoint for couples
+
+**What was done:**
+1. Added Theme import and DEFAULT_THEME constant to EmailService:
+   - Default theme uses the standard Everbloom palette (terracotta, sage, warm off-white)
+   - Provides fallback if no theme is provided (backwards compatibility)
+
+2. Added helper method `lightenColor()` to EmailService:
+   - Lightens hex colors by a given factor (0-1)
+   - Used to create derived colors for borders, footer text, etc.
+   - Maintains accessible color combinations within the theme
+
+3. Updated `buildInvitationEmail()` method:
+   - Added optional `theme?: Theme` parameter
+   - Email body background uses `colors.neutralLight`
+   - Heading (partner names) uses `colors.primary`
+   - CTA button uses `colors.primary` background with `colors.neutralLight` text
+   - Body text uses `colors.neutralDark`
+   - Footer uses derived lighter shades of `colors.neutralDark`
+
+4. Updated `buildReminderEmail()` method:
+   - Same theme integration as invitation email
+   - Consistent visual branding across email types
+
+5. Updated InvitationService to fetch and pass theme:
+   - `sendInvitations()` now fetches `renderConfig` to get the theme
+   - Theme is passed to `buildInvitationEmail()` for branded emails
+   - `enqueueReminders()` also fetches theme for reminder emails
+
+**Email styling changes:**
+- Background color: `theme.neutralLight` (e.g., #faf8f5)
+- Card background: slightly lightened version of neutralLight
+- Heading color: `theme.primary` (e.g., #c9826b)
+- Body text: `theme.neutralDark` (e.g., #2d2d2d)
+- CTA button: `theme.primary` with `theme.neutralLight` text
+- Footer text: lightened `theme.neutralDark`
+- Borders: lightened `theme.neutralDark`
+
+**PRD features now passing:**
+- "Email design matches wedding theme" ✓
+
+**Notes for next person:**
+- Theme is optional in email building methods (falls back to DEFAULT_THEME)
+- The lightenColor helper uses RGB mixing for color derivation
+- Email fonts remain system fonts for better email client compatibility
+- Consider adding font hints via Google Fonts links in future
+- When a couple changes their template/theme, future emails will use the new colors
+- Already-sent emails retain their original colors (immutable once sent)
+

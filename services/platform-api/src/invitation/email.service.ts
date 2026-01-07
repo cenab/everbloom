@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { Guest, Wedding } from '../types';
+import type { Guest, Theme, Wedding } from '../types';
 
 /**
  * Email content for transactional emails
@@ -11,6 +11,16 @@ interface EmailContent {
   htmlBody: string;
   textBody: string;
 }
+
+/**
+ * Default theme colors (fallback if no theme provided)
+ */
+const DEFAULT_THEME: Theme = {
+  primary: '#c9826b',
+  accent: '#8fac8b',
+  neutralLight: '#faf8f5',
+  neutralDark: '#2d2d2d',
+};
 
 /**
  * Result of sending an email
@@ -35,14 +45,44 @@ export class EmailService {
   }
 
   /**
+   * Lighten a hex color by a given factor (0-1)
+   * Used to create derived colors from theme while staying accessible
+   */
+  private lightenColor(hex: string, factor: number): string {
+    // Remove # if present
+    const cleanHex = hex.replace('#', '');
+
+    // Parse RGB
+    const r = parseInt(cleanHex.substring(0, 2), 16);
+    const g = parseInt(cleanHex.substring(2, 4), 16);
+    const b = parseInt(cleanHex.substring(4, 6), 16);
+
+    // Lighten by mixing with white
+    const newR = Math.round(r + (255 - r) * factor);
+    const newG = Math.round(g + (255 - g) * factor);
+    const newB = Math.round(b + (255 - b) * factor);
+
+    // Convert back to hex
+    return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+  }
+
+  /**
    * Build invitation email content
+   * PRD: "Email design matches wedding theme"
    * @param guest The guest to send the invitation to
    * @param wedding The wedding details
    * @param rawToken The raw RSVP token for the URL (not stored, only used for email)
+   * @param theme Optional theme to use for email colors (falls back to default)
    */
-  buildInvitationEmail(guest: Guest, wedding: Wedding, rawToken: string): EmailContent {
+  buildInvitationEmail(
+    guest: Guest,
+    wedding: Wedding,
+    rawToken: string,
+    theme?: Theme,
+  ): EmailContent {
     const rsvpUrl = this.buildRsvpUrl(rawToken);
     const partnerNames = `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`;
+    const colors = theme || DEFAULT_THEME;
 
     const subject = `You're Invited: ${partnerNames}'s Wedding`;
 
@@ -56,8 +96,8 @@ export class EmailService {
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       line-height: 1.6;
-      color: #2d2d2d;
-      background-color: #faf8f5;
+      color: ${colors.neutralDark};
+      background-color: ${colors.neutralLight};
       margin: 0;
       padding: 0;
     }
@@ -67,7 +107,7 @@ export class EmailService {
       padding: 40px 20px;
     }
     .card {
-      background: #fdf8f6;
+      background: ${this.lightenColor(colors.neutralLight, 0.02)};
       border-radius: 12px;
       padding: 40px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -76,7 +116,7 @@ export class EmailService {
       font-family: 'Cormorant Garamond', Georgia, serif;
       font-size: 32px;
       font-weight: 400;
-      color: #c9826b;
+      color: ${colors.primary};
       margin: 0 0 24px 0;
       text-align: center;
     }
@@ -89,8 +129,8 @@ export class EmailService {
     }
     .cta-button {
       display: inline-block;
-      background-color: #c9826b;
-      color: #faf8f5 !important;
+      background-color: ${colors.primary};
+      color: ${colors.neutralLight} !important;
       text-decoration: none;
       padding: 16px 32px;
       border-radius: 8px;
@@ -104,13 +144,13 @@ export class EmailService {
     .footer {
       margin-top: 32px;
       padding-top: 24px;
-      border-top: 1px solid #e7e5e4;
+      border-top: 1px solid ${this.lightenColor(colors.neutralDark, 0.7)};
       font-size: 14px;
-      color: #57534e;
+      color: ${this.lightenColor(colors.neutralDark, 0.3)};
     }
     .link-fallback {
       font-size: 12px;
-      color: #78716c;
+      color: ${this.lightenColor(colors.neutralDark, 0.4)};
       word-break: break-all;
     }
   </style>
@@ -168,13 +208,21 @@ ${partnerNames}
 
   /**
    * Build reminder email content
+   * PRD: "Email design matches wedding theme"
    * @param guest The guest to send the reminder to
    * @param wedding The wedding details
    * @param rawToken The raw RSVP token for the URL (not stored, only used for email)
+   * @param theme Optional theme to use for email colors (falls back to default)
    */
-  buildReminderEmail(guest: Guest, wedding: Wedding, rawToken: string): EmailContent {
+  buildReminderEmail(
+    guest: Guest,
+    wedding: Wedding,
+    rawToken: string,
+    theme?: Theme,
+  ): EmailContent {
     const rsvpUrl = this.buildRsvpUrl(rawToken);
     const partnerNames = `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`;
+    const colors = theme || DEFAULT_THEME;
 
     const subject = `A gentle reminder: RSVP for ${partnerNames}'s wedding`;
 
@@ -188,8 +236,8 @@ ${partnerNames}
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       line-height: 1.6;
-      color: #2d2d2d;
-      background-color: #faf8f5;
+      color: ${colors.neutralDark};
+      background-color: ${colors.neutralLight};
       margin: 0;
       padding: 0;
     }
@@ -199,7 +247,7 @@ ${partnerNames}
       padding: 40px 20px;
     }
     .card {
-      background: #fdf8f6;
+      background: ${this.lightenColor(colors.neutralLight, 0.02)};
       border-radius: 12px;
       padding: 40px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -208,7 +256,7 @@ ${partnerNames}
       font-family: 'Cormorant Garamond', Georgia, serif;
       font-size: 30px;
       font-weight: 400;
-      color: #c9826b;
+      color: ${colors.primary};
       margin: 0 0 16px 0;
       text-align: center;
     }
@@ -221,8 +269,8 @@ ${partnerNames}
     }
     .cta-button {
       display: inline-block;
-      background-color: #c9826b;
-      color: #faf8f5 !important;
+      background-color: ${colors.primary};
+      color: ${colors.neutralLight} !important;
       text-decoration: none;
       padding: 16px 32px;
       border-radius: 8px;
@@ -236,13 +284,13 @@ ${partnerNames}
     .footer {
       margin-top: 32px;
       padding-top: 24px;
-      border-top: 1px solid #e7e5e4;
+      border-top: 1px solid ${this.lightenColor(colors.neutralDark, 0.7)};
       font-size: 14px;
-      color: #57534e;
+      color: ${this.lightenColor(colors.neutralDark, 0.3)};
     }
     .link-fallback {
       font-size: 12px;
-      color: #78716c;
+      color: ${this.lightenColor(colors.neutralDark, 0.4)};
       word-break: break-all;
     }
   </style>
