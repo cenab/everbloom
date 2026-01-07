@@ -15,7 +15,6 @@
     "composite": true
   },
   "references": [
-    { "path": "./packages/shared" },
     { "path": "./apps/platform-ui" },
     { "path": "./services/platform-api" },
     { "path": "./services/worker" },

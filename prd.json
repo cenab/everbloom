@@ -1060,7 +1060,7 @@
       "Verify schedule/timeline section shows all events",
       "Verify events are in chronological order"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "save-the-date",

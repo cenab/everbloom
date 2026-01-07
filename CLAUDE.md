@@ -61,8 +61,13 @@ Recommended layout:
 - `apps/wedding-site/` - Astro wedding site (guest-facing rendering + pages)
 - `services/platform-api/` - NestJS REST API (platform system of record)
 - `services/worker/` - Worker process (BullMQ processors, scheduled jobs)
-- `packages/shared/` - Shared schemas, types, validators, utilities
 - `supabase/migrations/` - SQL migrations for Postgres schema
+
+**IMPORTANT - No Shared Packages:**
+- Do NOT create a `packages/shared/` directory or any workspace shared package
+- Each service/app must maintain its own types locally (e.g., `src/types.ts` or `src/types/index.ts`)
+- Types should be duplicated across services rather than shared via workspace dependencies
+- This keeps services independent and avoids tight coupling between apps/services
 
 ## Core Product Concepts
 
@@ -167,6 +172,46 @@ Guest UI:
 Tailwind policy (recommended):
 - Use design tokens (theme variables) and avoid ad-hoc colors
 - Avoid inline styles and arbitrary pixel values in components
+
+## Repository Hygiene
+
+### .gitignore Management
+- Actively maintain `.gitignore` files at root and in each app/service
+- **NEVER commit:**
+  - `node_modules/`
+  - Build outputs (`dist/`, `.next/`, `.astro/`, etc.)
+  - Environment files (`.env`, `.env.local`, etc.)
+  - IDE settings (`.vscode/`, `.idea/`, except shared config)
+  - OS files (`.DS_Store`, `Thumbs.db`)
+  - Log files (`*.log`, `npm-debug.log*`)
+  - Temporary files (`*.tmp`, `*.temp`)
+  - Package manager files (`pnpm-debug.log`, `yarn-error.log`)
+- When creating new services/apps, immediately create appropriate `.gitignore`
+- Review and update `.gitignore` when introducing new tools or build processes
+
+### Supabase Postgres Table Management
+- **All database schema changes MUST go through migrations**
+- Create migration files in `supabase/migrations/` with descriptive names
+- Migration filename format: `YYYYMMDDHHMMSS_description.sql`
+- Never make manual schema changes in production
+- Each migration must be:
+  - Idempotent where possible
+  - Include both `up` (apply) and rollback plan
+  - Tested locally before committing
+- When adding tables:
+  - Include proper indexes for foreign keys and query patterns
+  - Add Row Level Security (RLS) policies where appropriate
+  - Document relationships and constraints
+- Keep `render_config` as JSONB for wedding sites (not normalized tables)
+- Use proper Postgres types (timestamptz for timestamps, uuid for IDs)
+- Run `pnpm db:migrate` after pulling new migrations
+- Critical tables to maintain:
+  - `users` - Platform users (admins)
+  - `weddings` - Wedding records
+  - `wedding_sites` - Contains `render_config` JSONB
+  - `guests` - Invitees and RSVP tracking
+  - `email_outbox` - Email send queue/history
+  - `photos` - Photo metadata for uploads
 
 ## Testing Expectations
 

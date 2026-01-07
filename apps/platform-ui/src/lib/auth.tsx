@@ -6,7 +6,7 @@ import {
   useEffect,
   type ReactNode,
 } from 'react';
-import type { User, ApiResponse, AuthSession } from '@wedding-bestie/shared';
+import type { User, ApiResponse, AuthSession } from '../types';
 
 interface AuthContextValue {
   user: User | null;

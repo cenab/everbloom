@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import Stripe from 'stripe';
-import type { PlanTier, CreateCheckoutSessionRequest } from '@wedding-bestie/shared';
+import type { PlanTier, CreateCheckoutSessionRequest } from '../types';
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test_placeholder';
 
@@ -74,6 +74,10 @@ export class BillingService {
       partner1: request.partnerNames[0],
       partner2: request.partnerNames[1],
     };
+
+    if (request.features) {
+      metadata.features = JSON.stringify(request.features);
+    }
 
     const successUrl = `${process.env.PLATFORM_URL || 'http://localhost:3000'}/billing/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${process.env.PLATFORM_URL || 'http://localhost:3000'}/billing/cancel`;

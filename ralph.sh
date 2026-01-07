@@ -1,14 +1,36 @@
 set -e
 
+# Configuration
+CLI_TOOL="claude"  # Options: "claude" or "codex"
+DANGEROUS_MODE="true"  # Set to "true" to enable dangerous flags, "false" to disable
+
 if [ -z "$1" ]; then
   echo "Usage: $0 <iterations>"
+  exit 1
+fi
+
+# Set command and flags based on configuration
+if [ "$CLI_TOOL" = "claude" ]; then
+  if [ "$DANGEROUS_MODE" = "true" ]; then
+    CMD="claude --dangerously-skip-permissions -p"
+  else
+    CMD="claude -p"
+  fi
+elif [ "$CLI_TOOL" = "codex" ]; then
+  if [ "$DANGEROUS_MODE" = "true" ]; then
+    CMD="codex exec --dangerously-bypass-approvals-and-sandbox"
+  else
+    CMD="codex exec"
+  fi
+else
+  echo "Invalid CLI_TOOL: $CLI_TOOL. Must be 'claude' or 'codex'"
   exit 1
 fi
 
 for ((i=1; i<=$1; i++)); do
   echo "Iteration $i"
   echo "--------------------------------"
-  result=$(claude --dangerously-skip-permissions -p "@plans/prd.json @progress.txt \
+  result=$($CMD "@prd.json @progress.txt \
 1. Find the highest-priority feature to work on and work only on that feature. \
 This should be the one YOU decide has the highest priority - not necessarily the first in the list. \
 2. Check that the types check via pnpm typecheck and that the tests pass via pnpm test. \

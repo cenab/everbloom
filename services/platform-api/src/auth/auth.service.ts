@@ -4,7 +4,7 @@ import type {
   User,
   AuthSession,
   MagicLinkRequestResponse,
-} from '@wedding-bestie/shared';
+} from '../types';
 
 interface StoredMagicLink {
   email: string;

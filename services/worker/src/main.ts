@@ -1,6 +1,6 @@
 import { Worker } from 'bullmq';
-import type { ReminderJobData, UpdateOutboxStatusRequest } from '@wedding-bestie/shared';
-import { REMINDER_QUEUE_NAME } from '@wedding-bestie/shared';
+import type { ReminderJobData, UpdateOutboxStatusRequest } from './types';
+import { REMINDER_QUEUE_NAME } from './types';
 
 type RedisConnection = {
   host: string;

@@ -5,7 +5,7 @@ import type {
   TemplateCategory,
   RenderConfig,
   ApiResponse,
-} from '@wedding-bestie/shared';
+} from '../types';
 
 interface TemplateSelectorProps {
   weddingId: string;

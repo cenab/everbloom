@@ -6,7 +6,7 @@ import type {
   RenderConfig,
   UpdateAnnouncementResponse,
   Wedding,
-} from '@wedding-bestie/shared';
+} from '../types';
 
 interface AnnouncementSettingsProps {
   wedding: Wedding;

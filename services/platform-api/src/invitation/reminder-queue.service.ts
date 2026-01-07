@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
-import type { ReminderJobData } from '@wedding-bestie/shared';
-import { REMINDER_QUEUE_NAME } from '@wedding-bestie/shared';
+import type { ReminderJobData } from '../types';
+import { REMINDER_QUEUE_NAME } from '../types';
 
 type RedisConnection = {
   host: string;

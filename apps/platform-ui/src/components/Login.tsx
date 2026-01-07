@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ApiResponse, MagicLinkRequestResponse } from '@wedding-bestie/shared';
+import type { ApiResponse, MagicLinkRequestResponse } from '../types';
 
 /**
  * Login page with magic link authentication.

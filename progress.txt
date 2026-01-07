@@ -3908,3 +3908,65 @@ With HTTP status 429 Too Many Requests.
 - The getEventRsvpSummary returns: { total, attending, notAttending, pending, totalPartySize }
 - When implementing the RSVP form UI, use the `events` field from RsvpViewData to render per-event RSVP options
 - Events are already sorted by date and time in the API response
+
+---
+
+### 2026-01-07 - Timeline/Schedule Displays on Public Site
+
+**Feature worked on:** Timeline/schedule displays on public site (PRD: events category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. Multi-event support was already fully implemented (admin can add multiple events)
+2. Event-specific guest lists and per-event RSVP were already complete
+3. The only missing piece was proper timeline display on the public wedding site
+4. Events were being shown but not sorted chronologically or in a proper timeline visual format
+5. This completes the events feature set for guests
+
+**What was done:**
+1. Updated EventDetailsSection.astro to sort events chronologically:
+   - Added sorting logic that sorts by date + startTime combined
+   - Uses `slice().sort()` to create sorted copy without mutating original array
+   - Events are now guaranteed to display in chronological order
+
+2. Redesigned multi-event display as a vertical timeline:
+   - Replaced side-by-side card layout with proper timeline visual
+   - Added `.timeline` container with connecting line gradient (primary to accent)
+   - Added `.timeline-event` items with marker dots
+   - Added `.timeline-card` styled cards for each event
+   - Added `.timeline-order` numbered badge to show sequence (1, 2, 3...)
+   - Each event displays: name, formatted date, time range, venue, address, city
+
+3. Applied design system principles:
+   - Timeline line uses gradient from primary to accent color
+   - Marker dots use primary color with theme-colored border
+   - Order badges use accent color with neutral text
+   - Cards use subtle shadow and border (no pure white/black)
+   - Mobile-first responsive layout
+   - Increased padding and card sizes on larger screens
+
+4. Cleaned up unused import (WeddingEvent type was imported but not used)
+
+**Timeline visual features:**
+- Vertical connecting line on the left side
+- Dot markers for each event
+- Numbered sequence badges (1, 2, 3...)
+- Cards with event details (when, where)
+- Responsive: tighter on mobile, more spacious on desktop
+- Colors derived from wedding theme variables
+
+**PRD features now passing:**
+- "Timeline/schedule displays on public site" ✓
+  - ✓ Add multiple events - admin can add ceremony, reception, etc.
+  - ✓ Enable timeline feature - timeline displays automatically when 2+ events exist
+  - ✓ Schedule/timeline section shows all events - vertical timeline with cards
+  - ✓ Events are in chronological order - sorted by date+time
+
+**Notes for next person:**
+- Timeline styling is in EventDetailsSection.astro's <style> block
+- Events are sorted by combining date and startTime into a Date object for comparison
+- The timeline shows automatically when eventDetails.events.length > 1
+- Single events still use the legacy centered card layout
+- Calendar buttons appear below the timeline (linked to first/primary event)
+- Event order numbers are 1-indexed for human readability
+- The timeline line height automatically adjusts to content via absolute positioning
+

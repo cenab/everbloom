@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useAuth } from '../lib/auth';
-import type { ApiResponse, MagicLinkVerifyResponse } from '@wedding-bestie/shared';
-import { MAGIC_LINK_INVALID } from '@wedding-bestie/shared';
+import type { ApiResponse, MagicLinkVerifyResponse } from '../types';
+import { MAGIC_LINK_INVALID } from '../types';
 
 /**
  * Magic link verification page.
