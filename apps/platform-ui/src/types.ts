@@ -303,6 +303,8 @@ export interface Guest {
   partySize: number;
   rsvpStatus: RsvpStatus;
   dietaryNotes?: string;
+  /** Array of tag IDs assigned to this guest */
+  tagIds?: string[];
   inviteSentAt?: string;
   rsvpSubmittedAt?: string;
   createdAt: string;
@@ -441,4 +443,34 @@ export interface PhotoListResponse {
 export interface UpdatePasscodeResponse {
   wedding: Wedding;
   renderConfig: RenderConfig;
+}
+
+// ============================================================================
+// Guest Tag Types (Segmentation)
+// ============================================================================
+
+/**
+ * A tag for organizing and segmenting guests
+ */
+export interface GuestTag {
+  id: string;
+  weddingId: string;
+  name: string;
+  color: string;
+  createdAt: string;
+}
+
+/**
+ * Response containing tag list
+ */
+export interface TagListResponse {
+  tags: GuestTag[];
+}
+
+/**
+ * Request to assign/remove tags from guests
+ */
+export interface AssignTagsRequest {
+  guestIds: string[];
+  tagIds: string[];
 }

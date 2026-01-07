@@ -408,6 +408,8 @@ export interface Guest {
   dietaryNotes?: string;
   /** SHA-256 hash of the RSVP token - raw token is never stored */
   rsvpTokenHash?: string;
+  /** Array of tag IDs assigned to this guest */
+  tagIds?: string[];
   inviteSentAt?: string;
   rsvpSubmittedAt?: string;
   createdAt: string;
@@ -875,3 +877,59 @@ export const INVALID_PASSCODE = 'INVALID_PASSCODE' as const;
  * Passcode not configured error code
  */
 export const PASSCODE_NOT_CONFIGURED = 'PASSCODE_NOT_CONFIGURED' as const;
+
+// ============================================================================
+// Guest Tag Types (Segmentation)
+// ============================================================================
+
+/**
+ * A tag for organizing and segmenting guests
+ */
+export interface GuestTag {
+  id: string;
+  weddingId: string;
+  name: string;
+  color: string;
+  createdAt: string;
+}
+
+/**
+ * Request body for creating a tag
+ */
+export interface CreateTagRequest {
+  name: string;
+  color?: string;
+}
+
+/**
+ * Request body for updating a tag
+ */
+export interface UpdateTagRequest {
+  name?: string;
+  color?: string;
+}
+
+/**
+ * Response containing tag list
+ */
+export interface TagListResponse {
+  tags: GuestTag[];
+}
+
+/**
+ * Request to assign/remove tags from guests
+ */
+export interface AssignTagsRequest {
+  guestIds: string[];
+  tagIds: string[];
+}
+
+/**
+ * Tag not found error code
+ */
+export const TAG_NOT_FOUND = 'TAG_NOT_FOUND' as const;
+
+/**
+ * Tag already exists error code
+ */
+export const TAG_ALREADY_EXISTS = 'TAG_ALREADY_EXISTS' as const;

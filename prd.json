@@ -556,7 +556,7 @@
       "Assign tag to multiple guests",
       "Verify tags appear on guest list"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "guests",
@@ -568,7 +568,7 @@
       "Clear filter",
       "Verify all guests are shown again"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "guests",

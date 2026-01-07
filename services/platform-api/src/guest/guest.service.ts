@@ -373,4 +373,114 @@ export class GuestService {
 
     return summary;
   }
+
+  /**
+   * Assign tags to guests
+   * PRD: "Admin can create guest tags for segmentation"
+   */
+  async assignTagsToGuests(
+    guestIds: string[],
+    tagIds: string[],
+  ): Promise<Guest[]> {
+    const updatedGuests: Guest[] = [];
+
+    for (const guestId of guestIds) {
+      const guest = this.guests.get(guestId);
+      if (!guest) {
+        continue;
+      }
+
+      // Merge existing tags with new tags (no duplicates)
+      const existingTags = guest.tagIds || [];
+      const mergedTags = [...new Set([...existingTags, ...tagIds])];
+
+      const updated: Guest = {
+        ...guest,
+        tagIds: mergedTags,
+        updatedAt: new Date().toISOString(),
+      };
+
+      this.guests.set(guestId, updated);
+      updatedGuests.push(updated);
+    }
+
+    this.logger.log(
+      `Assigned ${tagIds.length} tags to ${updatedGuests.length} guests`,
+    );
+
+    return updatedGuests;
+  }
+
+  /**
+   * Remove tags from guests
+   */
+  async removeTagsFromGuests(
+    guestIds: string[],
+    tagIds: string[],
+  ): Promise<Guest[]> {
+    const updatedGuests: Guest[] = [];
+
+    for (const guestId of guestIds) {
+      const guest = this.guests.get(guestId);
+      if (!guest) {
+        continue;
+      }
+
+      // Remove specified tags
+      const existingTags = guest.tagIds || [];
+      const filteredTags = existingTags.filter((t) => !tagIds.includes(t));
+
+      const updated: Guest = {
+        ...guest,
+        tagIds: filteredTags.length > 0 ? filteredTags : undefined,
+        updatedAt: new Date().toISOString(),
+      };
+
+      this.guests.set(guestId, updated);
+      updatedGuests.push(updated);
+    }
+
+    this.logger.log(
+      `Removed ${tagIds.length} tags from ${updatedGuests.length} guests`,
+    );
+
+    return updatedGuests;
+  }
+
+  /**
+   * Get guests filtered by tag IDs
+   * PRD: "Admin can filter guests by tag"
+   */
+  getGuestsByTags(weddingId: string, tagIds: string[]): Guest[] {
+    const weddingGuests = this.getGuestsForWedding(weddingId);
+
+    // Return guests that have at least one of the specified tags
+    return weddingGuests.filter((guest) => {
+      if (!guest.tagIds || guest.tagIds.length === 0) {
+        return false;
+      }
+      return guest.tagIds.some((tagId) => tagIds.includes(tagId));
+    });
+  }
+
+  /**
+   * Remove a specific tag from all guests in a wedding (used when deleting a tag)
+   */
+  async removeTagFromAllGuests(weddingId: string, tagId: string): Promise<void> {
+    const guests = this.getGuestsForWedding(weddingId);
+
+    for (const guest of guests) {
+      if (guest.tagIds && guest.tagIds.includes(tagId)) {
+        const filteredTags = guest.tagIds.filter((t) => t !== tagId);
+        const updated: Guest = {
+          ...guest,
+          tagIds: filteredTags.length > 0 ? filteredTags : undefined,
+          updatedAt: new Date().toISOString(),
+        };
+        this.guests.set(guest.id, updated);
+      }
+    }
+
+    this.logger.log(`Removed tag ${tagId} from all guests in wedding ${weddingId}`);
+  }
 }

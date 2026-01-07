@@ -9,7 +9,9 @@ import type {
   CsvImportRowResult,
   SendInvitationsResponse,
   SendInvitationResult,
-} from '@wedding-bestie/shared';
+  GuestTag,
+  TagListResponse,
+} from '../types';
 import { getAuthToken } from '../lib/auth';
 
 interface GuestsProps {
@@ -23,12 +25,31 @@ interface GuestsProps {
  */
 export function Guests({ weddingId, onBack }: GuestsProps) {
   const [guests, setGuests] = useState<Guest[]>([]);
+  const [tags, setTags] = useState<GuestTag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [selectedGuestIds, setSelectedGuestIds] = useState<Set<string>>(new Set());
   const [showSendInvites, setShowSendInvites] = useState(false);
+  const [showTagManager, setShowTagManager] = useState(false);
+  const [filterTagIds, setFilterTagIds] = useState<string[]>([]);
+  const [showAssignTags, setShowAssignTags] = useState(false);
+
+  const fetchTags = useCallback(async () => {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`/api/weddings/${weddingId}/tags`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data: ApiResponse<TagListResponse> = await response.json();
+      if (data.ok) {
+        setTags(data.data.tags);
+      }
+    } catch {
+      // Silently fail, tags are optional
+    }
+  }, [weddingId]);
 
   const fetchGuests = useCallback(async () => {
     setIsLoading(true);
@@ -57,7 +78,8 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
 
   useEffect(() => {
     fetchGuests();
-  }, [fetchGuests]);
+    fetchTags();
+  }, [fetchGuests, fetchTags]);
 
   const handleGuestAdded = (newGuest: Guest) => {
     setGuests((prev) => [...prev, newGuest].sort((a, b) => a.name.localeCompare(b.name)));
@@ -99,6 +121,39 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
     fetchGuests(); // Refresh to update inviteSentAt
   };
 
+  const handleTagCreated = (tag: GuestTag) => {
+    setTags((prev) => [...prev, tag]);
+  };
+
+  const handleTagDeleted = (tagId: string) => {
+    setTags((prev) => prev.filter((t) => t.id !== tagId));
+    // Also remove from filter if selected
+    setFilterTagIds((prev) => prev.filter((id) => id !== tagId));
+    // Refresh guests to update their tag assignments
+    fetchGuests();
+  };
+
+  const handleTagsAssigned = () => {
+    setShowAssignTags(false);
+    setSelectedGuestIds(new Set());
+    fetchGuests(); // Refresh to update tag assignments
+  };
+
+  const handleFilterChange = (tagId: string) => {
+    setFilterTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  };
+
+  const clearFilter = () => {
+    setFilterTagIds([]);
+  };
+
+  // Filter guests by selected tags
+  const filteredGuests = filterTagIds.length > 0
+    ? guests.filter((g) => g.tagIds?.some((tid) => filterTagIds.includes(tid)))
+    : guests;
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
@@ -118,14 +173,30 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
           </div>
           <div className="flex gap-3">
             {selectedGuestIds.size > 0 && (
-              <button
-                onClick={() => setShowSendInvites(true)}
-                className="btn-primary flex items-center gap-2"
-              >
-                <EnvelopeIcon className="w-4 h-4" />
-                Send invites ({selectedGuestIds.size})
-              </button>
+              <>
+                <button
+                  onClick={() => setShowAssignTags(true)}
+                  className="btn-secondary flex items-center gap-2"
+                >
+                  <TagIcon className="w-4 h-4" />
+                  Tag ({selectedGuestIds.size})
+                </button>
+                <button
+                  onClick={() => setShowSendInvites(true)}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <EnvelopeIcon className="w-4 h-4" />
+                  Send invites ({selectedGuestIds.size})
+                </button>
+              </>
             )}
+            <button
+              onClick={() => setShowTagManager(true)}
+              className="btn-secondary flex items-center gap-2"
+            >
+              <TagIcon className="w-4 h-4" />
+              Tags
+            </button>
             <button
               onClick={() => setShowCsvImport(true)}
               className="btn-secondary"
@@ -147,9 +218,29 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
       {showSendInvites && (
         <SendInvitesDialog
           weddingId={weddingId}
-          guests={guests.filter((g) => selectedGuestIds.has(g.id))}
+          guests={filteredGuests.filter((g) => selectedGuestIds.has(g.id))}
           onSuccess={handleInvitesSent}
           onCancel={() => setShowSendInvites(false)}
+        />
+      )}
+
+      {showTagManager && (
+        <TagManagerDialog
+          weddingId={weddingId}
+          tags={tags}
+          onTagCreated={handleTagCreated}
+          onTagDeleted={handleTagDeleted}
+          onClose={() => setShowTagManager(false)}
+        />
+      )}
+
+      {showAssignTags && (
+        <AssignTagsDialog
+          weddingId={weddingId}
+          tags={tags}
+          selectedGuestIds={Array.from(selectedGuestIds)}
+          onSuccess={handleTagsAssigned}
+          onCancel={() => setShowAssignTags(false)}
         />
       )}
 
@@ -175,13 +266,50 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
         </div>
       )}
 
+      {/* Tag filter bar */}
+      {tags.length > 0 && (
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-neutral-500">Filter by tag:</span>
+          {tags.map((tag) => (
+            <button
+              key={tag.id}
+              onClick={() => handleFilterChange(tag.id)}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                filterTagIds.includes(tag.id)
+                  ? 'text-neutral-50'
+                  : 'text-neutral-700 bg-neutral-100 hover:bg-neutral-200'
+              }`}
+              style={filterTagIds.includes(tag.id) ? { backgroundColor: tag.color } : undefined}
+            >
+              {tag.name}
+            </button>
+          ))}
+          {filterTagIds.length > 0 && (
+            <button
+              onClick={clearFilter}
+              className="px-3 py-1 text-sm text-neutral-500 hover:text-neutral-700"
+            >
+              Clear filter
+            </button>
+          )}
+        </div>
+      )}
+
       {isLoading ? (
         <LoadingState />
       ) : guests.length === 0 ? (
         <EmptyState onAddGuest={() => setShowAddForm(true)} />
+      ) : filteredGuests.length === 0 ? (
+        <div className="text-center py-8 text-neutral-500">
+          No guests match the selected filter.{' '}
+          <button onClick={clearFilter} className="text-primary-600 hover:underline">
+            Clear filter
+          </button>
+        </div>
       ) : (
         <GuestList
-          guests={guests}
+          guests={filteredGuests}
+          tags={tags}
           weddingId={weddingId}
           onDelete={handleGuestDeleted}
           selectedIds={selectedGuestIds}
@@ -757,6 +885,7 @@ function CheckCircleIcon({ className }: { className?: string }) {
 
 interface GuestListProps {
   guests: Guest[];
+  tags: GuestTag[];
   weddingId: string;
   onDelete: (guestId: string) => void;
   selectedIds: Set<string>;
@@ -766,6 +895,7 @@ interface GuestListProps {
 
 function GuestList({
   guests,
+  tags,
   weddingId,
   onDelete,
   selectedIds,
@@ -797,6 +927,7 @@ function GuestList({
           <GuestRow
             key={guest.id}
             guest={guest}
+            tags={tags}
             weddingId={weddingId}
             onDelete={onDelete}
             isSelected={selectedIds.has(guest.id)}
@@ -810,13 +941,16 @@ function GuestList({
 
 interface GuestRowProps {
   guest: Guest;
+  tags: GuestTag[];
   weddingId: string;
   onDelete: (guestId: string) => void;
   isSelected: boolean;
   onToggleSelect: () => void;
 }
 
-function GuestRow({ guest, weddingId, onDelete, isSelected, onToggleSelect }: GuestRowProps) {
+function GuestRow({ guest, tags, weddingId, onDelete, isSelected, onToggleSelect }: GuestRowProps) {
+  // Get the tags for this guest
+  const guestTags = tags.filter((t) => guest.tagIds?.includes(t.id));
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -861,7 +995,22 @@ function GuestRow({ guest, weddingId, onDelete, isSelected, onToggleSelect }: Gu
         </div>
         <div>
           <p className="text-neutral-800 font-medium">{guest.name}</p>
-          <p className="text-sm text-neutral-500">{guest.email}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-neutral-500">{guest.email}</p>
+            {guestTags.length > 0 && (
+              <div className="flex gap-1">
+                {guestTags.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="px-1.5 py-0.5 rounded text-xs text-neutral-50"
+                    style={{ backgroundColor: tag.color }}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       <div className="flex items-center gap-4">
@@ -1183,5 +1332,350 @@ function SendInvitesDialog({ weddingId, guests, onSuccess, onCancel }: SendInvit
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================================================================
+// Tag Management Components
+// ============================================================================
+
+function TagIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6 6h.008v.008H6V6z"
+      />
+    </svg>
+  );
+}
+
+interface TagManagerDialogProps {
+  weddingId: string;
+  tags: GuestTag[];
+  onTagCreated: (tag: GuestTag) => void;
+  onTagDeleted: (tagId: string) => void;
+  onClose: () => void;
+}
+
+/**
+ * Tag manager dialog for creating and managing tags.
+ * PRD: "Admin can create guest tags for segmentation"
+ */
+function TagManagerDialog({
+  weddingId,
+  tags,
+  onTagCreated,
+  onTagDeleted,
+  onClose,
+}: TagManagerDialogProps) {
+  const [newTagName, setNewTagName] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [deletingTagId, setDeletingTagId] = useState<string | null>(null);
+
+  const handleCreateTag = async () => {
+    if (!newTagName.trim()) return;
+
+    setIsCreating(true);
+    setError(null);
+
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`/api/weddings/${weddingId}/tags`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: newTagName.trim() }),
+      });
+
+      const data: ApiResponse<GuestTag> = await response.json();
+
+      if (data.ok) {
+        onTagCreated(data.data);
+        setNewTagName('');
+      } else {
+        setError('error' in data && data.error === 'TAG_ALREADY_EXISTS'
+          ? 'A tag with this name already exists'
+          : 'Unable to create tag');
+      }
+    } catch {
+      setError('Unable to create tag');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleDeleteTag = async (tagId: string) => {
+    if (!confirm('Delete this tag? It will be removed from all guests.')) return;
+
+    setDeletingTagId(tagId);
+
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`/api/weddings/${weddingId}/tags/${tagId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        onTagDeleted(tagId);
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setDeletingTagId(null);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-neutral-900/50 flex items-center justify-center z-50">
+      <div className="bg-neutral-50 rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg text-neutral-800">Manage tags</h3>
+          <button
+            onClick={onClose}
+            className="text-neutral-400 hover:text-neutral-600"
+          >
+            <XIcon className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Create new tag */}
+        <div className="mb-6">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newTagName}
+              onChange={(e) => setNewTagName(e.target.value)}
+              placeholder="New tag name (e.g., Bride's side)"
+              className="flex-1 px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateTag()}
+            />
+            <button
+              onClick={handleCreateTag}
+              disabled={!newTagName.trim() || isCreating}
+              className="btn-primary disabled:opacity-50"
+            >
+              {isCreating ? 'Creating...' : 'Add'}
+            </button>
+          </div>
+          {error && (
+            <p className="text-sm text-primary-600 mt-2">{error}</p>
+          )}
+        </div>
+
+        {/* Tag list */}
+        {tags.length === 0 ? (
+          <p className="text-neutral-500 text-center py-4">
+            No tags yet. Create one above.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {tags.map((tag) => (
+              <li
+                key={tag.id}
+                className="flex items-center justify-between p-3 bg-neutral-100 rounded-lg"
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className="w-4 h-4 rounded-full"
+                    style={{ backgroundColor: tag.color }}
+                  />
+                  <span className="text-neutral-800">{tag.name}</span>
+                </div>
+                <button
+                  onClick={() => handleDeleteTag(tag.id)}
+                  disabled={deletingTagId === tag.id}
+                  className="text-neutral-400 hover:text-primary-600 disabled:opacity-50"
+                >
+                  <TrashIcon className="w-4 h-4" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="mt-6 flex justify-end">
+          <button onClick={onClose} className="btn-secondary">
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface AssignTagsDialogProps {
+  weddingId: string;
+  tags: GuestTag[];
+  selectedGuestIds: string[];
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+/**
+ * Dialog for assigning tags to selected guests.
+ * PRD: "Admin can create guest tags for segmentation"
+ */
+function AssignTagsDialog({
+  weddingId,
+  tags,
+  selectedGuestIds,
+  onSuccess,
+  onCancel,
+}: AssignTagsDialogProps) {
+  const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(tagId)) {
+        next.delete(tagId);
+      } else {
+        next.add(tagId);
+      }
+      return next;
+    });
+  };
+
+  const handleAssign = async () => {
+    if (selectedTagIds.size === 0) return;
+
+    setIsAssigning(true);
+    setError(null);
+
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`/api/weddings/${weddingId}/tags/assign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          guestIds: selectedGuestIds,
+          tagIds: Array.from(selectedTagIds),
+        }),
+      });
+
+      const data: ApiResponse<{ updated: number }> = await response.json();
+
+      if (data.ok) {
+        onSuccess();
+      } else {
+        setError('Unable to assign tags');
+      }
+    } catch {
+      setError('Unable to assign tags');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  if (tags.length === 0) {
+    return (
+      <div className="fixed inset-0 bg-neutral-900/50 flex items-center justify-center z-50">
+        <div className="bg-neutral-50 rounded-xl shadow-xl max-w-sm w-full mx-4 p-6">
+          <h3 className="text-lg text-neutral-800 mb-4">No tags available</h3>
+          <p className="text-neutral-600 mb-6">
+            Create some tags first using the "Tags" button.
+          </p>
+          <div className="flex justify-end">
+            <button onClick={onCancel} className="btn-primary">
+              Got it
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-neutral-900/50 flex items-center justify-center z-50">
+      <div className="bg-neutral-50 rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+        <h3 className="text-lg text-neutral-800 mb-2">Assign tags</h3>
+        <p className="text-neutral-600 mb-6">
+          Select tags to add to {selectedGuestIds.length} selected{' '}
+          {selectedGuestIds.length === 1 ? 'guest' : 'guests'}.
+        </p>
+
+        <div className="space-y-2 mb-6">
+          {tags.map((tag) => (
+            <button
+              key={tag.id}
+              onClick={() => toggleTag(tag.id)}
+              className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                selectedTagIds.has(tag.id)
+                  ? 'border-primary-500 bg-primary-50'
+                  : 'border-neutral-200 hover:border-neutral-300'
+              }`}
+            >
+              <span
+                className="w-4 h-4 rounded-full"
+                style={{ backgroundColor: tag.color }}
+              />
+              <span className="text-neutral-800">{tag.name}</span>
+              {selectedTagIds.has(tag.id) && (
+                <CheckCircleIcon className="w-5 h-5 text-primary-500 ml-auto" />
+              )}
+            </button>
+          ))}
+        </div>
+
+        {error && (
+          <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg text-primary-800 text-sm mb-4">
+            {error}
+          </div>
+        )}
+
+        <div className="flex gap-3 justify-end">
+          <button onClick={onCancel} className="btn-secondary" disabled={isAssigning}>
+            Cancel
+          </button>
+          <button
+            onClick={handleAssign}
+            disabled={selectedTagIds.size === 0 || isAssigning}
+            className="btn-primary disabled:opacity-50"
+          >
+            {isAssigning ? 'Assigning...' : `Assign ${selectedTagIds.size} tag${selectedTagIds.size !== 1 ? 's' : ''}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function XIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6 18L18 6M6 6l12 12"
+      />
+    </svg>
   );
 }

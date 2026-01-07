@@ -1552,3 +1552,94 @@
 - The hero section in wedding site now supports both headline and subheadline
 - HeroSettings fetches current content from /api/weddings/:id/render-config
 - Preview shows live typing feedback as user edits
+
+---
+
+### 2026-01-07 - Guest Tagging/Segmentation Feature
+
+**Feature worked on:** Admin can create guest tags for segmentation + Admin can filter guests by tag (PRD: guests category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. Guest segmentation is foundational for targeted communications
+2. It enables filtering guests by tag (bride's side, groom's side, etc.)
+3. It's a prerequisite for sending invites to specific segments
+4. It follows established patterns in the codebase (tag CRUD, guest association)
+
+**What was done:**
+1. Added tag types to platform-api types:
+   - `GuestTag` interface with id, weddingId, name, color, createdAt
+   - `CreateTagRequest` and `UpdateTagRequest` types
+   - `TagListResponse` and `AssignTagsRequest` types
+   - `TAG_NOT_FOUND` and `TAG_ALREADY_EXISTS` error codes
+   - Updated `Guest` interface with optional `tagIds` array
+
+2. Created TagService (services/platform-api/src/guest/tag.service.ts):
+   - In-memory storage for tags
+   - CRUD methods: createTag, updateTag, deleteTag, getTag
+   - Retrieval: getTagsForWedding, findByName, tagBelongsToWedding
+   - Default color palette aligned with design system
+
+3. Added tag methods to GuestService:
+   - `assignTagsToGuests(guestIds, tagIds)` - add tags to guests
+   - `removeTagsFromGuests(guestIds, tagIds)` - remove tags from guests
+   - `getGuestsByTags(weddingId, tagIds)` - filter guests by tags
+   - `removeTagFromAllGuests(weddingId, tagId)` - cleanup when deleting tag
+
+4. Created TagController (services/platform-api/src/guest/tag.controller.ts):
+   - `GET /api/weddings/:weddingId/tags` - list all tags
+   - `POST /api/weddings/:weddingId/tags` - create tag
+   - `GET /api/weddings/:weddingId/tags/:tagId` - get single tag
+   - `PUT /api/weddings/:weddingId/tags/:tagId` - update tag
+   - `DELETE /api/weddings/:weddingId/tags/:tagId` - delete tag
+   - `POST /api/weddings/:weddingId/tags/assign` - assign tags to guests
+   - `POST /api/weddings/:weddingId/tags/unassign` - remove tags from guests
+   - `GET /api/weddings/:weddingId/tags/filter/guests` - filter guests by tags
+
+5. Updated GuestModule to include TagService and TagController
+
+6. Added tag types to platform-ui types.ts:
+   - GuestTag, TagListResponse, AssignTagsRequest interfaces
+   - Updated Guest interface with tagIds
+
+7. Updated Guests.tsx component with:
+   - Tag state management (tags, filterTagIds, showTagManager, showAssignTags)
+   - fetchTags function to load tags from API
+   - Tag filter bar with clickable tag chips
+   - Tag badges displayed on guest rows
+   - TagManagerDialog component for creating/editing/deleting tags
+   - AssignTagsDialog component for bulk tag assignment
+   - TagIcon and XIcon components
+
+**API Endpoints:**
+- `GET /api/weddings/:weddingId/tags` - List all tags (requires auth)
+- `POST /api/weddings/:weddingId/tags` - Create tag (requires auth)
+- `GET /api/weddings/:weddingId/tags/:tagId` - Get single tag (requires auth)
+- `PUT /api/weddings/:weddingId/tags/:tagId` - Update tag (requires auth)
+- `DELETE /api/weddings/:weddingId/tags/:tagId` - Delete tag (requires auth)
+- `POST /api/weddings/:weddingId/tags/assign` - Assign tags to guests (requires auth)
+- `POST /api/weddings/:weddingId/tags/unassign` - Remove tags from guests (requires auth)
+- `GET /api/weddings/:weddingId/tags/filter/guests` - Filter guests by tags (requires auth)
+
+**Design system adherence:**
+- Curated tag colors aligned with design system (sage, terracotta, dusty blue, lavender, etc.)
+- Tag chips with rounded corners and muted backgrounds
+- Human language: "Manage tags", "Assign tags", "Filter by tag"
+- No pure black/white colors
+- Minimal, calm UI with clear selection states
+
+**PRD features now passing:**
+- "Admin can create guest tags for segmentation" ✓
+- "Admin can filter guests by tag" ✓
+
+**Next steps:**
+- Implement "Admin can send invites to specific segments" (uses tag filtering)
+- Continue with other incomplete features
+
+**Notes for next person:**
+- Tags are stored in-memory (restart API = lose data)
+- Default tag colors are curated from the design system palette
+- Duplicate tag names within a wedding are prevented
+- When a tag is deleted, it's automatically removed from all guests
+- Tag filtering returns guests that have ANY of the selected tags (OR logic)
+- Guest rows display tag badges next to their names
+- Selected guests can have tags assigned in bulk via AssignTagsDialog
