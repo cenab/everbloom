@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "composite": true
+  },
+  "references": [
+    { "path": "./packages/shared" },
+    { "path": "./apps/platform-ui" },
+    { "path": "./services/platform-api" },
+    { "path": "./services/worker" },
+    { "path": "./apps/wedding-site" }
+  ]
+}

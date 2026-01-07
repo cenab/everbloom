@@ -1,0 +1,32 @@
+{
+  "name": "wedding-bestie",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @wedding-bestie/platform-ui dev & pnpm --filter @wedding-bestie/platform-api dev & pnpm --filter @wedding-bestie/worker dev",
+    "dev:ui": "pnpm --filter @wedding-bestie/platform-ui dev",
+    "dev:api": "pnpm --filter @wedding-bestie/platform-api dev",
+    "dev:worker": "pnpm --filter @wedding-bestie/worker dev",
+    "dev:site": "pnpm --filter @wedding-bestie/wedding-site dev",
+    "dev:netlify": "pnpm --filter @wedding-bestie/wedding-site dev:netlify",
+    "build": "pnpm -r build",
+    "build:ui": "pnpm --filter @wedding-bestie/platform-ui build",
+    "build:api": "pnpm --filter @wedding-bestie/platform-api build",
+    "build:worker": "pnpm --filter @wedding-bestie/worker build",
+    "build:site": "pnpm --filter @wedding-bestie/wedding-site build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "db:migrate": "pnpm --filter @wedding-bestie/platform-api db:migrate",
+    "db:generate": "pnpm --filter @wedding-bestie/platform-api db:generate",
+    "db:seed": "pnpm --filter @wedding-bestie/platform-api db:seed"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

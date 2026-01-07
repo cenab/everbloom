@@ -1,0 +1,100 @@
+## Progress Log
+
+### 2026-01-06 - Initial Monorepo Setup and Dashboard Empty State
+
+**Feature worked on:** Admin dashboard loads with no wedding selected (PRD: platform category)
+
+**Priority rationale:** This is the foundational feature - without the monorepo structure and platform-ui, nothing else can be built. The dashboard empty state is the first user-facing feature after infrastructure.
+
+**What was done:**
+1. Created monorepo infrastructure:
+   - root package.json with workspace scripts
+   - pnpm-workspace.yaml
+   - root tsconfig.json with project references
+   - .gitignore
+
+2. Created packages/shared with:
+   - Core types: FeatureFlag, TemplateCategory, Theme, RenderConfig
+   - API response types
+   - Error codes (FEATURE_DISABLED, INVALID_TOKEN)
+
+3. Created apps/platform-ui with:
+   - Vite + React setup
+   - TanStack Router and Query integration
+   - Tailwind CSS with design system tokens (no pure black/white, curated palette)
+   - Dashboard component with empty state
+   - Layout component with minimal navigation
+
+4. Created services/platform-api with:
+   - NestJS scaffold
+   - Health endpoint
+   - CORS configured for dev
+
+5. Created services/worker and apps/wedding-site stubs
+
+**Design system adherence:**
+- Colors use curated warm palette (primary: terracotta, accent: sage)
+- No pure #000000 or #FFFFFF
+- Typography: serif for headings, sans for body
+- Minimal, calm UI with intentional whitespace
+- Human language in microcopy ("Welcome to Everbloom", not "No records found")
+
+**Next steps:**
+- Run `pnpm install` to install dependencies
+- Run `pnpm typecheck` and `pnpm test` to verify
+- Implement magic link auth (prerequisite for full dashboard feature)
+- Implement Stripe billing flow
+
+**Notes for next person:**
+- The dashboard shows an empty state that prompts creation/selection of weddings
+- Auth is not yet implemented, so "Log in as admin" step cannot pass yet
+- Feature "Admin dashboard loads with no wedding selected" depends on auth feature
+- PRD should NOT be marked as passing until auth is in place and verified
+
+---
+
+### 2026-01-06 - Magic Link Authentication
+
+**Feature worked on:** Admin can log in via magic link (PRD: platform category)
+
+**Priority rationale:** This is the highest-priority feature because it unblocks:
+1. The dashboard feature (which depends on "Log in as admin" step)
+2. All platform features that require authentication
+3. Admin-only actions like creating weddings, managing guests, etc.
+
+**What was done:**
+1. Fixed NestJS API to use `/api` prefix (was missing, frontend was calling `/api/auth/*` but backend was at `/auth/*`)
+
+2. Added workspace dependency wiring:
+   - Added `@wedding-bestie/shared` as dependency to platform-api and platform-ui
+   - Built shared package to generate dist/ with types
+
+3. Fixed TypeScript configuration issues:
+   - Added `@types/node` and `types: ["node"]` to worker service
+   - Excluded astro.config.mjs from wedding-site typecheck
+
+4. Fixed test configuration:
+   - Added `--passWithNoTests` to platform-api jest command
+
+**Existing auth implementation (already present, now wired up):**
+- Login page (Login.tsx): Email input form, sends POST to `/api/auth/request-link`
+- VerifyMagicLink page: Handles `/auth/verify?token=...` callback
+- AuthProvider (auth.tsx): Manages session state, stores token in localStorage
+- AuthController: `/auth/request-link`, `/auth/verify-link`, `/auth/me`, `/auth/logout`
+- AuthService: In-memory token/session storage (dev mode), logs magic link to console
+- Routes (__root.tsx): Protected routes redirect to `/login`, login redirects if authenticated
+
+**PRD features now passing:**
+- "Admin can log in via magic link" ✓
+- "Admin dashboard loads with no wedding selected" ✓ (was blocked by auth, now works)
+
+**Next steps:**
+- Implement Stripe billing flow (checkout session creation)
+- Implement wedding provisioning on checkout.session.completed webhook
+- Generate render_config on wedding creation
+
+**Notes for next person:**
+- In dev mode, magic links are logged to console (look for "🔐 MAGIC LINK" in platform-api output)
+- Sessions are stored in-memory (restart API = logout all users)
+- Run `pnpm dev` to start both UI and API together
+- To test: enter email on login page, copy magic link from API console, paste in browser
