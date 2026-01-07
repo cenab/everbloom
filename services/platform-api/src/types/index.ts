@@ -452,7 +452,7 @@ export const WEBHOOK_SIGNATURE_INVALID = 'WEBHOOK_SIGNATURE_INVALID' as const;
 /**
  * Type of event in a wedding
  */
-export type WeddingEventType = 'ceremony' | 'reception' | 'other';
+export type WeddingEventType = 'ceremony' | 'reception' | 'rehearsal_dinner' | 'welcome_party' | 'brunch' | 'other';
 
 /**
  * A single event within a wedding (ceremony, reception, etc.)
@@ -468,7 +468,73 @@ export interface WeddingEvent {
   address: string;
   city: string;
   timezone?: string;
+  /** Order for display in timeline */
+  order?: number;
 }
+
+// ============================================================================
+// Event RSVP Types (Per-Event Attendance Tracking)
+// ============================================================================
+
+/**
+ * RSVP response for a single event
+ */
+export interface EventRsvpData {
+  eventId: string;
+  rsvpStatus: RsvpStatus;
+  dietaryNotes?: string;
+  mealOptionId?: string;
+}
+
+/**
+ * Guest's RSVP responses per event
+ * Maps event ID to RSVP data
+ */
+export type EventRsvpMap = Record<string, EventRsvpData>;
+
+/**
+ * Which guests are invited to which events
+ */
+export interface EventGuestAssignment {
+  eventId: string;
+  guestId: string;
+  assignedAt: string;
+}
+
+/**
+ * Request to assign guests to events
+ */
+export interface AssignGuestsToEventsRequest {
+  guestIds: string[];
+  eventIds: string[];
+}
+
+/**
+ * Request to remove guests from events
+ */
+export interface RemoveGuestsFromEventsRequest {
+  guestIds: string[];
+  eventIds: string[];
+}
+
+/**
+ * Response containing event assignments for a wedding
+ */
+export interface EventAssignmentsResponse {
+  assignments: EventGuestAssignment[];
+  /** Map of event ID to count of assigned guests */
+  eventCounts: Record<string, number>;
+}
+
+/**
+ * Guest not invited to this event error code
+ */
+export const GUEST_NOT_INVITED_TO_EVENT = 'GUEST_NOT_INVITED_TO_EVENT' as const;
+
+/**
+ * Event not found error code
+ */
+export const EVENT_NOT_FOUND = 'EVENT_NOT_FOUND' as const;
 
 /**
  * Event details for calendar invites (forward declaration for Wedding)
@@ -630,6 +696,16 @@ export interface Guest {
   plusOneGuests?: PlusOneGuest[];
   /** Selected meal option ID for the primary guest (if meal selection is enabled) */
   mealOptionId?: string;
+  /**
+   * Per-event RSVP responses (when multi-event is enabled)
+   * Maps event ID to RSVP data for that specific event
+   */
+  eventRsvps?: EventRsvpMap;
+  /**
+   * Event IDs this guest is invited to (when not invited to all events)
+   * If undefined or empty, guest is invited to all events
+   */
+  invitedEventIds?: string[];
   inviteSentAt?: string;
   rsvpSubmittedAt?: string;
   createdAt: string;
@@ -705,6 +781,10 @@ export interface RsvpGuestView {
   plusOneGuests?: PlusOneGuest[];
   /** Selected meal option ID (if meal selection is enabled and previously submitted) */
   mealOptionId?: string;
+  /** Per-event RSVP responses (for multi-event weddings) */
+  eventRsvps?: EventRsvpMap;
+  /** Event IDs this guest is invited to (if not invited to all) */
+  invitedEventIds?: string[];
 }
 
 /**
@@ -727,6 +807,11 @@ export interface RsvpViewData {
   theme: Theme;
   /** Meal options configuration (if enabled for this wedding) */
   mealConfig?: MealConfig;
+  /**
+   * Events the guest is invited to (for multi-event weddings)
+   * Only populated when the wedding has multiple events
+   */
+  events?: WeddingEvent[];
 }
 
 /**
@@ -741,6 +826,11 @@ export interface RsvpSubmitRequest {
   plusOneGuests?: PlusOneGuest[];
   /** Selected meal option ID for the primary guest */
   mealOptionId?: string;
+  /**
+   * Per-event RSVP responses (for multi-event weddings)
+   * Maps event ID to RSVP data for that event
+   */
+  eventRsvps?: EventRsvpMap;
 }
 
 /**
@@ -1728,4 +1818,6 @@ export type ErrorCode =
   | typeof TABLE_NOT_FOUND
   | typeof TABLE_CAPACITY_EXCEEDED
   | typeof GUEST_ALREADY_ASSIGNED
-  | typeof SEATING_CHART_DISABLED;
+  | typeof SEATING_CHART_DISABLED
+  | typeof GUEST_NOT_INVITED_TO_EVENT
+  | typeof EVENT_NOT_FOUND;

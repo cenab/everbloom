@@ -27,8 +27,12 @@ import type {
   CsvImportRequest,
   CsvImportResponse,
   MealSummaryResponse,
+  AssignGuestsToEventsRequest,
+  RemoveGuestsFromEventsRequest,
+  EventAssignmentsResponse,
+  RsvpSummary,
 } from '../types';
-import { GUEST_NOT_FOUND, GUEST_ALREADY_EXISTS, CSV_IMPORT_VALIDATION_ERROR, UNAUTHORIZED, WEDDING_NOT_FOUND, FEATURE_DISABLED } from '../types';
+import { GUEST_NOT_FOUND, GUEST_ALREADY_EXISTS, CSV_IMPORT_VALIDATION_ERROR, UNAUTHORIZED, WEDDING_NOT_FOUND, FEATURE_DISABLED, EVENT_NOT_FOUND } from '../types';
 
 @Controller('weddings/:weddingId/guests')
 export class GuestController {
@@ -484,6 +488,227 @@ export class GuestController {
 
     await this.guestService.deleteGuest(guestId);
     return { ok: true, data: { deleted: true } };
+  }
+
+  /**
+   * Assign guests to specific events
+   * POST /api/weddings/:weddingId/guests/events/assign
+   * PRD: "Admin can assign guests to specific events"
+   */
+  @Post('events/assign')
+  async assignGuestsToEvents(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+    @Body() body: AssignGuestsToEventsRequest,
+  ): Promise<ApiResponse<EventAssignmentsResponse>> {
+    const { wedding } = await this.requireWeddingOwner(authHeader, weddingId);
+
+    // Validate that wedding has events configured
+    if (!wedding.eventDetails?.events || wedding.eventDetails.events.length === 0) {
+      throw new NotFoundException({
+        ok: false,
+        error: EVENT_NOT_FOUND,
+      });
+    }
+
+    // Validate event IDs exist in the wedding
+    const weddingEventIds = wedding.eventDetails.events.map((e) => e.id);
+    for (const eventId of body.eventIds) {
+      if (!weddingEventIds.includes(eventId)) {
+        throw new NotFoundException({
+          ok: false,
+          error: EVENT_NOT_FOUND,
+        });
+      }
+    }
+
+    // Validate guest IDs belong to this wedding
+    for (const guestId of body.guestIds) {
+      const guest = this.guestService.getGuest(guestId);
+      if (!guest || guest.weddingId !== weddingId) {
+        throw new NotFoundException({
+          ok: false,
+          error: GUEST_NOT_FOUND,
+        });
+      }
+    }
+
+    const assignments = await this.guestService.assignGuestsToEvents(
+      weddingId,
+      body.guestIds,
+      body.eventIds,
+    );
+
+    // Calculate event counts from assignments
+    const eventCounts: Record<string, number> = {};
+    for (const assignment of assignments) {
+      eventCounts[assignment.eventId] = (eventCounts[assignment.eventId] || 0) + 1;
+    }
+
+    return {
+      ok: true,
+      data: { assignments, eventCounts },
+    };
+  }
+
+  /**
+   * Remove guests from specific events
+   * POST /api/weddings/:weddingId/guests/events/unassign
+   * PRD: "Admin can remove guests from events"
+   */
+  @Post('events/unassign')
+  async removeGuestsFromEvents(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+    @Body() body: RemoveGuestsFromEventsRequest,
+  ): Promise<ApiResponse<{ removed: boolean }>> {
+    const { wedding } = await this.requireWeddingOwner(authHeader, weddingId);
+
+    // Validate that wedding has events configured
+    if (!wedding.eventDetails?.events || wedding.eventDetails.events.length === 0) {
+      throw new NotFoundException({
+        ok: false,
+        error: EVENT_NOT_FOUND,
+      });
+    }
+
+    // Validate event IDs exist in the wedding
+    const weddingEventIds = wedding.eventDetails.events.map((e) => e.id);
+    for (const eventId of body.eventIds) {
+      if (!weddingEventIds.includes(eventId)) {
+        throw new NotFoundException({
+          ok: false,
+          error: EVENT_NOT_FOUND,
+        });
+      }
+    }
+
+    // Validate guest IDs belong to this wedding
+    for (const guestId of body.guestIds) {
+      const guest = this.guestService.getGuest(guestId);
+      if (!guest || guest.weddingId !== weddingId) {
+        throw new NotFoundException({
+          ok: false,
+          error: GUEST_NOT_FOUND,
+        });
+      }
+    }
+
+    await this.guestService.removeGuestsFromEvents(
+      weddingId,
+      body.guestIds,
+      body.eventIds,
+    );
+
+    return {
+      ok: true,
+      data: { removed: true },
+    };
+  }
+
+  /**
+   * Get event assignments for all guests
+   * GET /api/weddings/:weddingId/guests/events
+   * PRD: "Admin can view guest event assignments"
+   */
+  @Get('events')
+  async getEventAssignments(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+  ): Promise<ApiResponse<EventAssignmentsResponse>> {
+    await this.requireWeddingOwner(authHeader, weddingId);
+
+    const assignments = this.guestService.getEventAssignments(weddingId);
+
+    // Calculate event counts from assignments
+    const eventCounts: Record<string, number> = {};
+    for (const assignment of assignments) {
+      eventCounts[assignment.eventId] = (eventCounts[assignment.eventId] || 0) + 1;
+    }
+
+    return {
+      ok: true,
+      data: { assignments, eventCounts },
+    };
+  }
+
+  /**
+   * Get RSVP summary for a specific event
+   * GET /api/weddings/:weddingId/guests/events/:eventId/summary
+   * PRD: "Admin can view per-event RSVP summary"
+   */
+  @Get('events/:eventId/summary')
+  async getEventRsvpSummary(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+    @Param('eventId') eventId: string,
+  ): Promise<ApiResponse<RsvpSummary>> {
+    const { wedding } = await this.requireWeddingOwner(authHeader, weddingId);
+
+    // Validate that wedding has events configured
+    if (!wedding.eventDetails?.events || wedding.eventDetails.events.length === 0) {
+      throw new NotFoundException({
+        ok: false,
+        error: EVENT_NOT_FOUND,
+      });
+    }
+
+    // Validate event ID exists in the wedding
+    const weddingEventIds = wedding.eventDetails.events.map((e) => e.id);
+    if (!weddingEventIds.includes(eventId)) {
+      throw new NotFoundException({
+        ok: false,
+        error: EVENT_NOT_FOUND,
+      });
+    }
+
+    const summary = this.guestService.getEventRsvpSummary(weddingId, eventId);
+
+    return {
+      ok: true,
+      data: summary,
+    };
+  }
+
+  /**
+   * Get guests for a specific event
+   * GET /api/weddings/:weddingId/guests/events/:eventId/guests
+   * PRD: "Admin can view guest list for each event"
+   */
+  @Get('events/:eventId/guests')
+  async getGuestsForEvent(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+    @Param('eventId') eventId: string,
+  ): Promise<ApiResponse<GuestListResponse>> {
+    const { wedding } = await this.requireWeddingOwner(authHeader, weddingId);
+
+    // Validate that wedding has events configured
+    if (!wedding.eventDetails?.events || wedding.eventDetails.events.length === 0) {
+      throw new NotFoundException({
+        ok: false,
+        error: EVENT_NOT_FOUND,
+      });
+    }
+
+    // Validate event ID exists in the wedding
+    const weddingEventIds = wedding.eventDetails.events.map((e) => e.id);
+    if (!weddingEventIds.includes(eventId)) {
+      throw new NotFoundException({
+        ok: false,
+        error: EVENT_NOT_FOUND,
+      });
+    }
+
+    const guests = this.guestService.getGuestsForEvent(weddingId, eventId);
+
+    return {
+      ok: true,
+      data: {
+        guests,
+        total: guests.length,
+      },
+    };
   }
 
   /**

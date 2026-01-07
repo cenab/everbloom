@@ -1025,7 +1025,7 @@
       "Add event description",
       "Save event"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "events",
@@ -1036,7 +1036,7 @@
       "Save event guest list",
       "Verify only selected guests can RSVP for event"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "events",
@@ -1048,7 +1048,7 @@
       "Submit RSVPs",
       "Verify per-event responses are stored"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "events",

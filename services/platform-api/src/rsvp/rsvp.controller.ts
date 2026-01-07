@@ -17,6 +17,7 @@ import type {
   RsvpSubmitRequest,
   RsvpSubmitResponse,
   RsvpGuestView,
+  WeddingEvent,
 } from '../types';
 import {
   INVALID_TOKEN,
@@ -24,6 +25,7 @@ import {
   WEDDING_NOT_FOUND,
   PLUS_ONE_LIMIT_EXCEEDED,
   INVALID_MEAL_OPTION,
+  GUEST_NOT_INVITED_TO_EVENT,
 } from '../types';
 
 /**
@@ -105,14 +107,38 @@ export class RsvpController {
       plusOneAllowance: guest.plusOneAllowance,
       plusOneGuests: guest.plusOneGuests,
       mealOptionId: guest.mealOptionId,
+      eventRsvps: guest.eventRsvps,
+      invitedEventIds: guest.invitedEventIds,
     };
+
+    // Get events the guest is invited to (for multi-event weddings)
+    let invitedEvents: WeddingEvent[] | undefined;
+    if (wedding.eventDetails?.events && wedding.eventDetails.events.length > 0) {
+      // Filter events to only those the guest is invited to
+      if (guest.invitedEventIds && guest.invitedEventIds.length > 0) {
+        invitedEvents = wedding.eventDetails.events.filter((e) =>
+          guest.invitedEventIds!.includes(e.id),
+        );
+      } else {
+        // Guest is invited to all events
+        invitedEvents = wedding.eventDetails.events;
+      }
+      // Sort by date and time
+      invitedEvents.sort((a, b) => {
+        const dateCompare = a.date.localeCompare(b.date);
+        if (dateCompare !== 0) return dateCompare;
+        return a.startTime.localeCompare(b.startTime);
+      });
+    }
 
     const rsvpViewData: RsvpViewData = {
       guest: guestView,
       wedding: {
         slug: wedding.slug,
         partnerNames: wedding.partnerNames,
-        // TODO: Add date/venue when wedding has these fields
+        date: wedding.eventDetails?.date,
+        venue: wedding.eventDetails?.venue,
+        city: wedding.eventDetails?.city,
       },
       theme: renderConfig?.theme || {
         primary: '#c9826b',
@@ -122,6 +148,8 @@ export class RsvpController {
       },
       // Include meal config if enabled
       mealConfig: wedding.mealConfig?.enabled ? wedding.mealConfig : undefined,
+      // Include events for multi-event RSVP
+      events: invitedEvents,
     };
 
     return { ok: true, data: rsvpViewData };
@@ -131,15 +159,17 @@ export class RsvpController {
    * Submit RSVP response
    * POST /api/rsvp/submit
    * Allows guest to submit or update their RSVP, including plus-one details and meal selection
+   * Supports both single-event (legacy) and multi-event RSVP
    *
    * PRD: "Rate limits prevent abuse" - Strict limit: 10 requests per minute
+   * PRD: "Guest can RSVP to specific events"
    */
   @Throttle({ strict: { ttl: 60000, limit: 10 } })
   @Post('submit')
   async submitRsvp(
     @Body() body: RsvpSubmitRequest,
   ): Promise<ApiResponse<RsvpSubmitResponse>> {
-    const { token, rsvpStatus, partySize, dietaryNotes, plusOneGuests, mealOptionId } = body;
+    const { token, rsvpStatus, partySize, dietaryNotes, plusOneGuests, mealOptionId, eventRsvps } = body;
 
     if (!token) {
       throw new BadRequestException({
@@ -184,6 +214,30 @@ export class RsvpController {
       });
     }
 
+    // Validate event RSVPs if provided (multi-event flow)
+    if (eventRsvps && Object.keys(eventRsvps).length > 0) {
+      const weddingEvents = wedding.eventDetails?.events || [];
+      const weddingEventIds = weddingEvents.map((e) => e.id);
+
+      for (const eventId of Object.keys(eventRsvps)) {
+        // Validate event exists
+        if (!weddingEventIds.includes(eventId)) {
+          throw new BadRequestException({
+            ok: false,
+            error: GUEST_NOT_INVITED_TO_EVENT,
+          });
+        }
+
+        // Validate guest is invited to this event
+        if (!this.guestService.isGuestInvitedToEvent(guest.id, eventId)) {
+          throw new ForbiddenException({
+            ok: false,
+            error: GUEST_NOT_INVITED_TO_EVENT,
+          });
+        }
+      }
+    }
+
     // Validate meal option if meal selection is enabled and guest is attending
     if (wedding.mealConfig?.enabled && rsvpStatus === 'attending') {
       // Validate primary guest's meal option if provided
@@ -211,25 +265,35 @@ export class RsvpController {
       }
     }
 
-    // Update guest RSVP with plus-one guests and meal options
     let updatedGuest;
-    try {
-      updatedGuest = await this.guestService.updateRsvpStatus(
-        guest.id,
-        rsvpStatus,
-        partySize,
-        dietaryNotes,
-        plusOneGuests,
-        mealOptionId,
-      );
-    } catch (error) {
-      if (error instanceof Error && error.message === 'PLUS_ONE_LIMIT_EXCEEDED') {
-        throw new BadRequestException({
-          ok: false,
-          error: PLUS_ONE_LIMIT_EXCEEDED,
-        });
+
+    // Handle multi-event RSVP
+    if (eventRsvps && Object.keys(eventRsvps).length > 0) {
+      try {
+        updatedGuest = await this.guestService.updateEventRsvp(guest.id, eventRsvps);
+      } catch (error) {
+        throw error;
       }
-      throw error;
+    } else {
+      // Handle single-event RSVP (legacy flow)
+      try {
+        updatedGuest = await this.guestService.updateRsvpStatus(
+          guest.id,
+          rsvpStatus,
+          partySize,
+          dietaryNotes,
+          plusOneGuests,
+          mealOptionId,
+        );
+      } catch (error) {
+        if (error instanceof Error && error.message === 'PLUS_ONE_LIMIT_EXCEEDED') {
+          throw new BadRequestException({
+            ok: false,
+            error: PLUS_ONE_LIMIT_EXCEEDED,
+          });
+        }
+        throw error;
+      }
     }
 
     if (!updatedGuest) {
@@ -250,12 +314,26 @@ export class RsvpController {
       plusOneAllowance: updatedGuest.plusOneAllowance,
       plusOneGuests: updatedGuest.plusOneGuests,
       mealOptionId: updatedGuest.mealOptionId,
+      eventRsvps: updatedGuest.eventRsvps,
+      invitedEventIds: updatedGuest.invitedEventIds,
     };
 
-    const message =
-      rsvpStatus === 'attending'
-        ? "Thank you! We can't wait to celebrate with you."
+    // Build appropriate message based on submission type
+    let message: string;
+    if (eventRsvps && Object.keys(eventRsvps).length > 0) {
+      // Multi-event submission
+      const eventResponses = Object.values(eventRsvps);
+      const anyAttending = eventResponses.some((r) => r.rsvpStatus === 'attending');
+      message = anyAttending
+        ? "Thank you! We've received your responses for each event."
         : "Thank you for letting us know. We'll miss you!";
+    } else {
+      // Single-event submission
+      message =
+        rsvpStatus === 'attending'
+          ? "Thank you! We can't wait to celebrate with you."
+          : "Thank you for letting us know. We'll miss you!";
+    }
 
     return {
       ok: true,

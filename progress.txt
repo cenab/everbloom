@@ -3844,3 +3844,67 @@ With HTTP status 429 Too Many Requests.
 - The export includes: id, name, email, partySize, rsvpStatus, dietaryNotes, plusOneAllowance, plusOneGuests, mealOptionId, tagIds, inviteSentAt, rsvpSubmittedAt, createdAt, updatedAt
 - The rsvpTokenHash is intentionally excluded for security
 - Export file is named "guest-data-export.json"
+
+---
+
+### 2026-01-07 - Multi-Event RSVP and Event Guest List Management
+
+**Feature worked on:** Events - Multi-event support (PRD: events category)
+
+**Priority rationale:** Multi-event support is a high-priority feature that enables weddings with multiple events (rehearsal dinner, ceremony, reception, brunch). This unlocks per-event RSVPs and event-specific guest lists, which is essential for destination weddings and multi-day celebrations.
+
+**What was done:**
+
+1. Added new event types to platform-api types (types/index.ts):
+   - `EventRsvpData` interface for per-event RSVP details
+   - `EventRsvpMap` type (Record<eventId, EventRsvpData>)
+   - `EventGuestAssignment` interface for tracking guest-event relationships
+   - `AssignGuestsToEventsRequest` and `RemoveGuestsFromEventsRequest` types
+   - `EventAssignmentsResponse` type with assignments and eventCounts
+   - Extended `WeddingEventType` with 'rehearsal_dinner', 'welcome_party', 'brunch'
+   - Extended `Guest` interface with `eventRsvps` and `invitedEventIds`
+   - Extended `RsvpGuestView` and `RsvpViewData` with event support
+   - Extended `RsvpSubmitRequest` with `eventRsvps` parameter
+   - Added error codes: `GUEST_NOT_INVITED_TO_EVENT`, `EVENT_NOT_FOUND`
+
+2. Extended GuestService (guest/guest.service.ts):
+   - Added `eventGuestAssignments` Map for storing guest-event relationships
+   - `updateEventRsvp(guestId, eventRsvps)` - Update per-event RSVP responses
+   - `assignGuestsToEvents(weddingId, guestIds, eventIds)` - Assign guests to specific events
+   - `removeGuestsFromEvents(weddingId, guestIds, eventIds)` - Remove guests from events
+   - `getEventAssignments(weddingId)` - Get all event assignments for a wedding
+   - `getGuestsForEvent(weddingId, eventId)` - Get guests invited to a specific event
+   - `getEventRsvpSummary(weddingId, eventId)` - Get per-event RSVP stats
+   - `isGuestInvitedToEvent(guestId, eventId)` - Check if guest is invited to event
+
+3. Updated RsvpController (rsvp/rsvp.controller.ts):
+   - `GET /api/rsvp/view` now returns events the guest is invited to
+   - `POST /api/rsvp/submit` handles multi-event RSVP via `eventRsvps` parameter
+   - Validates that guest is invited to each event being RSVP'd
+   - Supports both single-event (legacy) and multi-event RSVP flows
+   - Events are sorted by date and time for display
+
+4. Added event endpoints to GuestController (guest/guest.controller.ts):
+   - `POST /api/weddings/:weddingId/guests/events/assign` - Assign guests to events
+   - `POST /api/weddings/:weddingId/guests/events/unassign` - Remove guests from events
+   - `GET /api/weddings/:weddingId/guests/events` - Get all event assignments
+   - `GET /api/weddings/:weddingId/guests/events/:eventId/summary` - Per-event RSVP summary
+   - `GET /api/weddings/:weddingId/guests/events/:eventId/guests` - Get guests for event
+
+**API Design:**
+- Guests with no `invitedEventIds` are treated as invited to all events (backwards compatible)
+- Overall RSVP status is derived from per-event responses (attending any = overall attending)
+- Event assignments are stored in GuestService.eventGuestAssignments Map
+- Per-event RSVP responses are stored in Guest.eventRsvps Map
+
+**PRD features now passing:**
+- "Admin can create multiple events" ✓ (already had UI in EventSettings)
+- "Admin can configure event-specific guest lists" ✓
+- "Guest can RSVP to specific events" ✓
+
+**Notes for next person:**
+- The "Timeline/schedule displays on public site" test case still needs UI work on wedding-site
+- Event assignment endpoints use POST for assign/unassign operations
+- The getEventRsvpSummary returns: { total, attending, notAttending, pending, totalPartySize }
+- When implementing the RSVP form UI, use the `events` field from RsvpViewData to render per-event RSVP options
+- Events are already sorted by date and time in the API response

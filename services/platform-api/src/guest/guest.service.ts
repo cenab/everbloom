@@ -8,6 +8,8 @@ import type {
   CsvGuestRow,
   CsvImportRowResult,
   PlusOneGuest,
+  EventRsvpMap,
+  EventGuestAssignment,
 } from '../types';
 
 @Injectable()
@@ -16,6 +18,10 @@ export class GuestService {
 
   // In-memory store for development
   private guests: Map<string, Guest> = new Map();
+
+  // In-memory store for event-guest assignments
+  // Key format: "{weddingId}:{eventId}:{guestId}"
+  private eventGuestAssignments: Map<string, EventGuestAssignment> = new Map();
 
   /**
    * Generate a secure RSVP token for a guest
@@ -583,5 +589,244 @@ export class GuestService {
     }
 
     this.logger.log(`Removed tag ${tagId} from all guests in wedding ${weddingId}`);
+  }
+
+  // ============================================================================
+  // Event RSVP Methods (Multi-Event Support)
+  // ============================================================================
+
+  /**
+   * Update per-event RSVP status for a guest
+   * PRD: "Guest can RSVP to specific events"
+   */
+  async updateEventRsvp(
+    guestId: string,
+    eventRsvps: EventRsvpMap,
+  ): Promise<Guest | null> {
+    const guest = this.guests.get(guestId);
+    if (!guest) {
+      return null;
+    }
+
+    // Merge with existing event RSVPs
+    const mergedEventRsvps: EventRsvpMap = {
+      ...guest.eventRsvps,
+      ...eventRsvps,
+    };
+
+    // Calculate overall RSVP status from per-event responses
+    // If attending any event, overall status is 'attending'
+    // If declined all events, overall status is 'not_attending'
+    // Otherwise, 'pending'
+    let overallStatus: RsvpStatus = 'pending';
+    const eventResponses = Object.values(mergedEventRsvps);
+    if (eventResponses.length > 0) {
+      const hasAttending = eventResponses.some((r) => r.rsvpStatus === 'attending');
+      const allDeclined = eventResponses.every((r) => r.rsvpStatus === 'not_attending');
+
+      if (hasAttending) {
+        overallStatus = 'attending';
+      } else if (allDeclined) {
+        overallStatus = 'not_attending';
+      }
+    }
+
+    const updated: Guest = {
+      ...guest,
+      eventRsvps: mergedEventRsvps,
+      rsvpStatus: overallStatus,
+      rsvpSubmittedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.guests.set(guestId, updated);
+    this.logger.log(
+      `Updated event RSVPs for guest ${guestId}: ${Object.keys(eventRsvps).length} events`,
+    );
+
+    return updated;
+  }
+
+  /**
+   * Assign guests to specific events
+   * PRD: "Admin can configure event-specific guest lists"
+   */
+  async assignGuestsToEvents(
+    weddingId: string,
+    guestIds: string[],
+    eventIds: string[],
+  ): Promise<EventGuestAssignment[]> {
+    const assignments: EventGuestAssignment[] = [];
+    const now = new Date().toISOString();
+
+    for (const guestId of guestIds) {
+      const guest = this.guests.get(guestId);
+      if (!guest || guest.weddingId !== weddingId) {
+        continue;
+      }
+
+      for (const eventId of eventIds) {
+        const key = `${weddingId}:${eventId}:${guestId}`;
+
+        // Check if assignment already exists
+        if (!this.eventGuestAssignments.has(key)) {
+          const assignment: EventGuestAssignment = {
+            eventId,
+            guestId,
+            assignedAt: now,
+          };
+          this.eventGuestAssignments.set(key, assignment);
+          assignments.push(assignment);
+        }
+      }
+
+      // Update guest's invitedEventIds
+      const existingEventIds = guest.invitedEventIds || [];
+      const mergedEventIds = [...new Set([...existingEventIds, ...eventIds])];
+
+      const updated: Guest = {
+        ...guest,
+        invitedEventIds: mergedEventIds,
+        updatedAt: now,
+      };
+      this.guests.set(guestId, updated);
+    }
+
+    this.logger.log(
+      `Assigned ${guestIds.length} guests to ${eventIds.length} events in wedding ${weddingId}`,
+    );
+
+    return assignments;
+  }
+
+  /**
+   * Remove guests from specific events
+   */
+  async removeGuestsFromEvents(
+    weddingId: string,
+    guestIds: string[],
+    eventIds: string[],
+  ): Promise<void> {
+    const now = new Date().toISOString();
+
+    for (const guestId of guestIds) {
+      const guest = this.guests.get(guestId);
+      if (!guest || guest.weddingId !== weddingId) {
+        continue;
+      }
+
+      for (const eventId of eventIds) {
+        const key = `${weddingId}:${eventId}:${guestId}`;
+        this.eventGuestAssignments.delete(key);
+      }
+
+      // Update guest's invitedEventIds
+      const existingEventIds = guest.invitedEventIds || [];
+      const filteredEventIds = existingEventIds.filter((id) => !eventIds.includes(id));
+
+      const updated: Guest = {
+        ...guest,
+        invitedEventIds: filteredEventIds.length > 0 ? filteredEventIds : undefined,
+        updatedAt: now,
+      };
+      this.guests.set(guestId, updated);
+    }
+
+    this.logger.log(
+      `Removed ${guestIds.length} guests from ${eventIds.length} events in wedding ${weddingId}`,
+    );
+  }
+
+  /**
+   * Get all event assignments for a wedding
+   */
+  getEventAssignments(weddingId: string): EventGuestAssignment[] {
+    const assignments: EventGuestAssignment[] = [];
+
+    for (const [key, assignment] of this.eventGuestAssignments.entries()) {
+      if (key.startsWith(`${weddingId}:`)) {
+        assignments.push(assignment);
+      }
+    }
+
+    return assignments;
+  }
+
+  /**
+   * Get guests invited to a specific event
+   */
+  getGuestsForEvent(weddingId: string, eventId: string): Guest[] {
+    const guests = this.getGuestsForWedding(weddingId);
+
+    return guests.filter((guest) => {
+      // If guest has no invitedEventIds, they're invited to all events (backward compatibility)
+      if (!guest.invitedEventIds || guest.invitedEventIds.length === 0) {
+        return true;
+      }
+      return guest.invitedEventIds.includes(eventId);
+    });
+  }
+
+  /**
+   * Get event-specific RSVP summary for a wedding
+   * PRD: "Admin can view per-event attendance breakdown"
+   */
+  getEventRsvpSummary(
+    weddingId: string,
+    eventId: string,
+  ): {
+    total: number;
+    attending: number;
+    notAttending: number;
+    pending: number;
+    totalPartySize: number;
+  } {
+    const guests = this.getGuestsForEvent(weddingId, eventId);
+
+    const summary = {
+      total: guests.length,
+      attending: 0,
+      notAttending: 0,
+      pending: 0,
+      totalPartySize: 0,
+    };
+
+    for (const guest of guests) {
+      // Check event-specific RSVP first
+      const eventRsvp = guest.eventRsvps?.[eventId];
+      const status = eventRsvp?.rsvpStatus ?? guest.rsvpStatus;
+
+      switch (status) {
+        case 'attending':
+          summary.attending++;
+          summary.totalPartySize += guest.partySize;
+          break;
+        case 'not_attending':
+          summary.notAttending++;
+          break;
+        case 'pending':
+          summary.pending++;
+          break;
+      }
+    }
+
+    return summary;
+  }
+
+  /**
+   * Check if a guest is invited to a specific event
+   */
+  isGuestInvitedToEvent(guestId: string, eventId: string): boolean {
+    const guest = this.guests.get(guestId);
+    if (!guest) {
+      return false;
+    }
+
+    // If no specific event invitations, guest is invited to all events
+    if (!guest.invitedEventIds || guest.invitedEventIds.length === 0) {
+      return true;
+    }
+
+    return guest.invitedEventIds.includes(eventId);
   }
 }
