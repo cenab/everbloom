@@ -274,6 +274,53 @@ export class GuestController {
   }
 
   /**
+   * Export all guest data as JSON (full data export for privacy compliance)
+   * PRD: "Admin can export all guest data"
+   * This endpoint returns ALL guest data in a comprehensive JSON format
+   * suitable for GDPR data export requests or data backup purposes.
+   */
+  @Get('export-full')
+  async exportFullGuestData(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { wedding } = await this.requireWeddingOwner(authHeader, weddingId);
+
+    const guests = this.guestService.getGuestsForWedding(weddingId);
+
+    // Build comprehensive export data
+    // Exclude sensitive fields like rsvpTokenHash but include all guest-relevant data
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      weddingId: wedding.id,
+      weddingName: wedding.name,
+      totalGuests: guests.length,
+      guests: guests.map((guest) => ({
+        id: guest.id,
+        name: guest.name,
+        email: guest.email,
+        partySize: guest.partySize,
+        rsvpStatus: guest.rsvpStatus,
+        dietaryNotes: guest.dietaryNotes || null,
+        plusOneAllowance: guest.plusOneAllowance ?? 0,
+        plusOneGuests: guest.plusOneGuests || [],
+        mealOptionId: guest.mealOptionId || null,
+        tagIds: guest.tagIds || [],
+        inviteSentAt: guest.inviteSentAt || null,
+        rsvpSubmittedAt: guest.rsvpSubmittedAt || null,
+        createdAt: guest.createdAt,
+        updatedAt: guest.updatedAt,
+      })),
+    };
+
+    // Set headers for JSON file download
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="guest-data-export.json"');
+    res.send(JSON.stringify(exportData, null, 2));
+  }
+
+  /**
    * Escape a field for CSV output (handle commas, quotes, newlines)
    */
   private escapeCsvField(value: string): string {

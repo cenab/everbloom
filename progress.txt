@@ -3777,3 +3777,70 @@ With HTTP status 429 Too Many Requests.
 - The Communications page is always accessible (not feature-gated)
 - Email statistics now track save_the_date and thank_you types separately
 - Email templates follow the same pattern as existing invitation/reminder templates
+
+---
+
+### 2026-01-07 - Admin Can Export All Guest Data (Privacy)
+
+**Feature worked on:** Admin can export all guest data (PRD: privacy category)
+
+**Priority rationale:** This is a high-priority feature because:
+1. It's essential for privacy/GDPR compliance
+2. Couples need full access to all their guest data for backup or migration
+3. The existing CSV export was limited (missing plus-ones, tags, meal selections)
+4. It follows established export patterns in the codebase
+
+**What was done:**
+1. Added new export endpoint to GuestController (services/platform-api/src/guest/guest.controller.ts):
+   - `GET /api/weddings/:weddingId/guests/export-full` - Full JSON data export
+   - Exports all guest fields except sensitive rsvpTokenHash
+   - Returns downloadable JSON file with all guest data
+
+**Export data structure:**
+```json
+{
+  "exportedAt": "ISO timestamp",
+  "weddingId": "wedding-id",
+  "weddingName": "Wedding Name",
+  "totalGuests": 50,
+  "guests": [
+    {
+      "id": "guest-id",
+      "name": "Guest Name",
+      "email": "email@example.com",
+      "partySize": 2,
+      "rsvpStatus": "attending",
+      "dietaryNotes": "Vegetarian",
+      "plusOneAllowance": 1,
+      "plusOneGuests": [{ "name": "Plus One", "dietaryNotes": "", "mealOptionId": null }],
+      "mealOptionId": "chicken",
+      "tagIds": ["tag-1", "tag-2"],
+      "inviteSentAt": "ISO timestamp or null",
+      "rsvpSubmittedAt": "ISO timestamp or null",
+      "createdAt": "ISO timestamp",
+      "updatedAt": "ISO timestamp"
+    }
+  ]
+}
+```
+
+**API Endpoints:**
+- `GET /api/weddings/:weddingId/guests/export-full` - Full JSON data export (requires auth)
+  - Returns: JSON file with all guest data
+  - Content-Type: application/json
+  - Content-Disposition: attachment; filename="guest-data-export.json"
+
+**Security considerations:**
+- Endpoint requires authentication and wedding ownership verification
+- Sensitive `rsvpTokenHash` field is excluded from export
+- Export includes all relevant guest data for privacy compliance
+
+**PRD features now passing:**
+- "Admin can export all guest data" ✓
+
+**Notes for next person:**
+- Full export endpoint is at GET /api/weddings/:weddingId/guests/export-full
+- Export is in JSON format for comprehensive data (CSV export still available via /export)
+- The export includes: id, name, email, partySize, rsvpStatus, dietaryNotes, plusOneAllowance, plusOneGuests, mealOptionId, tagIds, inviteSentAt, rsvpSubmittedAt, createdAt, updatedAt
+- The rsvpTokenHash is intentionally excluded for security
+- Export file is named "guest-data-export.json"

@@ -1379,7 +1379,7 @@
       "Verify export contains all guests",
       "Verify export is in usable format (CSV/JSON)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "privacy",
