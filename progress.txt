@@ -991,3 +991,24 @@
 **Notes for next person:**
 - Banner rendering lives in apps/wedding-site/src/components/AnnouncementBanner.astro
 - Display gating checks both the feature flag and announcement.enabled
+
+---
+
+### 2026-01-07 - Photo Upload CTA + Page
+
+**Feature worked on:** Photo upload feature can be enabled (PRD: photos category)
+
+**Priority rationale:** Photo uploads are the next major guest-facing feature; enabling the CTA and route is the prerequisite for the full signed-URL upload flow.
+
+**What was done:**
+1. Added a photo-upload section to initial render_config and ensured feature toggles update its enabled state.
+2. Added a PhotoUploadSection component and wired SectionRenderer to render it when PHOTO_UPLOAD is enabled.
+3. Restructured the /w/[slug] route into a folder to support /w/[slug]/photos and created the photo page with feature gating and calm UI copy.
+
+**PRD features now passing:**
+- "Photo upload feature can be enabled" ✓
+
+**Notes for next person:**
+- Wedding page moved to `apps/wedding-site/src/pages/w/[slug]/index.astro` to support nested routes.
+- Photo page lives at `apps/wedding-site/src/pages/w/[slug]/photos.astro` and shows a friendly disabled message if PHOTO_UPLOAD is off.
+- Upload UI is present but not wired to signed URL endpoints yet; next step is implementing actual upload + metadata storage.

@@ -3,10 +3,10 @@
  * Wedding site dynamic route
  * Renders exclusively from render_config - no direct database joins
  */
-import { fetchSiteConfig } from '../../lib/api';
-import WeddingLayout from '../../components/WeddingLayout.astro';
-import AnnouncementBanner from '../../components/AnnouncementBanner.astro';
-import SectionRenderer from '../../components/SectionRenderer.astro';
+import { fetchSiteConfig } from '../../../lib/api';
+import WeddingLayout from '../../../components/WeddingLayout.astro';
+import AnnouncementBanner from '../../../components/AnnouncementBanner.astro';
+import SectionRenderer from '../../../components/SectionRenderer.astro';
 
 const { slug } = Astro.params;
 

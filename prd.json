@@ -324,7 +324,7 @@
       "Verify photo upload CTA appears on site",
       "Verify photo upload page is accessible"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "photos",

@@ -11,6 +11,7 @@ import type {
   Template,
   TemplateCategory,
   Announcement,
+  Section,
 } from '@wedding-bestie/shared';
 
 /**
@@ -28,6 +29,22 @@ const DEFAULT_ANNOUNCEMENT: Announcement = {
   title: '',
   message: '',
 };
+
+const PHOTO_UPLOAD_SECTION_ID = 'photos';
+
+const DEFAULT_PHOTO_SECTION_DATA = {
+  title: 'Share Photos',
+  description: 'Add your favorite moments to our shared album.',
+  ctaLabel: 'Add your photos',
+};
+
+const createPhotoUploadSection = (order: number, enabled: boolean): Section => ({
+  id: PHOTO_UPLOAD_SECTION_ID,
+  type: 'photo-upload',
+  enabled,
+  order,
+  data: { ...DEFAULT_PHOTO_SECTION_DATA },
+});
 
 /**
  * Features enabled by plan tier
@@ -211,6 +228,7 @@ export class WeddingService {
             description: 'Please let us know if you can join us.',
           },
         },
+        createPhotoUploadSection(3, wedding.features.PHOTO_UPLOAD),
       ],
       wedding: {
         slug: wedding.slug,
@@ -374,6 +392,7 @@ export class WeddingService {
       return null;
     }
 
+    const hasPhotoSection = existingConfig.sections.some((section) => section.type === 'photo-upload');
     const updatedConfig: RenderConfig = {
       ...existingConfig,
       features: updatedFeatures,
@@ -382,10 +401,21 @@ export class WeddingService {
         if (section.type === 'rsvp') {
           return { ...section, enabled: updatedFeatures.RSVP };
         }
+        if (section.type === 'photo-upload') {
+          return { ...section, enabled: updatedFeatures.PHOTO_UPLOAD };
+        }
         // Add other feature-dependent sections here as needed
         return section;
       }),
     };
+
+    if (!hasPhotoSection) {
+      const maxOrder = updatedConfig.sections.reduce((max, section) => Math.max(max, section.order), -1);
+      updatedConfig.sections = [
+        ...updatedConfig.sections,
+        createPhotoUploadSection(maxOrder + 1, updatedFeatures.PHOTO_UPLOAD),
+      ];
+    }
 
     this.renderConfigs.set(weddingId, updatedConfig);
 

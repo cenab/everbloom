@@ -3,6 +3,7 @@ import type { RenderConfig } from '@wedding-bestie/shared';
 import HeroSection from './sections/HeroSection.astro';
 import EventDetailsSection from './sections/EventDetailsSection.astro';
 import RsvpSection from './sections/RsvpSection.astro';
+import PhotoUploadSection from './sections/PhotoUploadSection.astro';
 
 interface Props {
   config: RenderConfig;
@@ -35,6 +36,11 @@ const enabledSections = sections
       // Only render RSVP if the feature is enabled
       if (features.RSVP) {
         return <RsvpSection section={section} theme={theme} slug={wedding.slug} />;
+      }
+      return null;
+    case 'photo-upload':
+      if (features.PHOTO_UPLOAD) {
+        return <PhotoUploadSection section={section} theme={theme} slug={wedding.slug} />;
       }
       return null;
     default:
