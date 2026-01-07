@@ -1,5 +1,5 @@
 ---
-import type { Section, Theme } from '@wedding-bestie/shared';
+import type { Section, Theme, EventDetailsData } from '../../types';
 
 interface Props {
   section: Section;
@@ -7,10 +7,44 @@ interface Props {
   weddingDate?: string;
   venue?: string;
   city?: string;
+  slug: string;
+  calendarEnabled: boolean;
+  eventDetails?: EventDetailsData;
 }
 
-const { section, theme, weddingDate, venue, city } = Astro.props;
+const { section, theme, weddingDate, venue, city, slug, calendarEnabled, eventDetails } = Astro.props;
 const { title, description } = section.data as { title?: string; description?: string };
+
+// Format time for display (HH:MM -> h:mm AM/PM)
+function formatTime(time: string): string {
+  const [hours, minutes] = time.split(':').map(Number);
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const hour12 = hours % 12 || 12;
+  return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+}
+
+// Format date for display (YYYY-MM-DD -> Month DD, YYYY)
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr + 'T00:00:00');
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
+
+// Calendar links (only available when calendarEnabled && eventDetails exist)
+const showCalendarButtons = calendarEnabled && eventDetails;
+const apiBaseUrl = import.meta.env.PUBLIC_PLATFORM_API_URL || 'http://localhost:3001/api';
+const icsDownloadUrl = `${apiBaseUrl}/calendar/${slug}/download.ics`;
+const googleCalendarUrl = `${apiBaseUrl}/calendar/${slug}/google`;
+
+// Display values
+const displayDate = eventDetails?.date ? formatDate(eventDetails.date) : weddingDate;
+const displayTime = eventDetails?.startTime ? formatTime(eventDetails.startTime) : null;
+const displayVenue = eventDetails?.venue || venue;
+const displayCity = eventDetails?.city || city;
 ---
 
 <section
@@ -22,25 +56,46 @@ const { title, description } = section.data as { title?: string; description?: s
     {description && <p class="section-description">{description}</p>}
 
     <div class="details-grid">
-      {weddingDate && (
+      {displayDate && (
         <div class="detail-item">
           <span class="detail-label">When</span>
-          <span class="detail-value">{weddingDate}</span>
+          <span class="detail-value">{displayDate}</span>
+          {displayTime && <span class="detail-time">{displayTime}</span>}
         </div>
       )}
-      {venue && (
+      {displayVenue && (
         <div class="detail-item">
           <span class="detail-label">Where</span>
-          <span class="detail-value">{venue}</span>
+          <span class="detail-value">{displayVenue}</span>
         </div>
       )}
-      {city && (
+      {displayCity && (
         <div class="detail-item">
           <span class="detail-label">Location</span>
-          <span class="detail-value">{city}</span>
+          <span class="detail-value">{displayCity}</span>
         </div>
       )}
     </div>
+
+    {showCalendarButtons && (
+      <div class="calendar-buttons">
+        <a href={icsDownloadUrl} class="calendar-btn calendar-btn-primary" download>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          Add to Calendar
+        </a>
+        <a href={googleCalendarUrl} class="calendar-btn calendar-btn-secondary" target="_blank" rel="noopener noreferrer">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+          </svg>
+          Google Calendar
+        </a>
+      </div>
+    )}
   </div>
 </section>
 
@@ -100,11 +155,67 @@ const { title, description } = section.data as { title?: string; description?: s
     color: var(--neutral-dark);
   }
 
+  .detail-time {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 1rem;
+    color: var(--neutral-dark);
+    opacity: 0.7;
+  }
+
+  .calendar-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 3rem;
+    align-items: center;
+  }
+
+  .calendar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    min-width: 180px;
+    justify-content: center;
+  }
+
+  .calendar-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  .calendar-btn-primary {
+    background-color: var(--primary);
+    color: var(--neutral-light);
+  }
+
+  .calendar-btn-secondary {
+    background-color: transparent;
+    color: var(--neutral-dark);
+    border: 1px solid var(--neutral-dark);
+    opacity: 0.7;
+  }
+
+  .calendar-btn-secondary:hover {
+    opacity: 1;
+  }
+
   @media (min-width: 640px) {
     .details-grid {
       flex-direction: row;
       justify-content: center;
       gap: 4rem;
+    }
+
+    .calendar-buttons {
+      flex-direction: row;
+      justify-content: center;
     }
   }
 </style>

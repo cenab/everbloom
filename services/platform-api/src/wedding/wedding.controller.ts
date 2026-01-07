@@ -22,8 +22,10 @@ import type {
   UpdateFeaturesResponse,
   UpdateAnnouncementRequest,
   UpdateAnnouncementResponse,
-} from '@wedding-bestie/shared';
-import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED } from '@wedding-bestie/shared';
+  UpdateEventDetailsRequest,
+  UpdateEventDetailsResponse,
+} from '../types';
+import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, CALENDAR_INVITE_DISABLED } from '../types';
 
 @Controller('weddings')
 export class WeddingController {
@@ -191,6 +193,61 @@ export class WeddingController {
 
     if (!result) {
       throw new NotFoundException('Failed to update announcement');
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Update event details for a wedding
+   * Required for calendar invites to work properly
+   */
+  @Put(':id/event-details')
+  async updateEventDetails(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: UpdateEventDetailsRequest,
+  ): Promise<ApiResponse<UpdateEventDetailsResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException('Wedding not found');
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException('Wedding not found');
+    }
+
+    // Event details can be set regardless of CALENDAR_INVITE feature status
+    // (the feature flag controls display of calendar buttons, not storage of event data)
+
+    if (!body.eventDetails) {
+      throw new BadRequestException('Event details are required');
+    }
+
+    const { date, startTime, endTime, venue, address, city } = body.eventDetails;
+
+    if (!date || !startTime || !endTime || !venue || !address || !city) {
+      throw new BadRequestException(
+        'All event details fields are required: date, startTime, endTime, venue, address, city',
+      );
+    }
+
+    // Validate date format (YYYY-MM-DD)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new BadRequestException('Date must be in YYYY-MM-DD format');
+    }
+
+    // Validate time format (HH:MM)
+    if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) {
+      throw new BadRequestException('Times must be in HH:MM format');
+    }
+
+    const result = this.weddingService.updateEventDetails(id, body.eventDetails);
+
+    if (!result) {
+      throw new NotFoundException('Failed to update event details');
     }
 
     return { ok: true, data: result };

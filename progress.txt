@@ -1186,3 +1186,87 @@
 - Guest records returned to UI no longer include token (hash or raw)
 - Token flow: generate → hash for storage → return raw for email → discard raw
 - The `rsvpTokenHash` field replaces the old `rsvpToken` field throughout the codebase
+
+---
+
+### 2026-01-07 - Calendar Invite Feature
+
+**Feature worked on:** Calendar invite functionality (PRD: calendar category)
+
+**Priority rationale:** Calendar invites are a core guest-facing feature that:
+1. CALENDAR_INVITE was already a defined feature flag with no implementation
+2. It's directly tied to the event details section (already rendering on wedding sites)
+3. Allows guests to easily add the wedding to their personal calendars
+4. Completes the event information workflow: admin sets details → guests add to calendar
+
+**What was done:**
+1. Added calendar/event types to platform-api types:
+   - `EventDetailsData` interface with date, startTime, endTime, venue, address, city, timezone
+   - `UpdateEventDetailsRequest/Response` types
+   - `CALENDAR_INVITE_DISABLED` and `EVENT_DETAILS_NOT_CONFIGURED` error codes
+
+2. Extended Wedding and RenderConfig to include eventDetails:
+   - Wedding record stores eventDetails
+   - RenderConfig includes eventDetails and populates wedding.date/venue/city from it
+
+3. Added event details management in WeddingService:
+   - `updateEventDetails()` method to save event details and regenerate render_config
+
+4. Added event details API endpoint:
+   - `PUT /api/weddings/:id/event-details` (auth required)
+   - Validates date format (YYYY-MM-DD) and time format (HH:MM)
+   - All fields except timezone are required
+
+5. Created CalendarController for public calendar endpoints:
+   - `GET /api/calendar/:slug/download.ics` - ICS file download
+   - `GET /api/calendar/:slug/google` - Redirect to Google Calendar with prefilled event
+   - Both endpoints check CALENDAR_INVITE feature flag and event details existence
+   - Returns FEATURE_DISABLED or EVENT_DETAILS_NOT_CONFIGURED as appropriate
+
+6. Updated EventDetailsSection.astro with calendar buttons:
+   - Shows "Add to Calendar" (ICS download) and "Google Calendar" buttons
+   - Only visible when CALENDAR_INVITE feature enabled AND eventDetails configured
+   - Displays formatted date/time from eventDetails
+   - Mobile-responsive button layout
+
+7. Updated SectionRenderer.astro to pass new props:
+   - slug, calendarEnabled, eventDetails passed to EventDetailsSection
+
+8. Created EventSettings admin component:
+   - Form for date, start time, end time, venue, address, city, timezone
+   - Timezone dropdown with common options
+   - Validation before save
+   - Success/error feedback
+
+9. Added "Event details" card to Dashboard for navigation to EventSettings
+
+**API Endpoints:**
+- `PUT /api/weddings/:id/event-details` - Update event details (requires auth)
+  - Request: `{ eventDetails: { date, startTime, endTime, venue, address, city, timezone? } }`
+  - Response: `{ wedding, renderConfig }`
+- `GET /api/calendar/:slug/download.ics` - Download ICS file (public, feature-gated)
+- `GET /api/calendar/:slug/google` - Redirect to Google Calendar (public, feature-gated)
+
+**Design system adherence:**
+- Calendar buttons use theme colors (primary for ICS, transparent border for Google)
+- Human language: "Add to Calendar", "Google Calendar"
+- Mobile-first responsive layout
+- Calm, minimal button styling with subtle hover effects
+- Event details form uses clean, focused inputs
+
+**PRD features now passing:**
+- "Admin can configure event details for calendar invites" ✓
+- "Guest can download ICS calendar file" ✓
+- "Guest can add event to Google Calendar" ✓
+- "Calendar invite respects feature toggle" ✓
+
+**Notes for next person:**
+- Calendar endpoints are at /api/calendar/{slug}/download.ics and /api/calendar/{slug}/google
+- Event details are required for calendar buttons to appear (even with feature enabled)
+- ICS file includes proper VCALENDAR/VEVENT structure with timezone support
+- Google Calendar uses the /calendar/render URL with query params
+- Event details admin UI accessible from dashboard "Event details" card
+- Timezone is optional; defaults to UTC if not specified
+- The calendar buttons only show when both conditions are met:
+  1. CALENDAR_INVITE feature flag is enabled
+  2. eventDetails are configured (via admin Event details page)

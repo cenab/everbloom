@@ -64,6 +64,19 @@ export interface Announcement {
 }
 
 /**
+ * Event details for calendar invites
+ */
+export interface EventDetailsData {
+  date: string;
+  startTime: string;
+  endTime: string;
+  venue: string;
+  address: string;
+  city: string;
+  timezone?: string;
+}
+
+/**
  * The render_config contract - wedding site renders exclusively from this
  */
 export interface RenderConfig {
@@ -72,6 +85,7 @@ export interface RenderConfig {
   features: Record<FeatureFlag, boolean>;
   sections: Section[];
   announcement?: Announcement;
+  eventDetails?: EventDetailsData;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -187,6 +201,7 @@ export interface Wedding {
   status: WeddingStatus;
   features: Record<FeatureFlag, boolean>;
   announcement?: Announcement;
+  eventDetails?: EventDetailsData;
   createdAt: string;
   updatedAt: string;
 }

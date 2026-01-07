@@ -12,7 +12,8 @@ import type {
   TemplateCategory,
   Announcement,
   Section,
-} from '@wedding-bestie/shared';
+  EventDetailsData,
+} from '../types';
 
 /**
  * Default theme for new weddings - calm, warm palette
@@ -205,7 +206,7 @@ export class WeddingService {
    * Generate initial render_config for a new wedding
    */
   private generateRenderConfig(wedding: Wedding): RenderConfig {
-    return {
+    const config: RenderConfig = {
       templateId: 'minimal-001', // Default template
       theme: DEFAULT_THEME,
       features: wedding.features,
@@ -247,6 +248,16 @@ export class WeddingService {
         partnerNames: wedding.partnerNames,
       },
     };
+
+    // Add eventDetails to render_config and wedding.* fields if present
+    if (wedding.eventDetails) {
+      config.eventDetails = wedding.eventDetails;
+      config.wedding.date = wedding.eventDetails.date;
+      config.wedding.venue = wedding.eventDetails.venue;
+      config.wedding.city = wedding.eventDetails.city;
+    }
+
+    return config;
   }
 
   /**
@@ -466,6 +477,47 @@ export class WeddingService {
     this.renderConfigs.set(weddingId, updatedConfig);
 
     this.logger.log(`Updated announcement banner for wedding ${weddingId}`);
+
+    return { wedding, renderConfig: updatedConfig };
+  }
+
+  /**
+   * Update event details for a wedding
+   * Updates both the wedding record and render_config event details
+   */
+  updateEventDetails(
+    weddingId: string,
+    eventDetails: EventDetailsData,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    wedding.eventDetails = eventDetails;
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    const existingConfig = this.renderConfigs.get(weddingId);
+    if (!existingConfig) {
+      return null;
+    }
+
+    // Update render_config with event details
+    const updatedConfig: RenderConfig = {
+      ...existingConfig,
+      eventDetails,
+      wedding: {
+        ...existingConfig.wedding,
+        date: eventDetails.date,
+        venue: eventDetails.venue,
+        city: eventDetails.city,
+      },
+    };
+
+    this.renderConfigs.set(weddingId, updatedConfig);
+
+    this.logger.log(`Updated event details for wedding ${weddingId}`);
 
     return { wedding, renderConfig: updatedConfig };
   }

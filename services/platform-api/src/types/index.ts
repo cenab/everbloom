@@ -98,6 +98,7 @@ export interface RenderConfig {
   features: Record<FeatureFlag, boolean>;
   sections: Section[];
   announcement?: Announcement;
+  eventDetails?: EventDetailsData;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -255,6 +256,19 @@ export const WEBHOOK_SIGNATURE_INVALID = 'WEBHOOK_SIGNATURE_INVALID' as const;
 // ============================================================================
 
 /**
+ * Event details for calendar invites (forward declaration for Wedding)
+ */
+export interface EventDetailsData {
+  date: string;
+  startTime: string;
+  endTime: string;
+  venue: string;
+  address: string;
+  city: string;
+  timezone?: string;
+}
+
+/**
  * Wedding record in the platform system
  */
 export interface Wedding {
@@ -267,6 +281,7 @@ export interface Wedding {
   status: WeddingStatus;
   features: Record<FeatureFlag, boolean>;
   announcement?: Announcement;
+  eventDetails?: EventDetailsData;
   createdAt: string;
   updatedAt: string;
 }
@@ -700,3 +715,40 @@ export const REMINDER_QUEUE_FAILED = 'REMINDER_QUEUE_FAILED' as const;
  * Queue name for reminder emails
  */
 export const REMINDER_QUEUE_NAME = 'email-reminders' as const;
+
+// ============================================================================
+// Calendar Invite Types
+// ============================================================================
+
+/**
+ * Request to update event details for a wedding
+ */
+export interface UpdateEventDetailsRequest {
+  eventDetails: EventDetailsData;
+}
+
+/**
+ * Response after updating event details
+ */
+export interface UpdateEventDetailsResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+/**
+ * Response for ICS calendar file download
+ */
+export interface CalendarIcsResponse {
+  icsContent: string;
+  filename: string;
+}
+
+/**
+ * Calendar invite feature disabled error code
+ */
+export const CALENDAR_INVITE_DISABLED = 'CALENDAR_INVITE_DISABLED' as const;
+
+/**
+ * Event details not configured error code
+ */
+export const EVENT_DETAILS_NOT_CONFIGURED = 'EVENT_DETAILS_NOT_CONFIGURED' as const;

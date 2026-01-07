@@ -390,7 +390,7 @@
       "Save event details",
       "Verify event details are stored in render_config"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "calendar",
@@ -401,7 +401,7 @@
       "Click 'Add to Calendar' button",
       "Verify ICS file downloads with correct event details"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "calendar",
@@ -412,7 +412,7 @@
       "Click 'Add to Google Calendar' link",
       "Verify redirect to Google Calendar with prefilled event details"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "calendar",
@@ -424,7 +424,7 @@
       "Attempt to access calendar endpoint directly",
       "Verify response indicates FEATURE_DISABLED"
     ],
-    "passes": false
+    "passes": true
   },
 
   {
