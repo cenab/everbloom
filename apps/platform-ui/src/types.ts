@@ -12,7 +12,8 @@ export type FeatureFlag =
   | 'PASSCODE_SITE'
   | 'REGISTRY'
   | 'ACCOMMODATIONS'
-  | 'GUESTBOOK';
+  | 'GUESTBOOK'
+  | 'MUSIC_REQUESTS';
 
 /**
  * Template categories matching product positioning
@@ -810,4 +811,28 @@ export interface GuestbookSummaryResponse {
   pending: number;
   approved: number;
   rejected: number;
+}
+
+// ============================================================================
+// Music Requests Types
+// ============================================================================
+
+/**
+ * A single song request from a guest
+ */
+export interface SongRequest {
+  id: string;
+  weddingId: string;
+  songTitle: string;
+  artistName: string;
+  requesterName?: string;
+  createdAt: string;
+}
+
+/**
+ * Response from listing song requests
+ */
+export interface SongRequestListResponse {
+  songRequests: SongRequest[];
+  total: number;
 }

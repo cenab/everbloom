@@ -12,7 +12,8 @@ export type FeatureFlag =
   | 'PASSCODE_SITE'
   | 'REGISTRY'
   | 'ACCOMMODATIONS'
-  | 'GUESTBOOK';
+  | 'GUESTBOOK'
+  | 'MUSIC_REQUESTS';
 
 /**
  * Template categories matching product positioning
@@ -1401,6 +1402,62 @@ export const INVALID_MEAL_OPTION = 'INVALID_MEAL_OPTION' as const;
  */
 export const MEAL_OPTIONS_NOT_CONFIGURED = 'MEAL_OPTIONS_NOT_CONFIGURED' as const;
 
+// ============================================================================
+// Music Requests Types
+// ============================================================================
+
+/**
+ * A single song request from a guest
+ */
+export interface SongRequest {
+  id: string;
+  weddingId: string;
+  songTitle: string;
+  artistName: string;
+  requesterName?: string;
+  createdAt: string;
+}
+
+/**
+ * Request to submit a song request
+ */
+export interface SubmitSongRequestRequest {
+  songTitle: string;
+  artistName: string;
+  requesterName?: string;
+}
+
+/**
+ * Response after submitting a song request
+ */
+export interface SubmitSongRequestResponse {
+  ok: true;
+  message: string;
+  songRequest: SongRequest;
+}
+
+/**
+ * Response from listing song requests
+ */
+export interface SongRequestListResponse {
+  songRequests: SongRequest[];
+  total: number;
+}
+
+/**
+ * Response from exporting song requests for DJ
+ */
+export interface ExportPlaylistResponse {
+  content: string;
+  filename: string;
+  contentType: 'text/csv' | 'text/plain';
+}
+
+/**
+ * Music requests feature not found error code
+ */
+export const MUSIC_REQUESTS_DISABLED = 'MUSIC_REQUESTS_DISABLED' as const;
+
 /**
  * All error codes as a union type for documentation
  */
@@ -1437,4 +1494,5 @@ export type ErrorCode =
   | typeof RATE_LIMIT_EXCEEDED
   | typeof INVALID_MEAL_OPTION
   | typeof MEAL_OPTIONS_NOT_CONFIGURED
-  | typeof GUESTBOOK_MESSAGE_NOT_FOUND;
+  | typeof GUESTBOOK_MESSAGE_NOT_FOUND
+  | typeof MUSIC_REQUESTS_DISABLED;

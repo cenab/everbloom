@@ -3452,3 +3452,92 @@ With HTTP status 429 Too Many Requests.
 - render_config is updated after moderation actions to sync approved messages
 - Message length is limited to 1000 characters
 - Consider adding pagination for weddings with many messages
+
+---
+
+### 2026-01-07 - Music Requests Feature Implementation
+
+**Feature worked on:** Music Requests (PRD: music category - all 4 features)
+
+**Priority rationale:** Music requests is a self-contained 4-feature set that follows established patterns (similar to guestbook). It's a commonly requested wedding feature that enhances the celebration experience. Premium-only feature.
+
+**What was done:**
+
+1. **Platform API (NestJS):**
+   - Added MUSIC_REQUESTS to FeatureFlag type in types/index.ts
+   - Added SongRequest, SubmitSongRequestRequest, SubmitSongRequestResponse, SongRequestListResponse types
+   - Created MusicService with in-memory storage:
+     - submitSongRequest, getSongRequestsForWedding, getSongRequestCount
+     - getSongRequest, deleteSongRequest
+     - exportPlaylistAsCsv, exportPlaylistAsText
+   - Created MusicAdminController (auth-protected endpoints):
+     - GET /weddings/:weddingId/music/requests - list all song requests
+     - DELETE /weddings/:weddingId/music/requests/:requestId - delete request
+     - GET /weddings/:weddingId/music/export - export as CSV or TXT
+     - GET /weddings/:weddingId/music/summary - dashboard summary
+   - Created MusicPublicController (no auth required):
+     - POST /music/:slug/request - guest submits song request
+   - Updated WeddingService:
+     - Added MUSIC_REQUESTS to PLAN_FEATURES (premium only) and ALL_FEATURES
+     - Added createMusicRequestSection helper and music-request section to renderConfig
+     - Added updateFeatures handling for MUSIC_REQUESTS
+   - Registered MusicModule in app.module.ts
+
+2. **Platform UI (React):**
+   - Added MUSIC_REQUESTS to FeatureFlag type
+   - Added SongRequest and SongRequestListResponse types
+   - Created MusicRequests.tsx component with:
+     - Song request list table (song, artist, requester, date)
+     - Delete action per request
+     - Export to CSV and TXT buttons
+     - Empty state handling
+   - Updated Dashboard.tsx:
+     - Added music view handler
+     - Added onNavigateToMusic prop
+     - Added MusicNoteIcon and "Song requests" dashboard card (conditional on MUSIC_REQUESTS feature flag)
+   - Updated CreateWedding.tsx and FeatureSettings.tsx with MUSIC_REQUESTS in FEATURE_INFO and PLAN_AVAILABLE_FEATURES
+
+3. **Wedding Site (Astro):**
+   - Added MUSIC_REQUESTS to FeatureFlag type
+   - Added SubmitSongRequestRequest and SubmitSongRequestResponse types
+   - Created MusicRequestSection.astro component with CTA linking to /w/[slug]/music
+   - Updated SectionRenderer.astro to handle music-request section type
+   - Created /w/[slug]/music.astro page with:
+     - Song submission form (title, artist, optional requester name)
+     - Client-side form handling with platform API calls
+     - Success/error messaging
+     - "Suggest Another Song" button after submission
+     - PasscodeGateWrapper support for protected sites
+
+**PRD features now passing:**
+- "Guest can suggest songs" ✓
+- "Admin can view song requests" ✓
+- "Admin can export playlist for DJ" ✓
+- "Music requests respect feature toggle" ✓
+
+**Files created/modified:**
+- services/platform-api/src/music/music.service.ts (new)
+- services/platform-api/src/music/music.controller.ts (new)
+- services/platform-api/src/music/music.module.ts (new)
+- services/platform-api/src/types/index.ts (modified)
+- services/platform-api/src/wedding/wedding.service.ts (modified)
+- services/platform-api/src/app.module.ts (modified)
+- apps/platform-ui/src/types.ts (modified)
+- apps/platform-ui/src/components/MusicRequests.tsx (new)
+- apps/platform-ui/src/components/Dashboard.tsx (modified)
+- apps/platform-ui/src/components/CreateWedding.tsx (modified)
+- apps/platform-ui/src/components/FeatureSettings.tsx (modified)
+- apps/wedding-site/src/types.ts (modified)
+- apps/wedding-site/src/components/sections/MusicRequestSection.astro (new)
+- apps/wedding-site/src/components/SectionRenderer.astro (modified)
+- apps/wedding-site/src/pages/w/[slug]/music.astro (new)
+
+**Notes for next person:**
+- Music requests is a premium-only feature (in PLAN_FEATURES)
+- Song requests are stored with songTitle, artistName, optional requesterName, and createdAt
+- Export supports both CSV and TXT formats for DJ compatibility
+- The music-request section renders in order=9 in the default section list (after guestbook)
+- The /w/[slug]/music page is a standalone page (not a section), similar to photos
+- Passcode protection is respected on the music page
+- No moderation required for song requests (unlike guestbook messages)
+- Consider adding Spotify/Apple Music integration for song lookup in future iterations

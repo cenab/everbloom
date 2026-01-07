@@ -55,6 +55,10 @@ const FEATURE_INFO: Record<FeatureFlag, { label: string; description: string }> 
     label: 'Guestbook',
     description: 'Let guests leave messages for the couple',
   },
+  MUSIC_REQUESTS: {
+    label: 'Song requests',
+    description: 'Let guests suggest songs for your celebration',
+  },
 };
 
 /**
@@ -72,6 +76,7 @@ const PLAN_AVAILABLE_FEATURES: Record<string, FeatureFlag[]> = {
     'REGISTRY',
     'ACCOMMODATIONS',
     'GUESTBOOK',
+    'MUSIC_REQUESTS',
   ],
 };
 

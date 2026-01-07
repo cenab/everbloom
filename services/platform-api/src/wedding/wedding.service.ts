@@ -157,6 +157,21 @@ const createGuestbookSection = (order: number, enabled: boolean): Section => ({
   data: { ...DEFAULT_GUESTBOOK_SECTION_DATA },
 });
 
+const MUSIC_REQUEST_SECTION_ID = 'music-request';
+
+const DEFAULT_MUSIC_REQUEST_SECTION_DATA = {
+  title: 'Suggest a Song',
+  description: 'Help us create the perfect playlist for our celebration.',
+};
+
+const createMusicRequestSection = (order: number, enabled: boolean): Section => ({
+  id: MUSIC_REQUEST_SECTION_ID,
+  type: 'music-request',
+  enabled,
+  order,
+  data: { ...DEFAULT_MUSIC_REQUEST_SECTION_DATA },
+});
+
 /**
  * Features enabled by plan tier
  */
@@ -172,6 +187,7 @@ const PLAN_FEATURES: Record<PlanTier, FeatureFlag[]> = {
     'REGISTRY',
     'ACCOMMODATIONS',
     'GUESTBOOK',
+    'MUSIC_REQUESTS',
   ],
 };
 
@@ -188,6 +204,7 @@ const ALL_FEATURES: FeatureFlag[] = [
   'REGISTRY',
   'ACCOMMODATIONS',
   'GUESTBOOK',
+  'MUSIC_REQUESTS',
 ];
 
 /**
@@ -363,6 +380,7 @@ export class WeddingService {
         createRegistrySection(5, wedding.features.REGISTRY),
         createAccommodationsSection(6, wedding.features.ACCOMMODATIONS),
         createGuestbookSection(7, wedding.features.GUESTBOOK),
+        createMusicRequestSection(8, wedding.features.MUSIC_REQUESTS),
       ],
       wedding: {
         slug: wedding.slug,
@@ -632,6 +650,15 @@ export class WeddingService {
       updatedConfig.sections = [
         ...updatedConfig.sections,
         createGuestbookSection(maxOrder + 1, updatedFeatures.GUESTBOOK),
+      ];
+    }
+
+    const hasMusicRequestSection = updatedConfig.sections.some((section) => section.type === 'music-request');
+    if (!hasMusicRequestSection) {
+      const maxOrder = updatedConfig.sections.reduce((max, section) => Math.max(max, section.order), -1);
+      updatedConfig.sections = [
+        ...updatedConfig.sections,
+        createMusicRequestSection(maxOrder + 1, updatedFeatures.MUSIC_REQUESTS),
       ];
     }
 

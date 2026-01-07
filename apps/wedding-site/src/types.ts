@@ -12,7 +12,8 @@ export type FeatureFlag =
   | 'PASSCODE_SITE'
   | 'REGISTRY'
   | 'ACCOMMODATIONS'
-  | 'GUESTBOOK';
+  | 'GUESTBOOK'
+  | 'MUSIC_REQUESTS';
 
 /**
  * Theme configuration for wedding sites
@@ -362,4 +363,25 @@ export interface SubmitGuestbookMessageRequest {
  */
 export interface SubmitGuestbookMessageResponse {
   message: GuestbookMessage;
+}
+
+// ============================================================================
+// Music Requests Types
+// ============================================================================
+
+/**
+ * Request body for submitting a song request
+ */
+export interface SubmitSongRequestRequest {
+  songTitle: string;
+  artistName: string;
+  requesterName?: string;
+}
+
+/**
+ * Response from submitting a song request
+ */
+export interface SubmitSongRequestResponse {
+  ok: true;
+  message: string;
 }

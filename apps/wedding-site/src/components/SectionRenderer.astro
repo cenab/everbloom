@@ -8,6 +8,7 @@ import FaqSection from './sections/FaqSection.astro';
 import RegistrySection from './sections/RegistrySection.astro';
 import AccommodationsSection from './sections/AccommodationsSection.astro';
 import GuestbookSection from './sections/GuestbookSection.astro';
+import MusicRequestSection from './sections/MusicRequestSection.astro';
 
 interface Props {
   config: RenderConfig;
@@ -68,6 +69,11 @@ const enabledSections = sections
     case 'guestbook':
       if (features.GUESTBOOK) {
         return <GuestbookSection section={section} theme={theme} guestbook={guestbook} weddingSlug={wedding.slug} />;
+      }
+      return null;
+    case 'music-request':
+      if (features.MUSIC_REQUESTS) {
+        return <MusicRequestSection section={section} theme={theme} slug={wedding.slug} />;
       }
       return null;
     default:

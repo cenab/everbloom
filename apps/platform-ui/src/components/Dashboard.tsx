@@ -15,10 +15,11 @@ import { AccommodationsSettings } from './AccommodationsSettings';
 import { EmailStatisticsDashboard } from './EmailStatistics';
 import { PhotoStatsDashboard } from './PhotoStatsDashboard';
 import { GuestbookManager } from './GuestbookManager';
+import { MusicRequests } from './MusicRequests';
 import { getAuthToken } from '../lib/auth';
 import type { Wedding, ApiResponse, RenderConfig } from '../types';
 
-type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'accommodations' | 'email-stats' | 'photo-stats' | 'guestbook';
+type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'accommodations' | 'email-stats' | 'photo-stats' | 'guestbook' | 'music';
 
 /**
  * Admin Dashboard component.
@@ -245,6 +246,18 @@ export function Dashboard() {
     );
   }
 
+  if (view === 'music' && selectedWedding) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <MusicRequests
+          weddingId={selectedWedding.id}
+          wedding={selectedWedding}
+          onBack={() => setView('dashboard')}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -283,6 +296,7 @@ export function Dashboard() {
           onNavigateToEmailStats={() => setView('email-stats')}
           onNavigateToPhotoStats={() => setView('photo-stats')}
           onNavigateToGuestbook={() => setView('guestbook')}
+          onNavigateToMusic={() => setView('music')}
           onBack={weddings.length > 1 ? () => setSelectedWedding(null) : undefined}
         />
       )}
@@ -367,6 +381,7 @@ interface WeddingDashboardProps {
   onNavigateToEmailStats: () => void;
   onNavigateToPhotoStats: () => void;
   onNavigateToGuestbook: () => void;
+  onNavigateToMusic: () => void;
   onBack?: () => void;
 }
 
@@ -391,6 +406,7 @@ function WeddingDashboard({
   onNavigateToEmailStats,
   onNavigateToPhotoStats,
   onNavigateToGuestbook,
+  onNavigateToMusic,
   onBack,
 }: WeddingDashboardProps) {
   return (
@@ -519,6 +535,14 @@ function WeddingDashboard({
             description="Moderate messages from your guests"
             icon={<MessageSquareIcon className="w-6 h-6" />}
             onClick={onNavigateToGuestbook}
+          />
+        )}
+        {wedding.features.MUSIC_REQUESTS && (
+          <DashboardCard
+            title="Song requests"
+            description="View songs suggested by your guests"
+            icon={<MusicNoteIcon className="w-6 h-6" />}
+            onClick={onNavigateToMusic}
           />
         )}
         <DashboardCard
@@ -900,6 +924,24 @@ function MessageSquareIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"
+      />
+    </svg>
+  );
+}
+
+function MusicNoteIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z"
       />
     </svg>
   );

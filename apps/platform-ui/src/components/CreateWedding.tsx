@@ -77,6 +77,10 @@ const FEATURE_INFO: Record<FeatureFlag, { label: string; description: string }> 
     label: 'Guestbook',
     description: 'Let guests leave messages for the couple',
   },
+  MUSIC_REQUESTS: {
+    label: 'Song requests',
+    description: 'Let guests suggest songs for your celebration',
+  },
 };
 
 /**
@@ -94,6 +98,7 @@ const PLAN_AVAILABLE_FEATURES: Record<PlanTier, FeatureFlag[]> = {
     'REGISTRY',
     'ACCOMMODATIONS',
     'GUESTBOOK',
+    'MUSIC_REQUESTS',
   ],
 };
 
@@ -107,6 +112,7 @@ const DEFAULT_FEATURE_SELECTION: Record<FeatureFlag, boolean> = {
   REGISTRY: false,
   ACCOMMODATIONS: false,
   GUESTBOOK: false,
+  MUSIC_REQUESTS: false,
 };
 
 const ALL_FEATURES = Object.keys(FEATURE_INFO) as FeatureFlag[];
