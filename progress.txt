@@ -2607,3 +2607,72 @@ No stack traces, internal messages, or technical details are ever exposed.
 - The RSVP dashboard GuestRow component shows plus-ones in an indented list (lines 346-371)
 - Dietary notes for plus-ones are optional and displayed in parentheses
 - The next logical features to work on would be meal options or seating assignments
+
+---
+
+### 2026-01-07 - Admin Bounce/Failure Status with Email Update and Resend
+
+**Feature worked on:** Admin can see bounce and failure status (PRD: guests category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. The backend infrastructure for bounce tracking was already complete (SendGrid webhook, EmailOutbox with bounceType/bounceReason)
+2. The UI already displayed bounce status in InviteStatusBadge
+3. The only missing piece was the PRD requirement "Verify admin can update email and resend"
+4. This completes the email delivery recovery workflow: send → bounce → update email → resend
+
+**What was done:**
+1. Enhanced EditGuestDialog component with bounce/failure awareness:
+   - Added `emailStatus` prop to pass bounce information to the dialog
+   - Added `onResend` callback for refreshing email outbox after resend
+   - Shows prominent alert when guest has bounced/failed email with reason
+   - Email field highlighted with red border when bounce detected
+   - "✓ Email updated" indicator when admin changes the email
+
+2. Added "Save & Resend" functionality:
+   - New primary button when editing a guest with bounced/failed email
+   - Saves the guest record first (with updated email)
+   - Then automatically sends a new invitation to the updated email
+   - Shows "Resending..." state with spinner during the process
+   - Success message displayed briefly before closing dialog
+   - Falls back to "Save only" button for just saving without resend
+
+3. Created ExclamationTriangleIcon component for the bounce alert visual
+
+4. Updated EditGuestDialog invocation in Guests.tsx:
+   - Passes email status computed from email outbox
+   - Passes onResend callback to refresh outbox after resend
+
+**User workflow now works:**
+1. Admin sends invite to invalid email → email bounces
+2. SendGrid webhook updates outbox with bounce status and reason
+3. Admin navigates to Guests page → sees red "Bounced" or "Soft bounce" badge
+4. Admin clicks Edit on the guest → sees prominent bounce alert with reason
+5. Admin updates the email address → sees "✓ Email updated" indicator
+6. Admin clicks "Save & Resend" → guest updated, new invitation sent
+7. Email outbox refreshed → new status badge shows (Sending/Delivered)
+
+**Design system adherence:**
+- Bounce alert uses red-50 background with red border (follows error styling)
+- ExclamationTriangle icon for visual warning
+- Human language: "Email bounced", "Delivery failed", "Update the email address below"
+- Bounce reason displayed when available from SendGrid
+- "Save & Resend" button is primary color when there's a bounce to fix
+- Success message uses accent-50 background with checkmark icon
+- No pure black/white colors
+
+**PRD features now passing:**
+- "Admin can see bounce and failure status" ✓
+  - ✓ Send invite to invalid email address (existing workflow)
+  - ✓ Wait for bounce webhook (SendGrid webhook controller exists)
+  - ✓ Navigate to Guests page (InviteStatusBadge shows bounce status)
+  - ✓ Verify bounced status is shown (red badge with bounce type)
+  - ✓ Verify admin can update email and resend (new Save & Resend button)
+
+**Notes for next person:**
+- EditGuestDialog now requires `emailStatus` prop (computed via getLatestEmailStatus)
+- The "Save & Resend" button only appears when there's a bounce or failure
+- Resend uses the existing /api/weddings/:weddingId/invitations/send endpoint
+- After resend, email outbox is refreshed via onResend callback
+- The bounceReason from SendGrid is displayed to help admin understand the issue
+- Common bounce reasons: "invalid_email", "mailbox_unavailable", "domain_not_found"
+

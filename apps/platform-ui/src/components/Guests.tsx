@@ -337,7 +337,9 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
         <EditGuestDialog
           weddingId={weddingId}
           guest={editingGuest}
+          emailStatus={getLatestEmailStatus(editingGuest.id, emailOutbox)}
           onSuccess={handleGuestUpdated}
+          onResend={() => fetchEmailOutbox()}
           onCancel={() => setEditingGuest(null)}
         />
       )}
@@ -934,29 +936,37 @@ function CsvImportForm({ weddingId, onSuccess, onCancel }: CsvImportFormProps) {
 interface EditGuestDialogProps {
   weddingId: string;
   guest: Guest;
+  emailStatus: EmailStatusInfo | null;
   onSuccess: (guest: Guest) => void;
+  onResend?: () => void;
   onCancel: () => void;
 }
 
 /**
  * Edit guest dialog component.
  * PRD: "Admin can configure plus-one allowance per guest"
+ * PRD: "Admin can see bounce and failure status" - includes ability to update email and resend
  */
-function EditGuestDialog({ weddingId, guest, onSuccess, onCancel }: EditGuestDialogProps) {
+function EditGuestDialog({ weddingId, guest, emailStatus, onSuccess, onResend, onCancel }: EditGuestDialogProps) {
   const [name, setName] = useState(guest.name);
   const [email, setEmail] = useState(guest.email);
   const [plusOneAllowance, setPlusOneAllowance] = useState(guest.plusOneAllowance ?? 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   const canSubmit = name.trim() && email.trim();
+  const emailChanged = email.trim() !== guest.email;
+  const hasBounceOrFailure = emailStatus && (emailStatus.status === 'bounced' || emailStatus.status === 'failed');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, shouldResend = false) => {
     e.preventDefault();
     if (!canSubmit) return;
 
     setIsSubmitting(true);
     setError(null);
+    setResendSuccess(false);
 
     try {
       const token = getAuthToken();
@@ -978,7 +988,39 @@ function EditGuestDialog({ weddingId, guest, onSuccess, onCancel }: EditGuestDia
       const data: ApiResponse<Guest> = await response.json();
 
       if (data.ok) {
-        onSuccess(data.data);
+        // If user wants to resend after save
+        if (shouldResend) {
+          setIsSubmitting(false);
+          setIsResending(true);
+          try {
+            const resendResponse = await fetch(`/api/weddings/${weddingId}/invitations/send`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ guestIds: [guest.id] }),
+            });
+            const resendData: ApiResponse<SendInvitationsResponse> = await resendResponse.json();
+            if (resendData.ok && resendData.data.sent > 0) {
+              setResendSuccess(true);
+              // Brief delay to show success before closing
+              setTimeout(() => {
+                onSuccess(data.data);
+                if (onResend) onResend();
+              }, 1000);
+              return;
+            } else {
+              setError('Saved, but failed to resend invitation. Please try again.');
+            }
+          } catch {
+            setError('Saved, but failed to resend invitation. Please try again.');
+          } finally {
+            setIsResending(false);
+          }
+        } else {
+          onSuccess(data.data);
+        }
       } else {
         setError('Unable to update guest. Please try again.');
       }
@@ -1002,7 +1044,39 @@ function EditGuestDialog({ weddingId, guest, onSuccess, onCancel }: EditGuestDia
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Show bounce/failure alert with helpful message */}
+        {hasBounceOrFailure && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <ExclamationTriangleIcon className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-red-800">
+                  {emailStatus.status === 'bounced' ? 'Email bounced' : 'Delivery failed'}
+                </p>
+                <p className="text-sm text-red-700 mt-1">
+                  {emailStatus.bounceReason
+                    ? `Reason: ${emailStatus.bounceReason}`
+                    : emailStatus.status === 'bounced'
+                      ? 'The email address appears to be invalid or unreachable.'
+                      : 'The invitation could not be delivered.'}
+                </p>
+                <p className="text-sm text-red-600 mt-2">
+                  Update the email address below and click "Save & Resend" to try again.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Show resend success message */}
+        {resendSuccess && (
+          <div className="mb-4 p-3 bg-accent-50 border border-accent-200 rounded-lg flex items-center gap-2">
+            <CheckCircleIcon className="w-5 h-5 text-accent-600" />
+            <p className="text-sm text-accent-800">Invitation resent successfully!</p>
+          </div>
+        )}
+
+        <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-4">
           <div>
             <label
               htmlFor="editGuestName"
@@ -1026,6 +1100,9 @@ function EditGuestDialog({ weddingId, guest, onSuccess, onCancel }: EditGuestDia
               className="block text-sm font-medium text-neutral-700 mb-1"
             >
               Email
+              {hasBounceOrFailure && (
+                <span className="ml-2 text-xs text-red-600 font-normal">(needs update)</span>
+              )}
             </label>
             <input
               id="editGuestEmail"
@@ -1033,8 +1110,15 @@ function EditGuestDialog({ weddingId, guest, onSuccess, onCancel }: EditGuestDia
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="john@example.com"
-              className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                hasBounceOrFailure && !emailChanged
+                  ? 'border-red-300 bg-red-50'
+                  : 'border-neutral-200'
+              }`}
             />
+            {hasBounceOrFailure && emailChanged && (
+              <p className="text-xs text-accent-600 mt-1">✓ Email updated</p>
+            )}
           </div>
           <div>
             <label
@@ -1068,21 +1152,60 @@ function EditGuestDialog({ weddingId, guest, onSuccess, onCancel }: EditGuestDia
               type="button"
               onClick={onCancel}
               className="btn-secondary"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isResending}
             >
               Cancel
             </button>
+            {/* Show "Save & Resend" button when there was a bounce/failure */}
+            {hasBounceOrFailure && (
+              <button
+                type="button"
+                onClick={(e) => handleSubmit(e, true)}
+                disabled={!canSubmit || isSubmitting || isResending}
+                className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isResending ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-neutral-50 border-t-transparent rounded-full animate-spin" />
+                    Resending...
+                  </>
+                ) : (
+                  <>
+                    <EnvelopeIcon className="w-4 h-4" />
+                    Save & Resend
+                  </>
+                )}
+              </button>
+            )}
             <button
               type="submit"
-              disabled={!canSubmit || isSubmitting}
-              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!canSubmit || isSubmitting || isResending}
+              className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Saving...' : 'Save changes'}
+              {isSubmitting ? 'Saving...' : 'Save only'}
             </button>
           </div>
         </form>
       </div>
     </div>
+  );
+}
+
+function ExclamationTriangleIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+      />
+    </svg>
   );
 }
 
