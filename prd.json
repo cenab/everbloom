@@ -1504,7 +1504,7 @@
       "Verify og:description is set",
       "Verify og:image is set"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "social",

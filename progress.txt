@@ -2850,3 +2850,68 @@ No stack traces, internal messages, or technical details are ever exposed.
 - Links are validated for proper URL format before saving
 - Public section shows links as styled buttons with external link icons
 - Each link opens in new tab for better UX
+
+---
+
+### 2026-01-07 - OG Meta Tags for Social Sharing
+
+**Feature worked on:** Site has proper OG meta tags for sharing (PRD: social category)
+
+**Priority rationale:** This is a high-priority feature because:
+1. Wedding sites are often shared on social media (Facebook, Twitter, iMessage, etc.)
+2. Without OG meta tags, shared links show generic/blank previews
+3. It's a simple, self-contained feature with high user value
+4. It improves the professional appearance of wedding site links when shared
+
+**What was done:**
+1. Updated WeddingLayout.astro to include OG meta tags:
+   - Added `og:type` = "website"
+   - Added `og:title` with partner names (e.g., "John & Jane")
+   - Added `og:description` with wedding invitation message
+   - Added `og:url` with canonical URL for the wedding site
+   - Added `og:image` pointing to default placeholder image
+   - Added `og:site_name` = "Everbloom"
+
+2. Added Twitter Card meta tags for Twitter/X sharing:
+   - Added `twitter:card` = "summary_large_image"
+   - Added `twitter:title` with partner names
+   - Added `twitter:description` with invitation message
+   - Added `twitter:image` pointing to default image
+
+3. Added canonical URL link tag for SEO
+
+4. Created default OG image placeholder:
+   - Created `apps/wedding-site/public/` directory for static assets
+   - Added `og-image-default.svg` with Everbloom branding
+   - Uses warm off-white background (#faf8f5)
+   - Features terracotta heart icon and "You're invited" text
+   - Uses design system colors (no pure black/white)
+
+**OG Meta Implementation:**
+- Title: `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`
+- Description: `Join us to celebrate the wedding of ${partner1} & ${partner2}`
+- URL: Built from `PUBLIC_WEDDING_SITE_URL` or `SITE` env var
+- Image: Default SVG placeholder at `/og-image-default.svg`
+
+**Design system adherence:**
+- OG image uses design system colors (terracotta #c9826b, sage #8fac8b, warm off-white #faf8f5)
+- No pure black (#000000) or pure white (#FFFFFF) in image
+- Uses serif font for invitation text (Georgia fallback)
+- Calm, minimal design matching Everbloom aesthetic
+
+**Environment variables:**
+- `PUBLIC_WEDDING_SITE_URL` - Primary URL for canonical links and OG tags
+- `SITE` - Astro fallback for site URL
+- Defaults to `https://everbloom.wedding` if neither is set
+
+**PRD features now passing:**
+- "Site has proper OG meta tags for sharing" ✓
+
+**Notes for next person:**
+- OG meta tags are in `apps/wedding-site/src/components/WeddingLayout.astro`
+- Default OG image is at `apps/wedding-site/public/og-image-default.svg`
+- The "Admin can customize share image" feature is still pending
+- When custom share images are implemented, the ogImageUrl should be updated to use wedding-specific images
+- SVG format is used for default image; production might want PNG for better social media compatibility
+- Twitter Card uses `summary_large_image` for prominent preview on Twitter/X
+
