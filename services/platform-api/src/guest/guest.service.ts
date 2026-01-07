@@ -135,6 +135,47 @@ export class GuestService {
   }
 
   /**
+   * Find a guest by RSVP token
+   */
+  getGuestByRsvpToken(token: string): Guest | null {
+    for (const guest of this.guests.values()) {
+      if (guest.rsvpToken === token) {
+        return guest;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Update guest RSVP status
+   */
+  async updateRsvpStatus(
+    guestId: string,
+    rsvpStatus: RsvpStatus,
+    partySize: number,
+    dietaryNotes?: string,
+  ): Promise<Guest | null> {
+    const guest = this.guests.get(guestId);
+    if (!guest) {
+      return null;
+    }
+
+    const updated: Guest = {
+      ...guest,
+      rsvpStatus,
+      partySize,
+      dietaryNotes: dietaryNotes ?? guest.dietaryNotes,
+      rsvpSubmittedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.guests.set(guestId, updated);
+    this.logger.log(`Updated RSVP for guest ${guestId}: ${rsvpStatus}`);
+
+    return updated;
+  }
+
+  /**
    * Get guest count summary for a wedding
    */
   getGuestSummary(weddingId: string): {

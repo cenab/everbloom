@@ -4,9 +4,10 @@ import { AuthModule } from './auth/auth.module';
 import { BillingModule } from './billing/billing.module';
 import { WeddingModule } from './wedding/wedding.module';
 import { GuestModule } from './guest/guest.module';
+import { RsvpModule } from './rsvp/rsvp.module';
 
 @Module({
-  imports: [AuthModule, BillingModule, WeddingModule, GuestModule],
+  imports: [AuthModule, BillingModule, WeddingModule, GuestModule, RsvpModule],
   controllers: [AppController],
   providers: [],
 })

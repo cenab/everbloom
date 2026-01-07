@@ -1,0 +1,585 @@
+---
+/**
+ * RSVP page - accessed via tokenized link
+ * Route: /rsvp?token=...
+ *
+ * PRD requirements:
+ * - Guest can view RSVP form via tokenized link
+ * - RSVP form loads with guest name prefilled
+ * - Mobile-first with large tap targets
+ */
+import { fetchRsvpView } from '../../lib/api';
+import type { Theme } from '@wedding-bestie/shared';
+
+// Get token from query string
+const token = Astro.url.searchParams.get('token');
+
+// Redirect to home if no token
+if (!token) {
+  return Astro.redirect('/');
+}
+
+// Fetch RSVP data
+const { data, error } = await fetchRsvpView(token);
+
+// Handle errors
+let errorMessage = '';
+if (error === 'INVALID_TOKEN') {
+  errorMessage = 'This RSVP link is no longer valid. Please contact the couple for a new invitation.';
+} else if (error === 'FEATURE_DISABLED') {
+  errorMessage = 'RSVPs are currently closed for this event.';
+} else if (error === 'WEDDING_NOT_FOUND') {
+  errorMessage = 'This wedding event could not be found.';
+} else if (error) {
+  errorMessage = 'Something went wrong. Please try again later.';
+}
+
+// Default theme for error pages
+const defaultTheme: Theme = {
+  primary: '#c9826b',
+  accent: '#8fac8b',
+  neutralLight: '#faf8f5',
+  neutralDark: '#2d2d2d',
+};
+
+const theme = data?.theme || defaultTheme;
+const guest = data?.guest;
+const wedding = data?.wedding;
+const title = wedding
+  ? `RSVP - ${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`
+  : 'RSVP';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="RSVP to our wedding celebration" />
+    <title>{title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style define:vars={{
+      primary: theme.primary,
+      accent: theme.accent,
+      neutralLight: theme.neutralLight,
+      neutralDark: theme.neutralDark,
+    }}>
+      :root {
+        --primary: var(--primary);
+        --accent: var(--accent);
+        --neutral-light: var(--neutralLight);
+        --neutral-dark: var(--neutralDark);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', 'Helvetica Neue', sans-serif;
+        background-color: var(--neutral-light);
+        color: var(--neutral-dark);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+      }
+
+      .rsvp-container {
+        width: 100%;
+        max-width: 480px;
+        background: white;
+        border-radius: 12px;
+        padding: 2.5rem 2rem;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+      }
+
+      .couple-names {
+        font-family: 'Cormorant Garamond', Georgia, serif;
+        font-size: 1.75rem;
+        font-weight: 500;
+        text-align: center;
+        color: var(--primary);
+        margin: 0 0 0.5rem;
+      }
+
+      .event-label {
+        text-align: center;
+        font-size: 0.875rem;
+        color: var(--neutral-dark);
+        opacity: 0.7;
+        margin-bottom: 2rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+
+      .greeting {
+        font-family: 'Cormorant Garamond', Georgia, serif;
+        font-size: 1.5rem;
+        text-align: center;
+        margin-bottom: 2rem;
+        color: var(--neutral-dark);
+      }
+
+      .greeting strong {
+        color: var(--primary);
+      }
+
+      .question {
+        font-size: 1.125rem;
+        text-align: center;
+        margin-bottom: 1.5rem;
+        font-weight: 500;
+      }
+
+      .rsvp-options {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .rsvp-option {
+        display: flex;
+        align-items: center;
+        padding: 1.25rem;
+        border: 2px solid #e8e4df;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: transparent;
+        width: 100%;
+        text-align: left;
+        font-size: 1rem;
+      }
+
+      .rsvp-option:hover {
+        border-color: var(--primary);
+      }
+
+      .rsvp-option.selected {
+        border-color: var(--primary);
+        background-color: rgba(201, 130, 107, 0.08);
+      }
+
+      .rsvp-option input {
+        display: none;
+      }
+
+      .rsvp-option-radio {
+        width: 24px;
+        height: 24px;
+        border: 2px solid #e8e4df;
+        border-radius: 50%;
+        margin-right: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+      }
+
+      .rsvp-option.selected .rsvp-option-radio {
+        border-color: var(--primary);
+        background-color: var(--primary);
+      }
+
+      .rsvp-option.selected .rsvp-option-radio::after {
+        content: '';
+        width: 8px;
+        height: 8px;
+        background: white;
+        border-radius: 50%;
+      }
+
+      .party-size-section {
+        margin-bottom: 2rem;
+        display: none;
+      }
+
+      .party-size-section.visible {
+        display: block;
+      }
+
+      .section-label {
+        font-size: 0.875rem;
+        color: var(--neutral-dark);
+        opacity: 0.7;
+        margin-bottom: 0.75rem;
+        display: block;
+      }
+
+      .stepper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
+      }
+
+      .stepper-btn {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 2px solid var(--primary);
+        background: transparent;
+        color: var(--primary);
+        font-size: 1.5rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+
+      .stepper-btn:hover:not(:disabled) {
+        background: var(--primary);
+        color: white;
+      }
+
+      .stepper-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .stepper-value {
+        font-size: 2rem;
+        font-weight: 600;
+        min-width: 60px;
+        text-align: center;
+      }
+
+      .dietary-section {
+        margin-bottom: 2rem;
+        display: none;
+      }
+
+      .dietary-section.visible {
+        display: block;
+      }
+
+      .dietary-input {
+        width: 100%;
+        padding: 1rem;
+        border: 2px solid #e8e4df;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-family: inherit;
+        resize: vertical;
+        min-height: 100px;
+      }
+
+      .dietary-input:focus {
+        outline: none;
+        border-color: var(--primary);
+      }
+
+      .submit-btn {
+        width: 100%;
+        padding: 1.25rem;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.125rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .submit-btn:hover:not(:disabled) {
+        opacity: 0.9;
+      }
+
+      .submit-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .error-container {
+        text-align: center;
+        padding: 2rem;
+      }
+
+      .error-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+      }
+
+      .error-message {
+        font-size: 1.125rem;
+        color: var(--neutral-dark);
+        opacity: 0.8;
+        line-height: 1.6;
+      }
+
+      .success-container {
+        text-align: center;
+        display: none;
+      }
+
+      .success-container.visible {
+        display: block;
+      }
+
+      .success-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+      }
+
+      .success-title {
+        font-family: 'Cormorant Garamond', Georgia, serif;
+        font-size: 1.75rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+      }
+
+      .success-message {
+        font-size: 1.125rem;
+        line-height: 1.6;
+        color: var(--neutral-dark);
+        opacity: 0.8;
+      }
+
+      .form-container {
+        display: block;
+      }
+
+      .form-container.hidden {
+        display: none;
+      }
+
+      .current-status {
+        background: rgba(143, 172, 139, 0.15);
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+        margin-bottom: 1.5rem;
+        font-size: 0.875rem;
+      }
+
+      .current-status strong {
+        color: var(--accent);
+      }
+
+      .back-link {
+        display: block;
+        text-align: center;
+        margin-top: 1.5rem;
+        color: var(--primary);
+        text-decoration: none;
+        font-size: 0.875rem;
+      }
+
+      .back-link:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="rsvp-container">
+      {errorMessage ? (
+        <div class="error-container">
+          <div class="error-icon" aria-hidden="true">
+            {error === 'FEATURE_DISABLED' ? '⏸' : '💌'}
+          </div>
+          <p class="error-message">{errorMessage}</p>
+        </div>
+      ) : data && guest && wedding && (
+        <>
+          <h1 class="couple-names">{wedding.partnerNames[0]} & {wedding.partnerNames[1]}</h1>
+          <p class="event-label">Wedding Celebration</p>
+
+          <div class="success-container" id="success">
+            <div class="success-icon" aria-hidden="true">🎉</div>
+            <h2 class="success-title">Thank you!</h2>
+            <p class="success-message" id="success-message"></p>
+            <a href={`/w/${wedding.slug}`} class="back-link">View wedding details</a>
+          </div>
+
+          <div class="form-container" id="form">
+            <p class="greeting">
+              Hello <strong>{guest.name}</strong>,<br />
+              will you be joining us?
+            </p>
+
+            {guest.rsvpStatus !== 'pending' && (
+              <div class="current-status">
+                You previously responded: <strong>
+                  {guest.rsvpStatus === 'attending' ? 'Attending' : 'Not attending'}
+                </strong>
+              </div>
+            )}
+
+            <form id="rsvp-form">
+              <input type="hidden" name="token" value={token} />
+
+              <div class="rsvp-options">
+                <label class="rsvp-option" data-value="attending">
+                  <input type="radio" name="rsvpStatus" value="attending" checked={guest.rsvpStatus === 'attending'} />
+                  <span class="rsvp-option-radio"></span>
+                  <span>Joyfully accept</span>
+                </label>
+                <label class="rsvp-option" data-value="not_attending">
+                  <input type="radio" name="rsvpStatus" value="not_attending" checked={guest.rsvpStatus === 'not_attending'} />
+                  <span class="rsvp-option-radio"></span>
+                  <span>Regretfully decline</span>
+                </label>
+              </div>
+
+              <div class="party-size-section" id="party-size-section">
+                <span class="section-label">Number of guests in your party</span>
+                <div class="stepper">
+                  <button type="button" class="stepper-btn" id="decrease-btn" aria-label="Decrease party size">−</button>
+                  <span class="stepper-value" id="party-size-value">{guest.partySize}</span>
+                  <input type="hidden" name="partySize" id="party-size-input" value={guest.partySize} />
+                  <button type="button" class="stepper-btn" id="increase-btn" aria-label="Increase party size">+</button>
+                </div>
+              </div>
+
+              <div class="dietary-section" id="dietary-section">
+                <label class="section-label" for="dietary-notes">Any dietary restrictions? (optional)</label>
+                <textarea
+                  class="dietary-input"
+                  name="dietaryNotes"
+                  id="dietary-notes"
+                  placeholder="Let us know about any allergies or dietary needs..."
+                >{guest.dietaryNotes || ''}</textarea>
+              </div>
+
+              <button type="submit" class="submit-btn" id="submit-btn">
+                Send response
+              </button>
+            </form>
+          </div>
+        </>
+      )}
+    </div>
+
+    {!errorMessage && data && (
+      <script define:vars={{ apiBaseUrl: import.meta.env.PUBLIC_PLATFORM_API_URL || 'http://localhost:3001/api' }}>
+        document.addEventListener('DOMContentLoaded', () => {
+          const form = document.getElementById('rsvp-form');
+          const formContainer = document.getElementById('form');
+          const successContainer = document.getElementById('success');
+          const successMessage = document.getElementById('success-message');
+          const submitBtn = document.getElementById('submit-btn');
+          const options = document.querySelectorAll('.rsvp-option');
+          const partySizeSection = document.getElementById('party-size-section');
+          const dietarySection = document.getElementById('dietary-section');
+          const partySizeValue = document.getElementById('party-size-value');
+          const partySizeInput = document.getElementById('party-size-input');
+          const decreaseBtn = document.getElementById('decrease-btn');
+          const increaseBtn = document.getElementById('increase-btn');
+
+          // Update UI based on current selection
+          function updateUI() {
+            const selected = document.querySelector('input[name="rsvpStatus"]:checked');
+            const isAttending = selected && selected.value === 'attending';
+
+            options.forEach(opt => {
+              const input = opt.querySelector('input');
+              opt.classList.toggle('selected', input.checked);
+            });
+
+            partySizeSection.classList.toggle('visible', isAttending);
+            dietarySection.classList.toggle('visible', isAttending);
+          }
+
+          // Initialize UI
+          updateUI();
+
+          // Handle option selection
+          options.forEach(option => {
+            option.addEventListener('click', () => {
+              const input = option.querySelector('input');
+              input.checked = true;
+              updateUI();
+            });
+          });
+
+          // Party size stepper
+          let partySize = parseInt(partySizeInput.value) || 1;
+
+          function updatePartySize() {
+            partySizeValue.textContent = partySize;
+            partySizeInput.value = partySize;
+            decreaseBtn.disabled = partySize <= 1;
+            increaseBtn.disabled = partySize >= 20;
+          }
+
+          decreaseBtn.addEventListener('click', () => {
+            if (partySize > 1) {
+              partySize--;
+              updatePartySize();
+            }
+          });
+
+          increaseBtn.addEventListener('click', () => {
+            if (partySize < 20) {
+              partySize++;
+              updatePartySize();
+            }
+          });
+
+          updatePartySize();
+
+          // Form submission
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+
+            const formData = new FormData(form);
+            const data = {
+              token: formData.get('token'),
+              rsvpStatus: formData.get('rsvpStatus'),
+              partySize: parseInt(formData.get('partySize')) || 1,
+              dietaryNotes: formData.get('dietaryNotes') || undefined,
+            };
+
+            try {
+              const response = await fetch(`${apiBaseUrl}/rsvp/submit`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+              });
+
+              const result = await response.json();
+
+              if (result.ok) {
+                formContainer.classList.add('hidden');
+                successContainer.classList.add('visible');
+                successMessage.textContent = result.data.message;
+              } else {
+                alert('Something went wrong. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send response';
+              }
+            } catch (error) {
+              console.error('Error submitting RSVP:', error);
+              alert('Something went wrong. Please try again.');
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Send response';
+            }
+          });
+        });
+      </script>
+    )}
+  </body>
+</html>

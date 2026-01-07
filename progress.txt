@@ -444,3 +444,92 @@
 - Duplicate email check is per-wedding (same email can be in different weddings)
 - Dashboard auto-selects first wedding if user has only one
 - Guest list is sorted alphabetically by name
+
+---
+
+### 2026-01-06 - Guest RSVP Flow (View, Submit, Edit)
+
+**Feature worked on:** Guest can view RSVP form via tokenized link (PRD: rsvp category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. Guests are the core users of the wedding site
+2. RSVP is the primary guest interaction for most weddings
+3. We already have guests with tokens from the admin add feature
+4. It unlocks the guest-facing value of the platform
+5. It's foundational for invitation sending (next feature)
+
+**What was done:**
+1. Added RSVP types to shared package:
+   - `RsvpGuestView` - guest data subset for RSVP (excludes sensitive fields like token)
+   - `RsvpWeddingView` - minimal wedding info for RSVP display
+   - `RsvpViewData` - combined response with guest, wedding, and theme
+   - `RsvpSubmitRequest` - submission payload with token, status, partySize, dietaryNotes
+   - `RsvpSubmitResponse` - confirmation message and updated guest data
+
+2. Added guest token lookup to GuestService:
+   - `getGuestByRsvpToken(token)` - finds guest by RSVP token
+   - `updateRsvpStatus(guestId, status, partySize, dietaryNotes)` - updates RSVP response
+
+3. Created RsvpController (services/platform-api/src/rsvp/):
+   - `GET /api/rsvp/view?token=...` - Fetches guest data for RSVP form
+     - Validates token exists and is valid
+     - Checks wedding is active
+     - Checks RSVP feature is enabled
+     - Returns deterministic errors: INVALID_TOKEN, FEATURE_DISABLED, WEDDING_NOT_FOUND
+   - `POST /api/rsvp/submit` - Submits/updates RSVP response
+     - Same validation as view endpoint
+     - Updates guest's RSVP status, party size, dietary notes
+     - Sets rsvpSubmittedAt timestamp
+     - Returns confirmation message
+
+4. Created RsvpModule and registered in AppModule
+
+5. Updated wedding-site API client:
+   - Added `fetchRsvpView(token)` function
+   - Added `submitRsvp(request)` function
+
+6. Created RSVP page (apps/wedding-site/src/pages/rsvp/index.astro):
+   - Route: `/rsvp?token=...`
+   - Mobile-first responsive design
+   - Large tap targets for RSVP options
+   - Stepper control for party size (not tiny input)
+   - Optional dietary notes (below the fold)
+   - Shows previous response if guest already RSVP'd
+   - Success confirmation with celebratory message
+   - Error handling with friendly messages
+
+**API Endpoints:**
+- `GET /api/rsvp/view?token=...` - Public endpoint for RSVP form data
+  - Returns: guest info, wedding details, theme
+  - Errors: INVALID_TOKEN, FEATURE_DISABLED, WEDDING_NOT_FOUND
+- `POST /api/rsvp/submit` - Public endpoint for RSVP submission
+  - Request: { token, rsvpStatus, partySize, dietaryNotes? }
+  - Returns: confirmation message, updated guest data
+
+**Design system adherence:**
+- Mobile-first with large 48px tap targets
+- One-question-per-block layout (status → party size → dietary)
+- Calm, celebratory language ("Joyfully accept", "We can't wait to celebrate with you")
+- Stepper control for party size (not tiny input)
+- Theme colors from wedding's render_config
+- No pure black/white colors
+- Serif headings (Cormorant Garamond), sans body (Inter)
+
+**PRD features now passing:**
+- "Guest can view RSVP form via tokenized link" ✓
+- "Guest can submit RSVP" ✓
+- "Guest can edit RSVP using same link" ✓
+
+**Next steps:**
+- Implement admin RSVP summary dashboard
+- Implement invitation email sending
+- Implement CSV import for bulk guest adding
+
+**Notes for next person:**
+- RSVP link format: `/rsvp?token={64-char-hex-token}`
+- Tokens are stored as plain text in dev mode (production should hash)
+- Re-visiting RSVP link shows previous response and allows changes
+- Dietary notes are optional and hidden until "Attending" is selected
+- Party size stepper has min=1, max=20
+- Error messages use human language (not technical codes)
+- The RsvpSection on wedding site links to /w/{slug}/rsvp which doesn't exist yet (future: request RSVP link page)

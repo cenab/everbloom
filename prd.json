@@ -280,7 +280,7 @@
       "Verify RSVP form loads",
       "Verify guest name is prefilled"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "rsvp",
@@ -292,7 +292,7 @@
       "Submit RSVP",
       "Verify confirmation message is shown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "rsvp",
@@ -304,7 +304,7 @@
       "Submit again",
       "Verify changes are saved"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "dashboard",

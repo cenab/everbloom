@@ -318,3 +318,57 @@ export const GUEST_ALREADY_EXISTS = 'GUEST_ALREADY_EXISTS' as const;
  * Wedding not found error code
  */
 export const WEDDING_NOT_FOUND = 'WEDDING_NOT_FOUND' as const;
+
+// ============================================================================
+// RSVP View Types (Guest-Facing)
+// ============================================================================
+
+/**
+ * Guest data for RSVP view (subset of full Guest, excludes sensitive fields)
+ */
+export interface RsvpGuestView {
+  id: string;
+  name: string;
+  email: string;
+  partySize: number;
+  rsvpStatus: RsvpStatus;
+  dietaryNotes?: string;
+}
+
+/**
+ * Wedding data for RSVP view (minimal needed for display)
+ */
+export interface RsvpWeddingView {
+  slug: string;
+  partnerNames: [string, string];
+  date?: string;
+  venue?: string;
+  city?: string;
+}
+
+/**
+ * Response from RSVP view endpoint
+ */
+export interface RsvpViewData {
+  guest: RsvpGuestView;
+  wedding: RsvpWeddingView;
+  theme: Theme;
+}
+
+/**
+ * Request body for RSVP submission
+ */
+export interface RsvpSubmitRequest {
+  token: string;
+  rsvpStatus: RsvpStatus;
+  partySize: number;
+  dietaryNotes?: string;
+}
+
+/**
+ * Response from RSVP submission
+ */
+export interface RsvpSubmitResponse {
+  message: string;
+  guest: RsvpGuestView;
+}
