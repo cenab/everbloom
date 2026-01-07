@@ -1,0 +1,116 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { createHmac, randomBytes } from 'crypto';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { MAX_PHOTO_SIZE_BYTES, PHOTO_UPLOAD_TTL_MS } from './photos.constants';
+
+export interface UploadSession {
+  id: string;
+  weddingId: string;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  expiresAt: number;
+  createdAt: string;
+  uploadedAt?: string;
+  storagePath?: string;
+}
+
+@Injectable()
+export class PhotosService {
+  private readonly logger = new Logger(PhotosService.name);
+  private readonly secret =
+    process.env.PHOTO_UPLOAD_SECRET || 'dev-photo-upload-secret';
+  private uploads = new Map<string, UploadSession>();
+
+  getMaxFileSize(): number {
+    return MAX_PHOTO_SIZE_BYTES;
+  }
+
+  createUpload(
+    weddingId: string,
+    fileName: string,
+    contentType: string,
+    fileSize: number,
+  ): { uploadId: string; signature: string; expiresAt: number } {
+    const uploadId = randomBytes(16).toString('hex');
+    const expiresAt = Date.now() + PHOTO_UPLOAD_TTL_MS;
+    const signature = this.signUpload(uploadId, expiresAt, contentType, fileSize);
+    const createdAt = new Date().toISOString();
+
+    this.uploads.set(uploadId, {
+      id: uploadId,
+      weddingId,
+      fileName,
+      contentType,
+      fileSize,
+      expiresAt,
+      createdAt,
+    });
+
+    return { uploadId, signature, expiresAt };
+  }
+
+  getUpload(uploadId: string): UploadSession | null {
+    return this.uploads.get(uploadId) || null;
+  }
+
+  isUploadExpired(upload: UploadSession): boolean {
+    return Date.now() > upload.expiresAt;
+  }
+
+  verifySignature(
+    uploadId: string,
+    expiresAt: number,
+    contentType: string,
+    fileSize: number,
+    signature: string,
+  ): boolean {
+    const expected = this.signUpload(uploadId, expiresAt, contentType, fileSize);
+    return expected === signature;
+  }
+
+  async storeUpload(
+    upload: UploadSession,
+    file: { originalname: string; buffer?: Buffer; path?: string },
+  ): Promise<void> {
+    const baseDir =
+      process.env.PHOTO_UPLOAD_DIR || path.resolve(process.cwd(), 'uploads');
+    const safeName = this.sanitizeFileName(file.originalname || upload.fileName);
+    const weddingDir = path.join(baseDir, upload.weddingId);
+
+    await fs.mkdir(weddingDir, { recursive: true });
+
+    const filePath = path.join(weddingDir, `${upload.id}-${safeName}`);
+    const buffer = file.buffer ?? (file.path ? await fs.readFile(file.path) : null);
+
+    if (!buffer) {
+      throw new Error('Photo upload payload is empty');
+    }
+
+    await fs.writeFile(filePath, buffer);
+
+    upload.storagePath = filePath;
+    upload.uploadedAt = new Date().toISOString();
+    this.uploads.set(upload.id, upload);
+
+    this.logger.log(`Stored photo upload ${upload.id} to ${filePath}`);
+  }
+
+  private signUpload(
+    uploadId: string,
+    expiresAt: number,
+    contentType: string,
+    fileSize: number,
+  ): string {
+    return createHmac('sha256', this.secret)
+      .update(`${uploadId}.${expiresAt}.${contentType}.${fileSize}`)
+      .digest('hex');
+  }
+
+  private sanitizeFileName(fileName: string): string {
+    const trimmed = fileName.trim().toLowerCase();
+    const sanitized = trimmed.replace(/[^a-z0-9._-]/g, '-');
+    return sanitized || 'upload';
+  }
+}

@@ -41,6 +41,8 @@ const weddingTitle = `${config.wedding.partnerNames[0]} & ${config.wedding.partn
           </label>
           <input id="photo-files" class="upload-input" type="file" multiple accept="image/*" />
           <p class="upload-hint">You can select multiple images at once.</p>
+          <div class="upload-list" id="upload-list" aria-live="polite"></div>
+          <p class="upload-note" id="upload-note"></p>
         </div>
       ) : (
         <div class="photo-disabled">
@@ -50,6 +52,199 @@ const weddingTitle = `${config.wedding.partnerNames[0]} & ${config.wedding.partn
     </div>
   </section>
 </WeddingLayout>
+
+{photoEnabled && (
+  <script
+    is:inline
+    define:vars={{ apiBaseUrl: import.meta.env.PUBLIC_PLATFORM_API_URL || 'http://localhost:3001/api', weddingSlug: config.wedding.slug }}
+  >
+    document.addEventListener('DOMContentLoaded', () => {
+      const fileInput = document.getElementById('photo-files');
+      const uploadList = document.getElementById('upload-list');
+      const uploadNote = document.getElementById('upload-note');
+
+      if (!fileInput || !uploadList || !uploadNote) {
+        return;
+      }
+
+      const maxFileSizeBytes = 10 * 1024 * 1024;
+      const maxFileSizeLabel = '10 MB';
+
+      const setNote = (message, tone) => {
+        uploadNote.textContent = message;
+        uploadNote.className = `upload-note${tone ? ` ${tone}` : ''}`;
+      };
+
+      const clearNote = () => {
+        uploadNote.textContent = '';
+        uploadNote.className = 'upload-note';
+      };
+
+      const createUploadItem = (file) => {
+        const item = document.createElement('div');
+        item.className = 'upload-item';
+
+        const header = document.createElement('div');
+        header.className = 'upload-item-header';
+
+        const name = document.createElement('span');
+        name.className = 'upload-item-name';
+        name.textContent = file.name;
+
+        const status = document.createElement('span');
+        status.className = 'upload-item-status';
+        status.textContent = 'Waiting';
+
+        header.appendChild(name);
+        header.appendChild(status);
+
+        const progress = document.createElement('div');
+        progress.className = 'upload-progress';
+
+        const progressBar = document.createElement('div');
+        progressBar.className = 'upload-progress-bar';
+        progress.appendChild(progressBar);
+
+        const retry = document.createElement('button');
+        retry.type = 'button';
+        retry.className = 'upload-retry hidden';
+        retry.textContent = 'Retry upload';
+
+        item.appendChild(header);
+        item.appendChild(progress);
+        item.appendChild(retry);
+        uploadList.appendChild(item);
+
+        return { item, status, progressBar, retry, file };
+      };
+
+      const setStatus = (entry, text, tone) => {
+        entry.status.textContent = text;
+        entry.status.className = `upload-item-status${tone ? ` ${tone}` : ''}`;
+      };
+
+      const updateProgress = (entry, percent) => {
+        const value = Math.max(0, Math.min(100, percent));
+        entry.progressBar.style.width = `${value}%`;
+      };
+
+      const requestUploadUrl = async (file) => {
+        const response = await fetch(`${apiBaseUrl}/photos/upload-url`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            slug: weddingSlug,
+            fileName: file.name,
+            contentType: file.type || 'application/octet-stream',
+            fileSize: file.size,
+          }),
+        });
+
+        const result = await response.json();
+        if (!result.ok) {
+          throw new Error(result.error || 'UPLOAD_FAILED');
+        }
+
+        return result.data.uploadUrl;
+      };
+
+      const uploadFile = (file, uploadUrl, onProgress) =>
+        new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', uploadUrl);
+
+          xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+              onProgress(Math.round((event.loaded / event.total) * 100));
+            }
+          });
+
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve();
+            } else {
+              reject(new Error('UPLOAD_FAILED'));
+            }
+          });
+
+          xhr.addEventListener('error', () => {
+            reject(new Error('NETWORK_ERROR'));
+          });
+
+          const formData = new FormData();
+          formData.append('file', file);
+          xhr.send(formData);
+        });
+
+      const handleUpload = async (entry) => {
+        entry.retry.classList.add('hidden');
+        setStatus(entry, 'Preparing upload', 'pending');
+        updateProgress(entry, 0);
+
+        try {
+          const uploadUrl = await requestUploadUrl(entry.file);
+          setStatus(entry, 'Uploading', 'pending');
+          await uploadFile(entry.file, uploadUrl, (percent) => updateProgress(entry, percent));
+          setStatus(entry, 'Uploaded', 'success');
+          updateProgress(entry, 100);
+        } catch (error) {
+          setStatus(entry, 'Upload failed', 'error');
+          entry.retry.classList.remove('hidden');
+        }
+      };
+
+      fileInput.addEventListener('change', () => {
+        const files = Array.from(fileInput.files || []);
+
+        uploadList.innerHTML = '';
+        clearNote();
+
+        if (!files.length) {
+          return;
+        }
+
+        const entries = files.map((file) => createUploadItem(file));
+        const oversized = entries.filter((entry) => entry.file.size > maxFileSizeBytes);
+        const invalidType = entries.filter((entry) => !entry.file.type.startsWith('image/'));
+
+        oversized.forEach((entry) => {
+          setStatus(entry, 'File is too large', 'error');
+          entry.retry.classList.add('hidden');
+        });
+
+        invalidType.forEach((entry) => {
+          setStatus(entry, 'Unsupported file type', 'error');
+          entry.retry.classList.add('hidden');
+        });
+
+        const uploadableEntries = entries.filter(
+          (entry) =>
+            entry.file.size <= maxFileSizeBytes && entry.file.type.startsWith('image/'),
+        );
+
+        const notes = [];
+        if (oversized.length) {
+          notes.push(`Some files were larger than ${maxFileSizeLabel} and were skipped.`);
+        }
+        if (invalidType.length) {
+          notes.push('Only image files can be uploaded.');
+        }
+        if (notes.length) {
+          setNote(notes.join(' '), 'error');
+        }
+
+        uploadableEntries.forEach((entry) => {
+          entry.retry.addEventListener('click', () => handleUpload(entry));
+        });
+
+        Promise.allSettled(uploadableEntries.map((entry) => handleUpload(entry)));
+        fileInput.value = '';
+      });
+    });
+  </script>
+)}
 
 <style>
   .photo-page {
@@ -131,6 +326,90 @@ const weddingTitle = `${config.wedding.partnerNames[0]} & ${config.wedding.partn
     color: var(--neutral-dark);
     opacity: 0.6;
     margin: 1.5rem 0 0 0;
+  }
+
+  .upload-list {
+    margin-top: 2rem;
+    display: grid;
+    gap: 1.25rem;
+    text-align: left;
+  }
+
+  .upload-item {
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+    border: 1px solid rgba(45, 45, 45, 0.08);
+    background-color: var(--neutral-light);
+  }
+
+  .upload-item-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 0.95rem;
+    color: var(--neutral-dark);
+  }
+
+  .upload-item-name {
+    font-weight: 500;
+  }
+
+  .upload-item-status {
+    opacity: 0.6;
+  }
+
+  .upload-item-status.success {
+    color: var(--accent);
+    opacity: 0.9;
+  }
+
+  .upload-item-status.error {
+    color: var(--primary);
+    opacity: 0.9;
+  }
+
+  .upload-progress {
+    margin-top: 0.75rem;
+    height: 6px;
+    border-radius: 999px;
+    background-color: rgba(45, 45, 45, 0.08);
+    overflow: hidden;
+  }
+
+  .upload-progress-bar {
+    height: 100%;
+    width: 0%;
+    background-color: var(--accent);
+    transition: width 0.2s ease;
+  }
+
+  .upload-retry {
+    margin-top: 0.75rem;
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 0.9rem;
+    background: none;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .upload-retry.hidden {
+    display: none;
+  }
+
+  .upload-note {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 0.95rem;
+    color: var(--neutral-dark);
+    opacity: 0.6;
+    margin: 1.5rem 0 0 0;
+  }
+
+  .upload-note.error {
+    color: var(--primary);
+    opacity: 0.9;
   }
 
   .photo-disabled {

@@ -335,7 +335,7 @@
       "Upload photos",
       "Verify upload completes successfully"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "photos",

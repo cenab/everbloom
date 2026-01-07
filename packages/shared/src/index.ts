@@ -445,6 +445,46 @@ export interface RsvpSubmitResponse {
 }
 
 // ============================================================================
+// Photo Upload Types (Guest-Facing)
+// ============================================================================
+
+/**
+ * Request body for creating a signed upload URL
+ */
+export interface PhotoUploadUrlRequest {
+  slug: string;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+}
+
+/**
+ * Response containing a signed upload URL for photo upload
+ */
+export interface PhotoUploadUrlResponse {
+  uploadId: string;
+  uploadUrl: string;
+  expiresAt: string;
+}
+
+/**
+ * Response after uploading a photo to the signed URL
+ */
+export interface PhotoUploadResponse {
+  uploadId: string;
+}
+
+/**
+ * Photo upload validation error code
+ */
+export const PHOTO_UPLOAD_VALIDATION_ERROR = 'PHOTO_UPLOAD_VALIDATION_ERROR' as const;
+
+/**
+ * Invalid or expired photo upload URL
+ */
+export const PHOTO_UPLOAD_INVALID = 'PHOTO_UPLOAD_INVALID' as const;
+
+// ============================================================================
 // RSVP Summary Types (Admin Dashboard)
 // ============================================================================
 

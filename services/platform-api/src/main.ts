@@ -12,7 +12,11 @@ async function bootstrap() {
 
   // Enable CORS for platform-ui dev server
   app.enableCors({
-    origin: ['http://localhost:3000'],
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:4321',
+      'http://localhost:8888',
+    ],
     credentials: true,
   });
 

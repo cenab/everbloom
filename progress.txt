@@ -1012,3 +1012,35 @@
 - Wedding page moved to `apps/wedding-site/src/pages/w/[slug]/index.astro` to support nested routes.
 - Photo page lives at `apps/wedding-site/src/pages/w/[slug]/photos.astro` and shows a friendly disabled message if PHOTO_UPLOAD is off.
 - Upload UI is present but not wired to signed URL endpoints yet; next step is implementing actual upload + metadata storage.
+
+---
+
+### 2026-01-07 - Guest Photo Uploads via Signed URLs
+
+**Feature worked on:** Guest can upload photos via signed URLs (PRD: photos category)
+
+**Priority rationale:** Photo uploads are the next major guest-facing interaction after RSVP. Implementing signed uploads unblocks the real media flow while keeping the site render-only and secure.
+
+**What was done:**
+1. Added signed upload flow in platform-api:
+   - New PhotosModule with `POST /api/photos/upload-url` and `POST /api/photos/upload/:uploadId`
+   - HMAC-signed URLs with expiry, feature flag checks, and wedding status validation
+   - Dev storage writes to `uploads/{weddingId}` with validation (image type + 10 MB max)
+
+2. Added shared photo upload types + error codes
+
+3. Wired wedding site photo page to:
+   - Request signed URLs per file
+   - Upload via multipart POST with per-file progress
+   - Show retry for failed uploads and calm error messaging
+
+4. Expanded API CORS allowlist for wedding site dev origins
+
+**PRD features now passing:**
+- "Guest can upload photos via signed URLs" ✓
+
+**Notes for next person:**
+- Upload URLs expire after 10 minutes; max size is 10 MB per file
+- Upload endpoint expects multipart form field `file`
+- Files are stored under `uploads/{weddingId}` in dev (ignored by git)
+- Photo metadata storage + admin photo list are still pending

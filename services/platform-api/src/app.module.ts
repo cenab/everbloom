@@ -6,6 +6,7 @@ import { WeddingModule } from './wedding/wedding.module';
 import { GuestModule } from './guest/guest.module';
 import { RsvpModule } from './rsvp/rsvp.module';
 import { InvitationModule } from './invitation/invitation.module';
+import { PhotosModule } from './photos/photos.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { InvitationModule } from './invitation/invitation.module';
     GuestModule,
     RsvpModule,
     InvitationModule,
+    PhotosModule,
   ],
   controllers: [AppController],
   providers: [],
