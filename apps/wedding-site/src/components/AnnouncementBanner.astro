@@ -1,0 +1,59 @@
+---
+import type { Announcement, Theme } from '@wedding-bestie/shared';
+
+interface Props {
+  announcement: Announcement;
+  theme: Theme;
+}
+
+const { announcement, theme } = Astro.props;
+const { title, message } = announcement;
+---
+
+<section
+  class="announcement-banner"
+  style={`--primary: ${theme.primary}; --accent: ${theme.accent}; --neutral-light: ${theme.neutralLight}; --neutral-dark: ${theme.neutralDark};`}
+>
+  <div class="announcement-content">
+    {title && <h2 class="announcement-title">{title}</h2>}
+    {message && <p class="announcement-message">{message}</p>}
+  </div>
+</section>
+
+<style>
+  .announcement-banner {
+    background-color: var(--neutral-light);
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--accent);
+  }
+
+  .announcement-content {
+    max-width: 760px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .announcement-title {
+    font-family: 'Cormorant Garamond', 'Georgia', serif;
+    font-size: clamp(1.25rem, 4vw, 1.75rem);
+    font-weight: 500;
+    color: var(--neutral-dark);
+    margin: 0;
+    letter-spacing: 0.02em;
+  }
+
+  .announcement-message {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 1rem;
+    color: var(--neutral-dark);
+    opacity: 0.8;
+    line-height: 1.6;
+    margin: 0.5rem 0 0;
+  }
+
+  @media (min-width: 768px) {
+    .announcement-banner {
+      padding: 1.75rem 2rem;
+    }
+  }
+</style>

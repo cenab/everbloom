@@ -5,6 +5,7 @@
  */
 import { fetchSiteConfig } from '../../lib/api';
 import WeddingLayout from '../../components/WeddingLayout.astro';
+import AnnouncementBanner from '../../components/AnnouncementBanner.astro';
 import SectionRenderer from '../../components/SectionRenderer.astro';
 
 const { slug } = Astro.params;
@@ -20,8 +21,15 @@ if (!config) {
   // Wedding not found - return 404
   return new Response('Wedding not found', { status: 404 });
 }
+
+const announcement = config.announcement ?? { enabled: false, title: '', message: '' };
+const showAnnouncement =
+  config.features.ANNOUNCEMENT_BANNER &&
+  announcement.enabled &&
+  Boolean(announcement.title.trim() || announcement.message.trim());
 ---
 
 <WeddingLayout config={config}>
+  {showAnnouncement && <AnnouncementBanner announcement={announcement} theme={config.theme} />}
   <SectionRenderer config={config} />
 </WeddingLayout>

@@ -367,7 +367,7 @@
       "Verify banner appears at top of page",
       "Verify title and message match admin input"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "email",

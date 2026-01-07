@@ -967,3 +967,27 @@
 - Admin UI fetches current announcement from /api/weddings/:id/render-config
 - Announcement settings are only accessible when ANNOUNCEMENT_BANNER is enabled
 - Public site rendering of the announcement banner is still pending
+
+---
+
+### 2026-01-07 - Announcement Banner Display on Wedding Site
+
+**Feature worked on:** Announcement banner displays on public site (PRD: announcements category)
+
+**Priority rationale:** This completes the end-to-end announcement flow (admin create -> public display) and is a lightweight change that brings guest-facing visibility to updates.
+
+**What was done:**
+1. Added an AnnouncementBanner component to render announcement title/message with theme styling.
+2. Updated the /w/[slug] page to show the banner when ANNOUNCEMENT_BANNER is enabled and announcement.enabled is true.
+3. Ensured the banner appears above all site sections so it reads as a true top-of-page notice.
+
+**PRD features now passing:**
+- "Announcement banner displays on public site" ✓
+
+**Next steps:**
+- Implement photo upload feature (enable, upload, metadata)
+- Implement reminder emails via worker queue
+
+**Notes for next person:**
+- Banner rendering lives in apps/wedding-site/src/components/AnnouncementBanner.astro
+- Display gating checks both the feature flag and announcement.enabled
