@@ -5,7 +5,7 @@ import type {
   Plan,
   ApiResponse,
   CreateCheckoutSessionResponse,
-} from '@wedding-bestie/shared';
+} from '../types';
 import { getAuthToken } from '../lib/auth';
 
 /**
@@ -65,6 +65,10 @@ const FEATURE_INFO: Record<FeatureFlag, { label: string; description: string }> 
     label: 'Site passcode',
     description: 'Require a passcode to view your wedding site',
   },
+  REGISTRY: {
+    label: 'Gift registry',
+    description: 'Share links to your gift registries with guests',
+  },
 };
 
 /**
@@ -79,6 +83,7 @@ const PLAN_AVAILABLE_FEATURES: Record<PlanTier, FeatureFlag[]> = {
     'ANNOUNCEMENT_BANNER',
     'FAQ_SECTION',
     'PASSCODE_SITE',
+    'REGISTRY',
   ],
 };
 
@@ -89,6 +94,7 @@ const DEFAULT_FEATURE_SELECTION: Record<FeatureFlag, boolean> = {
   ANNOUNCEMENT_BANNER: false,
   FAQ_SECTION: false,
   PASSCODE_SITE: false,
+  REGISTRY: false,
 };
 
 const ALL_FEATURES = Object.keys(FEATURE_INFO) as FeatureFlag[];

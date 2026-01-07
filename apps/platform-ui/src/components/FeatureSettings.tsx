@@ -7,7 +7,7 @@ import type {
   ApiResponse,
   PhotoMetadata,
   PhotoListResponse,
-} from '@wedding-bestie/shared';
+} from '../types';
 
 interface FeatureSettingsProps {
   wedding: Wedding;
@@ -43,6 +43,10 @@ const FEATURE_INFO: Record<FeatureFlag, { label: string; description: string }> 
     label: 'Site passcode',
     description: 'Require a passcode to view your wedding site',
   },
+  REGISTRY: {
+    label: 'Gift registry',
+    description: 'Share links to your gift registries with guests',
+  },
 };
 
 /**
@@ -57,6 +61,7 @@ const PLAN_AVAILABLE_FEATURES: Record<string, FeatureFlag[]> = {
     'ANNOUNCEMENT_BANNER',
     'FAQ_SECTION',
     'PASSCODE_SITE',
+    'REGISTRY',
   ],
 };
 

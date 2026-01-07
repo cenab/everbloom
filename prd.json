@@ -870,7 +870,7 @@
       "Save registry links",
       "Verify links are stored"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "registry",
@@ -882,7 +882,7 @@
       "Verify registry section is visible",
       "Verify registry links open in new tab"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "registry",
@@ -892,7 +892,7 @@
       "Navigate to public wedding site",
       "Verify registry section is not visible"
     ],
-    "passes": false
+    "passes": true
   },
 
   {

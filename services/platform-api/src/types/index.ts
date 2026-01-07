@@ -9,7 +9,8 @@ export type FeatureFlag =
   | 'PHOTO_UPLOAD'
   | 'ANNOUNCEMENT_BANNER'
   | 'FAQ_SECTION'
-  | 'PASSCODE_SITE';
+  | 'PASSCODE_SITE'
+  | 'REGISTRY';
 
 /**
  * Template categories matching product positioning
@@ -106,6 +107,42 @@ export interface FaqConfig {
   items: FaqItem[];
 }
 
+// ============================================================================
+// Registry Types
+// ============================================================================
+
+/**
+ * A single registry link (e.g., Amazon, Zola)
+ */
+export interface RegistryLink {
+  id: string;
+  name: string;
+  url: string;
+  order: number;
+}
+
+/**
+ * Registry configuration for the wedding
+ */
+export interface RegistryConfig {
+  links: RegistryLink[];
+}
+
+/**
+ * Request to update registry links
+ */
+export interface UpdateRegistryRequest {
+  registry: RegistryConfig;
+}
+
+/**
+ * Response after updating registry
+ */
+export interface UpdateRegistryResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
 /**
  * The render_config contract - wedding site renders exclusively from this
  */
@@ -121,6 +158,8 @@ export interface RenderConfig {
   passcodeProtected?: boolean;
   /** Meal options for RSVP form (if configured) */
   mealConfig?: MealConfig;
+  /** Gift registry links */
+  registry?: RegistryConfig;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -341,6 +380,8 @@ export interface Wedding {
   passcodeConfig?: PasscodeConfigBase;
   /** Meal options configuration */
   mealConfig?: MealConfig;
+  /** Gift registry configuration */
+  registry?: RegistryConfig;
   createdAt: string;
   updatedAt: string;
 }

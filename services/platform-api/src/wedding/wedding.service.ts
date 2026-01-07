@@ -18,6 +18,7 @@ import type {
   PasscodeConfigBase,
   HeroContentData,
   MealConfig,
+  RegistryConfig,
 } from '../types';
 
 const scryptAsync = promisify(scrypt);
@@ -100,6 +101,25 @@ const createFaqSection = (order: number, enabled: boolean): Section => ({
   data: { ...DEFAULT_FAQ_SECTION_DATA },
 });
 
+const REGISTRY_SECTION_ID = 'registry';
+
+const DEFAULT_REGISTRY_SECTION_DATA = {
+  title: 'Gift Registry',
+  description: 'Your presence is our greatest gift, but if you wish to honor us, we have registered at these stores.',
+};
+
+const DEFAULT_REGISTRY: RegistryConfig = {
+  links: [],
+};
+
+const createRegistrySection = (order: number, enabled: boolean): Section => ({
+  id: REGISTRY_SECTION_ID,
+  type: 'registry',
+  enabled,
+  order,
+  data: { ...DEFAULT_REGISTRY_SECTION_DATA },
+});
+
 /**
  * Features enabled by plan tier
  */
@@ -112,6 +132,7 @@ const PLAN_FEATURES: Record<PlanTier, FeatureFlag[]> = {
     'ANNOUNCEMENT_BANNER',
     'FAQ_SECTION',
     'PASSCODE_SITE',
+    'REGISTRY',
   ],
 };
 
@@ -125,6 +146,7 @@ const ALL_FEATURES: FeatureFlag[] = [
   'ANNOUNCEMENT_BANNER',
   'FAQ_SECTION',
   'PASSCODE_SITE',
+  'REGISTRY',
 ];
 
 /**
@@ -297,6 +319,7 @@ export class WeddingService {
         },
         createPhotoUploadSection(3, wedding.features.PHOTO_UPLOAD),
         createFaqSection(4, wedding.features.FAQ_SECTION),
+        createRegistrySection(5, wedding.features.REGISTRY),
       ],
       wedding: {
         slug: wedding.slug,
@@ -322,6 +345,11 @@ export class WeddingService {
     // Add meal configuration if present and enabled
     if (wedding.mealConfig?.enabled && wedding.mealConfig.options.length > 0) {
       config.mealConfig = wedding.mealConfig;
+    }
+
+    // Add registry configuration if present
+    if (wedding.registry && wedding.registry.links.length > 0) {
+      config.registry = wedding.registry;
     }
 
     return config;
@@ -381,6 +409,7 @@ export class WeddingService {
       features: this.buildFeatureFlags(payload.planId, payload.features),
       announcement: { ...DEFAULT_ANNOUNCEMENT },
       faq: { ...DEFAULT_FAQ },
+      registry: { ...DEFAULT_REGISTRY },
       createdAt: now,
       updatedAt: now,
     };
@@ -485,6 +514,7 @@ export class WeddingService {
 
     const hasPhotoSection = existingConfig.sections.some((section) => section.type === 'photo-upload');
     const hasFaqSection = existingConfig.sections.some((section) => section.type === 'faq');
+    const hasRegistrySection = existingConfig.sections.some((section) => section.type === 'registry');
     const updatedConfig: RenderConfig = {
       ...existingConfig,
       features: updatedFeatures,
@@ -498,6 +528,9 @@ export class WeddingService {
         }
         if (section.type === 'faq') {
           return { ...section, enabled: updatedFeatures.FAQ_SECTION };
+        }
+        if (section.type === 'registry') {
+          return { ...section, enabled: updatedFeatures.REGISTRY };
         }
         return section;
       }),
@@ -516,6 +549,14 @@ export class WeddingService {
       updatedConfig.sections = [
         ...updatedConfig.sections,
         createFaqSection(maxOrder + 1, updatedFeatures.FAQ_SECTION),
+      ];
+    }
+
+    if (!hasRegistrySection) {
+      const maxOrder = updatedConfig.sections.reduce((max, section) => Math.max(max, section.order), -1);
+      updatedConfig.sections = [
+        ...updatedConfig.sections,
+        createRegistrySection(maxOrder + 1, updatedFeatures.REGISTRY),
       ];
     }
 
@@ -699,6 +740,41 @@ export class WeddingService {
     this.weddings.set(weddingId, wedding);
 
     this.logger.log(`Updated hero content for wedding ${weddingId}`);
+
+    return { wedding, renderConfig: updatedConfig };
+  }
+
+  /**
+   * Update gift registry links for a wedding
+   * PRD: "Admin can add gift registry links"
+   */
+  updateRegistry(
+    weddingId: string,
+    registry: RegistryConfig,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    wedding.registry = registry;
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    const existingConfig = this.renderConfigs.get(weddingId);
+    if (!existingConfig) {
+      return null;
+    }
+
+    // Update registry in render_config
+    const updatedConfig: RenderConfig = {
+      ...existingConfig,
+      registry: registry.links.length > 0 ? registry : undefined,
+    };
+
+    this.renderConfigs.set(weddingId, updatedConfig);
+
+    this.logger.log(`Updated registry for wedding ${weddingId} with ${registry.links.length} links`);
 
     return { wedding, renderConfig: updatedConfig };
   }

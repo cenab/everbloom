@@ -10,12 +10,13 @@ import { FaqSettings } from './FaqSettings';
 import { PasscodeSettings } from './PasscodeSettings';
 import { HeroSettings } from './HeroSettings';
 import { MealSettings } from './MealSettings';
+import { RegistrySettings } from './RegistrySettings';
 import { EmailStatisticsDashboard } from './EmailStatistics';
 import { PhotoStatsDashboard } from './PhotoStatsDashboard';
 import { getAuthToken } from '../lib/auth';
 import type { Wedding, ApiResponse, RenderConfig } from '../types';
 
-type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'email-stats' | 'photo-stats';
+type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'email-stats' | 'photo-stats';
 
 /**
  * Admin Dashboard component.
@@ -149,6 +150,18 @@ export function Dashboard() {
     );
   }
 
+  if (view === 'registry' && selectedWedding) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <RegistrySettings
+          wedding={selectedWedding}
+          onBack={() => setView('dashboard')}
+          onRegistryChanged={fetchWeddings}
+        />
+      </div>
+    );
+  }
+
   if (view === 'passcode' && selectedWedding) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -237,6 +250,7 @@ export function Dashboard() {
           onNavigateToAnnouncement={() => setView('announcement')}
           onNavigateToEventDetails={() => setView('event-details')}
           onNavigateToFaq={() => setView('faq')}
+          onNavigateToRegistry={() => setView('registry')}
           onNavigateToPasscode={() => setView('passcode')}
           onNavigateToHero={() => setView('hero')}
           onNavigateToMealOptions={() => setView('meal-options')}
@@ -318,6 +332,7 @@ interface WeddingDashboardProps {
   onNavigateToAnnouncement: () => void;
   onNavigateToEventDetails: () => void;
   onNavigateToFaq: () => void;
+  onNavigateToRegistry: () => void;
   onNavigateToPasscode: () => void;
   onNavigateToHero: () => void;
   onNavigateToMealOptions: () => void;
@@ -339,6 +354,7 @@ function WeddingDashboard({
   onNavigateToAnnouncement,
   onNavigateToEventDetails,
   onNavigateToFaq,
+  onNavigateToRegistry,
   onNavigateToPasscode,
   onNavigateToHero,
   onNavigateToMealOptions,
@@ -426,6 +442,14 @@ function WeddingDashboard({
             description="Answer common questions for your guests"
             icon={<QuestionMarkIcon className="w-6 h-6" />}
             onClick={onNavigateToFaq}
+          />
+        )}
+        {wedding.features.REGISTRY && (
+          <DashboardCard
+            title="Gift registry"
+            description="Add links to your registries"
+            icon={<GiftIcon className="w-6 h-6" />}
+            onClick={onNavigateToRegistry}
           />
         )}
         {wedding.features.PASSCODE_SITE && (
@@ -757,6 +781,24 @@ function CameraIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"
+      />
+    </svg>
+  );
+}
+
+function GiftIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
       />
     </svg>
   );

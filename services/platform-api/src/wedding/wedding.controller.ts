@@ -32,6 +32,8 @@ import type {
   UpdateHeroContentResponse,
   UpdateMealOptionsRequest,
   UpdateMealOptionsResponse,
+  UpdateRegistryRequest,
+  UpdateRegistryResponse,
 } from '../types';
 import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, WEDDING_NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, NOT_FOUND } from '../types';
 
@@ -499,6 +501,74 @@ export class WeddingController {
     };
 
     const result = this.weddingService.updateMealConfig(id, normalizedConfig);
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Update gift registry links for a wedding
+   * PRD: "Admin can add gift registry links"
+   */
+  @Put(':id/registry')
+  async updateRegistry(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: UpdateRegistryRequest,
+  ): Promise<ApiResponse<UpdateRegistryResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (!wedding.features.REGISTRY) {
+      throw new ForbiddenException({
+        ok: false,
+        error: FEATURE_DISABLED,
+      });
+    }
+
+    if (!body.registry) {
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+    }
+
+    // Validate registry links
+    const links = body.registry.links || [];
+    for (const link of links) {
+      if (!link.name?.trim()) {
+        throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+      }
+      if (!link.url?.trim()) {
+        throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+      }
+      // Basic URL validation
+      try {
+        new URL(link.url);
+      } catch {
+        throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+      }
+    }
+
+    // Normalize the registry links
+    const normalizedRegistry = {
+      links: links.map((link, index) => ({
+        id: link.id || `registry-${Date.now()}-${index}`,
+        name: link.name.trim(),
+        url: link.url.trim(),
+        order: link.order ?? index,
+      })),
+    };
+
+    const result = this.weddingService.updateRegistry(id, normalizedRegistry);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });

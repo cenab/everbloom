@@ -9,7 +9,8 @@ export type FeatureFlag =
   | 'PHOTO_UPLOAD'
   | 'ANNOUNCEMENT_BANNER'
   | 'FAQ_SECTION'
-  | 'PASSCODE_SITE';
+  | 'PASSCODE_SITE'
+  | 'REGISTRY';
 
 /**
  * Template categories matching product positioning
@@ -80,6 +81,35 @@ export interface FaqConfig {
   items: FaqItem[];
 }
 
+// ============================================================================
+// Registry Types
+// ============================================================================
+
+/**
+ * A single registry link (e.g., Amazon, Zola)
+ */
+export interface RegistryLink {
+  id: string;
+  name: string;
+  url: string;
+  order: number;
+}
+
+/**
+ * Registry configuration for the wedding
+ */
+export interface RegistryConfig {
+  links: RegistryLink[];
+}
+
+/**
+ * Response after updating registry
+ */
+export interface UpdateRegistryResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
 /**
  * Type of event in a wedding
  */
@@ -129,6 +159,7 @@ export interface RenderConfig {
   eventDetails?: EventDetailsData;
   faq?: FaqConfig;
   mealConfig?: MealConfig;
+  registry?: RegistryConfig;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -257,6 +288,7 @@ export interface Wedding {
   faq?: FaqConfig;
   passcodeConfig?: PasscodeConfig;
   mealConfig?: MealConfig;
+  registry?: RegistryConfig;
   createdAt: string;
   updatedAt: string;
 }

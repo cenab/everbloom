@@ -9,7 +9,8 @@ export type FeatureFlag =
   | 'PHOTO_UPLOAD'
   | 'ANNOUNCEMENT_BANNER'
   | 'FAQ_SECTION'
-  | 'PASSCODE_SITE';
+  | 'PASSCODE_SITE'
+  | 'REGISTRY';
 
 /**
  * Theme configuration for wedding sites
@@ -56,6 +57,27 @@ export interface FaqItem {
  */
 export interface FaqConfig {
   items: FaqItem[];
+}
+
+// ============================================================================
+// Registry Types
+// ============================================================================
+
+/**
+ * A single registry link (e.g., Amazon, Zola)
+ */
+export interface RegistryLink {
+  id: string;
+  name: string;
+  url: string;
+  order: number;
+}
+
+/**
+ * Registry configuration for the wedding
+ */
+export interface RegistryConfig {
+  links: RegistryLink[];
 }
 
 /**
@@ -107,6 +129,7 @@ export interface RenderConfig {
   eventDetails?: EventDetailsData;
   faq?: FaqConfig;
   mealConfig?: MealConfig;
+  registry?: RegistryConfig;
   /** Whether passcode protection is enabled (hash is never exposed) */
   passcodeProtected?: boolean;
   wedding: {

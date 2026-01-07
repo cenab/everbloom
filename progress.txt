@@ -2743,3 +2743,110 @@ No stack traces, internal messages, or technical details are ever exposed.
 - Plus-one guests can also have meal selections (mealOptionId in PlusOneGuest)
 - getMealSummary endpoint returns counts by option and dietary notes for caterers
 - The wedding-site RSVP form types are updated but the actual UI form components would need updating to display meal selection (types are ready)
+
+---
+
+## Gift Registry Feature Implementation - 2026-01-07
+
+**Feature completed:** Gift Registry (3 PRD items)
+- "Admin can add gift registry links"
+- "Registry section displays on public site"
+- "Registry respects feature toggle"
+
+### Implementation Details:
+
+1. **Platform API Types** (`services/platform-api/src/types/index.ts`):
+   - Added 'REGISTRY' to FeatureFlag type union
+   - Added RegistryLink interface (id, name, url, order)
+   - Added RegistryConfig interface (links array)
+   - Added UpdateRegistryRequest and UpdateRegistryResponse types
+   - Added registry field to Wedding interface
+   - Added registry field to RenderConfig interface
+
+2. **Wedding Service** (`services/platform-api/src/wedding/wedding.service.ts`):
+   - Added REGISTRY to PLAN_FEATURES (premium tier only)
+   - Added REGISTRY to ALL_FEATURES array
+   - Added DEFAULT_REGISTRY_SECTION_DATA with title and description
+   - Added DEFAULT_REGISTRY constant (empty links array)
+   - Added REGISTRY_SECTION_ID constant
+   - Added createRegistrySection helper function
+   - Updated generateRenderConfig to include registry section
+   - Updated provisionWedding to initialize registry
+   - Added updateRegistry method for saving registry links
+   - Updated updateFeatures to add/remove registry section when toggled
+
+3. **Wedding Controller** (`services/platform-api/src/wedding/wedding.controller.ts`):
+   - Added PUT /api/weddings/:id/registry endpoint
+   - Auth validation and wedding ownership check
+   - REGISTRY feature flag check (returns FEATURE_DISABLED if disabled)
+   - Link validation (name required, URL required, URL format validation)
+   - URL normalization (trims whitespace)
+
+4. **Platform UI Types** (`apps/platform-ui/src/types.ts`):
+   - Added REGISTRY to FeatureFlag type
+   - Added RegistryLink, RegistryConfig, UpdateRegistryResponse interfaces
+   - Added registry field to Wedding and RenderConfig
+
+5. **RegistrySettings Component** (new: `apps/platform-ui/src/components/RegistrySettings.tsx`):
+   - Full React component for managing registry links
+   - Add/edit/delete/reorder registry links functionality
+   - URL validation with user-friendly error messages
+   - Feature flag gating (shows disabled state when feature off)
+   - Loading states for fetch and save operations
+   - Back to dashboard navigation
+   - Icons: ChevronLeft, ChevronUp, ChevronDown, Trash, Plus, Gift
+
+6. **Dashboard Component** (`apps/platform-ui/src/components/Dashboard.tsx`):
+   - Added 'registry' to View type union
+   - Added registry view handler in main render
+   - Added onNavigateToRegistry prop to WeddingDashboard
+   - Added Registry card to dashboard grid
+   - Added GiftIcon component
+
+7. **FeatureSettings Component** (`apps/platform-ui/src/components/FeatureSettings.tsx`):
+   - Added REGISTRY to FEATURE_INFO with label and description
+   - Added REGISTRY to PLAN_AVAILABLE_FEATURES for premium tier
+
+8. **CreateWedding Component** (`apps/platform-ui/src/components/CreateWedding.tsx`):
+   - Added REGISTRY to FEATURE_INFO
+   - Added REGISTRY to PLAN_AVAILABLE_FEATURES (premium)
+   - Added REGISTRY to DEFAULT_FEATURE_SELECTION
+
+9. **Wedding Site Types** (`apps/wedding-site/src/types.ts`):
+   - Added REGISTRY to FeatureFlag type
+   - Added RegistryLink and RegistryConfig interfaces
+   - Added registry field to RenderConfig
+
+10. **RegistrySection Component** (new: `apps/wedding-site/src/components/sections/RegistrySection.astro`):
+    - Astro component for public-facing registry display
+    - Styled registry link buttons with external link icon
+    - Links open in new tab (target="_blank" rel="noopener noreferrer")
+    - Empty state when no registry links configured
+    - Uses theme variables for consistent styling
+    - Mobile-responsive design
+
+11. **SectionRenderer Component** (`apps/wedding-site/src/components/SectionRenderer.astro`):
+    - Imported RegistrySection component
+    - Added registry to destructured config values
+    - Added 'registry' case to section switch
+    - Respects REGISTRY feature flag (only renders when enabled)
+
+**Design system adherence:**
+- RegistrySettings follows same pattern as FaqSettings/AnnouncementSettings
+- Uses GiftIcon for dashboard card (consistent iconography)
+- Form inputs use neutral-200 borders with primary-500 focus ring
+- Success/error messages follow existing color patterns
+- Human language: "Share links to your gift registries with guests"
+
+**PRD features now passing:**
+- "Admin can add gift registry links" ✓
+- "Registry section displays on public site" ✓
+- "Registry respects feature toggle" ✓
+
+**Notes for next person:**
+- Registry is a premium-only feature (starter tier cannot enable)
+- Registry links are stored in wedding.registry and propagated to render_config
+- RegistrySettings appears in dashboard when REGISTRY feature can be toggled
+- Links are validated for proper URL format before saving
+- Public section shows links as styled buttons with external link icons
+- Each link opens in new tab for better UX
