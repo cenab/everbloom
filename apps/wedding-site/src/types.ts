@@ -59,7 +59,29 @@ export interface FaqConfig {
 }
 
 /**
+ * Type of event in a wedding
+ */
+export type WeddingEventType = 'ceremony' | 'reception' | 'other';
+
+/**
+ * A single event within a wedding (ceremony, reception, etc.)
+ */
+export interface WeddingEvent {
+  id: string;
+  type: WeddingEventType;
+  name: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  venue: string;
+  address: string;
+  city: string;
+  timezone?: string;
+}
+
+/**
  * Event details for calendar invites
+ * Supports both single-event (legacy) and multi-event configurations
  */
 export interface EventDetailsData {
   date: string;
@@ -69,6 +91,8 @@ export interface EventDetailsData {
   address: string;
   city: string;
   timezone?: string;
+  /** Array of individual events (ceremony, reception, etc.) */
+  events?: WeddingEvent[];
 }
 
 /**

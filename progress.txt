@@ -1870,3 +1870,81 @@
   4. Store updated config via renderConfigs.set()
   5. Return both wedding and renderConfig to caller
 - The wedding site is stateless and always fetches fresh from API
+
+---
+
+### 2026-01-07 - Multi-Event Support (Ceremony + Reception)
+
+**Feature worked on:** Admin can edit event details (PRD: content category)
+
+**Priority rationale:** This is a high-priority feature because:
+1. The existing event details feature only supported a single event
+2. Most weddings have both a ceremony and reception (often at different venues/times)
+3. The PRD explicitly requires "Add ceremony time and location" + "Add reception time and location"
+4. It follows established patterns but extends the data model to support multiple events
+5. Calendar invites work with the primary (ceremony) event for backwards compatibility
+
+**What was done:**
+1. Added multi-event types to platform-api types:
+   - `WeddingEventType` type ('ceremony' | 'reception' | 'other')
+   - `WeddingEvent` interface with id, type, name, date, startTime, endTime, venue, address, city, timezone
+   - Extended `EventDetailsData` with optional `events` array
+
+2. Updated WeddingService to support multiple events:
+   - When `events` array is provided, uses first event for top-level fields (backwards compatibility)
+   - Normalizes event details before storage
+   - Logs event count when updating
+
+3. Updated event details API endpoint (wedding.controller.ts):
+   - Validates individual events when `events` array is provided
+   - Falls back to legacy single-event validation when no events array
+   - Validates each event's date format (YYYY-MM-DD) and time format (HH:MM)
+
+4. Added multi-event types to platform-ui types:
+   - Same types as platform-api for consistency
+   - `WeddingEventType`, `WeddingEvent`, extended `EventDetailsData`
+
+5. Completely rewrote EventSettings.tsx component:
+   - Multi-event form with EventCard subcomponent
+   - Starts with Ceremony by default
+   - "Add reception details" button to add Reception event
+   - Each event can be removed (except last one)
+   - Auto-copies date and timezone from ceremony when adding reception
+   - Legacy single-event data is migrated to multi-event format on load
+   - Added PlusIcon and TrashIcon components
+
+6. Added multi-event types to wedding-site types:
+   - Same types as other apps for consistency
+
+7. Updated EventDetailsSection.astro component:
+   - Detects if multiple events exist in eventDetails.events
+   - Displays multi-event layout with event cards (side by side on desktop)
+   - Falls back to legacy single-event layout for backwards compatibility
+   - Added new CSS styles for multi-event display (.events-list, .event-card, .event-name, etc.)
+   - Mobile-first responsive design with cards stacking vertically on mobile
+
+**API Endpoints:**
+- `PUT /api/weddings/:id/event-details` - now supports both formats:
+  - Legacy: `{ eventDetails: { date, startTime, endTime, venue, address, city, timezone? } }`
+  - Multi-event: `{ eventDetails: { ..., events: [{ id, type, name, date, startTime, endTime, venue, address, city, timezone? }] } }`
+  - Response: `{ wedding, renderConfig }`
+
+**Design system adherence:**
+- Event cards use subtle backgrounds with soft borders
+- Event names use serif font (Cormorant Garamond) with primary color
+- Mobile-first with cards stacking on small screens
+- Large tap targets for form inputs
+- Human language: "Add reception details", "Ceremony", "Reception"
+- No pure black/white colors - uses theme variables
+
+**PRD features now passing:**
+- "Admin can edit event details" ✓
+
+**Notes for next person:**
+- Event details endpoint is at PUT /api/weddings/:id/event-details
+- Multi-event is stored in `eventDetails.events` array; top-level fields are for backwards compatibility
+- Calendar invites use the first event (typically ceremony) for date/time/venue
+- The EventSettings component auto-migrates legacy single-event to multi-event format
+- Reception event auto-inherits date and timezone from ceremony when added
+- Wedding site renders multi-event with side-by-side cards on desktop
+- To test: go to dashboard → "Event details" → add ceremony → "Add reception details" → fill both → save → view wedding site

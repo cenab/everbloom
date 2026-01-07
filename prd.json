@@ -633,7 +633,7 @@
       "Save changes",
       "Verify public site shows updated event details"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "content",

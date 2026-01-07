@@ -1,5 +1,5 @@
 ---
-import type { Section, Theme, EventDetailsData } from '../../types';
+import type { Section, Theme, EventDetailsData, WeddingEvent } from '../../types';
 
 interface Props {
   section: Section;
@@ -40,7 +40,11 @@ const apiBaseUrl = import.meta.env.PUBLIC_PLATFORM_API_URL || 'http://localhost:
 const icsDownloadUrl = `${apiBaseUrl}/calendar/${slug}/download.ics`;
 const googleCalendarUrl = `${apiBaseUrl}/calendar/${slug}/google`;
 
-// Display values
+// Check if we have multiple events
+const hasMultipleEvents = eventDetails?.events && eventDetails.events.length > 1;
+const events = eventDetails?.events || [];
+
+// Single event display values (for backwards compatibility)
 const displayDate = eventDetails?.date ? formatDate(eventDetails.date) : weddingDate;
 const displayTime = eventDetails?.startTime ? formatTime(eventDetails.startTime) : null;
 const displayVenue = eventDetails?.venue || venue;
@@ -55,27 +59,52 @@ const displayCity = eventDetails?.city || city;
     <h2 class="section-title">{title || 'The Details'}</h2>
     {description && <p class="section-description">{description}</p>}
 
-    <div class="details-grid">
-      {displayDate && (
-        <div class="detail-item">
-          <span class="detail-label">When</span>
-          <span class="detail-value">{displayDate}</span>
-          {displayTime && <span class="detail-time">{displayTime}</span>}
-        </div>
-      )}
-      {displayVenue && (
-        <div class="detail-item">
-          <span class="detail-label">Where</span>
-          <span class="detail-value">{displayVenue}</span>
-        </div>
-      )}
-      {displayCity && (
-        <div class="detail-item">
-          <span class="detail-label">Location</span>
-          <span class="detail-value">{displayCity}</span>
-        </div>
-      )}
-    </div>
+    {hasMultipleEvents ? (
+      <!-- Multi-event display (ceremony + reception) -->
+      <div class="events-list">
+        {events.map((event) => (
+          <div class="event-card">
+            <h3 class="event-name">{event.name}</h3>
+            <div class="event-details">
+              <div class="detail-item">
+                <span class="detail-label">When</span>
+                <span class="detail-value">{formatDate(event.date)}</span>
+                <span class="detail-time">{formatTime(event.startTime)} - {formatTime(event.endTime)}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Where</span>
+                <span class="detail-value">{event.venue}</span>
+                <span class="detail-address">{event.address}</span>
+                <span class="detail-city">{event.city}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <!-- Single event display (legacy) -->
+      <div class="details-grid">
+        {displayDate && (
+          <div class="detail-item">
+            <span class="detail-label">When</span>
+            <span class="detail-value">{displayDate}</span>
+            {displayTime && <span class="detail-time">{displayTime}</span>}
+          </div>
+        )}
+        {displayVenue && (
+          <div class="detail-item">
+            <span class="detail-label">Where</span>
+            <span class="detail-value">{displayVenue}</span>
+          </div>
+        )}
+        {displayCity && (
+          <div class="detail-item">
+            <span class="detail-label">Location</span>
+            <span class="detail-value">{displayCity}</span>
+          </div>
+        )}
+      </div>
+    )}
 
     {showCalendarButtons && (
       <div class="calendar-buttons">
@@ -206,6 +235,49 @@ const displayCity = eventDetails?.city || city;
     opacity: 1;
   }
 
+  /* Multi-event styles */
+  .events-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+
+  .event-card {
+    padding: 2rem;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  .event-name {
+    font-family: 'Cormorant Garamond', 'Georgia', serif;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--primary);
+    margin: 0 0 1.5rem 0;
+    letter-spacing: 0.02em;
+  }
+
+  .event-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .detail-address {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 0.875rem;
+    color: var(--neutral-dark);
+    opacity: 0.7;
+  }
+
+  .detail-city {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 0.875rem;
+    color: var(--neutral-dark);
+    opacity: 0.6;
+  }
+
   @media (min-width: 640px) {
     .details-grid {
       flex-direction: row;
@@ -216,6 +288,21 @@ const displayCity = eventDetails?.city || city;
     .calendar-buttons {
       flex-direction: row;
       justify-content: center;
+    }
+
+    .events-list {
+      flex-direction: row;
+      justify-content: center;
+      gap: 2rem;
+    }
+
+    .event-card {
+      flex: 1;
+      max-width: 340px;
+    }
+
+    .event-details {
+      gap: 1.5rem;
     }
   }
 </style>

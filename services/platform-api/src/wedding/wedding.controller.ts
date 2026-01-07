@@ -311,6 +311,7 @@ export class WeddingController {
   /**
    * Update event details for a wedding
    * Required for calendar invites to work properly
+   * Supports both single-event (legacy) and multi-event configurations
    */
   @Put(':id/event-details')
   async updateEventDetails(
@@ -336,22 +337,43 @@ export class WeddingController {
       throw new BadRequestException('Event details are required');
     }
 
-    const { date, startTime, endTime, venue, address, city } = body.eventDetails;
+    const { date, startTime, endTime, venue, address, city, events } = body.eventDetails;
 
-    if (!date || !startTime || !endTime || !venue || !address || !city) {
-      throw new BadRequestException(
-        'All event details fields are required: date, startTime, endTime, venue, address, city',
-      );
-    }
+    // Validate individual events if provided
+    if (events && events.length > 0) {
+      for (let i = 0; i < events.length; i++) {
+        const event = events[i];
+        if (!event.name || !event.type || !event.date || !event.startTime || !event.endTime || !event.venue || !event.address || !event.city) {
+          throw new BadRequestException(
+            `Event ${i + 1} is missing required fields: name, type, date, startTime, endTime, venue, address, city`,
+          );
+        }
+        // Validate event date format
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(event.date)) {
+          throw new BadRequestException(`Event ${i + 1}: Date must be in YYYY-MM-DD format`);
+        }
+        // Validate event time format
+        if (!/^\d{2}:\d{2}$/.test(event.startTime) || !/^\d{2}:\d{2}$/.test(event.endTime)) {
+          throw new BadRequestException(`Event ${i + 1}: Times must be in HH:MM format`);
+        }
+      }
+    } else {
+      // Legacy single-event validation
+      if (!date || !startTime || !endTime || !venue || !address || !city) {
+        throw new BadRequestException(
+          'All event details fields are required: date, startTime, endTime, venue, address, city',
+        );
+      }
 
-    // Validate date format (YYYY-MM-DD)
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      throw new BadRequestException('Date must be in YYYY-MM-DD format');
-    }
+      // Validate date format (YYYY-MM-DD)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        throw new BadRequestException('Date must be in YYYY-MM-DD format');
+      }
 
-    // Validate time format (HH:MM)
-    if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) {
-      throw new BadRequestException('Times must be in HH:MM format');
+      // Validate time format (HH:MM)
+      if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) {
+        throw new BadRequestException('Times must be in HH:MM format');
+      }
     }
 
     const result = this.weddingService.updateEventDetails(id, body.eventDetails);

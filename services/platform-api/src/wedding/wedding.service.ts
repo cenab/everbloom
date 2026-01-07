@@ -557,6 +557,7 @@ export class WeddingService {
   /**
    * Update event details for a wedding
    * Updates both the wedding record and render_config event details
+   * Supports both single-event (legacy) and multi-event configurations
    */
   updateEventDetails(
     weddingId: string,
@@ -567,7 +568,24 @@ export class WeddingService {
       return null;
     }
 
-    wedding.eventDetails = eventDetails;
+    // If events array is provided, use first event (typically ceremony) for top-level fields
+    // This ensures backwards compatibility with calendar invites and legacy rendering
+    let normalizedEventDetails = { ...eventDetails };
+    if (eventDetails.events && eventDetails.events.length > 0) {
+      const primaryEvent = eventDetails.events[0];
+      normalizedEventDetails = {
+        date: primaryEvent.date,
+        startTime: primaryEvent.startTime,
+        endTime: primaryEvent.endTime,
+        venue: primaryEvent.venue,
+        address: primaryEvent.address,
+        city: primaryEvent.city,
+        timezone: primaryEvent.timezone,
+        events: eventDetails.events,
+      };
+    }
+
+    wedding.eventDetails = normalizedEventDetails;
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
@@ -579,18 +597,19 @@ export class WeddingService {
     // Update render_config with event details
     const updatedConfig: RenderConfig = {
       ...existingConfig,
-      eventDetails,
+      eventDetails: normalizedEventDetails,
       wedding: {
         ...existingConfig.wedding,
-        date: eventDetails.date,
-        venue: eventDetails.venue,
-        city: eventDetails.city,
+        date: normalizedEventDetails.date,
+        venue: normalizedEventDetails.venue,
+        city: normalizedEventDetails.city,
       },
     };
 
     this.renderConfigs.set(weddingId, updatedConfig);
 
-    this.logger.log(`Updated event details for wedding ${weddingId}`);
+    const eventCount = normalizedEventDetails.events?.length || 1;
+    this.logger.log(`Updated event details for wedding ${weddingId} (${eventCount} event(s))`);
 
     return { wedding, renderConfig: updatedConfig };
   }
