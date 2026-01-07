@@ -1756,3 +1756,66 @@
 - The badge distinguishes between invitation and reminder emails via tooltip
 - Failed deliveries are highlighted in red/terracotta for visibility
 - The existing "Invited" fallback text is kept for edge cases where outbox doesn't have records
+
+---
+
+### 2026-01-07 - Friendly Error Page for Wedding Site
+
+**Feature worked on:** Site shows friendly message if render_config is missing (PRD: errors category)
+
+**Priority rationale:** This is a high-priority error handling feature because:
+1. It's essential for a good guest experience when something goes wrong
+2. It prevents technical errors from being exposed to guests
+3. It's foundational for production-readiness
+4. It follows the design system principles (calm, human-friendly)
+
+**What was done:**
+1. Created ErrorPage.astro component (apps/wedding-site/src/components/ErrorPage.astro):
+   - Standalone error page with default calm theme
+   - Three error types: 'not-found', 'unavailable', 'error'
+   - Human-friendly messages without technical jargon
+   - "Try again" button with page refresh
+   - Helpful text suggesting to contact the couple
+   - Heart icon for wedding-appropriate visual
+   - Mobile-responsive centered layout
+
+2. Updated /w/[slug]/index.astro:
+   - Added try/catch around fetchSiteConfig call
+   - Shows ErrorPage for missing config (not-found) or fetch errors (unavailable)
+   - No technical error details exposed
+   - Proper TypeScript type handling
+
+3. Updated /w/[slug]/photos.astro:
+   - Same error handling pattern as main wedding page
+   - Shows ErrorPage when config fetch fails
+   - Preserves photo upload functionality when config loads successfully
+
+**Design system adherence:**
+- No pure black (#000000) - uses #2d2d2d (soft black)
+- No pure white (#FFFFFF) - uses #faf8f5 (warm off-white)
+- Typography: Cormorant Garamond for headings, Inter for body
+- Calm, minimal design with generous whitespace
+- Human-friendly messaging (no technical jargon)
+- Mobile-responsive layout
+- Heart icon (wedding-appropriate, not gimmicky)
+
+**Error messages:**
+- not-found: "We couldn't find this page" - suggests checking the link or contacting couple
+- unavailable: "This page isn't available right now" - suggests trying again later
+- error: "Something went wrong" - generic fallback with refresh option
+
+**PRD features now passing:**
+- "Site shows friendly message if render_config is missing" ✓
+
+**Next steps:**
+- Implement "API returns structured errors for all failure modes"
+- Implement "Network errors show retry option"
+- Continue with other incomplete features
+
+**Notes for next person:**
+- ErrorPage component is at apps/wedding-site/src/components/ErrorPage.astro
+- Error types are: 'not-found', 'unavailable', 'error'
+- The component works standalone (doesn't need render_config)
+- Default theme uses the same warm palette as the rest of the site
+- The RSVP page already has its own inline error handling which is appropriate for token-based errors
+- Error handling catches both missing config (null) and network/fetch errors

@@ -657,7 +657,7 @@
       "Verify no technical error details are exposed",
       "Verify message suggests contacting couple or trying later"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "errors",
