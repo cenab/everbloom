@@ -29,6 +29,7 @@ import type {
   VideoEmbed,
   VideoEmbedPlatform,
   SocialConfig,
+  PreviewStatus,
 } from '../types';
 
 const scryptAsync = promisify(scrypt);
@@ -356,7 +357,10 @@ export class WeddingService {
 
   // In-memory store for development
   private weddings: Map<string, Wedding> = new Map();
-  private renderConfigs: Map<string, RenderConfig> = new Map();
+  private renderConfigs: Map<string, RenderConfig> = new Map(); // Published configs
+  private draftRenderConfigs: Map<string, RenderConfig> = new Map(); // Draft configs (unpublished changes)
+  private draftUpdatedAt: Map<string, string> = new Map(); // Track when drafts were last modified
+  private lastPublishedAt: Map<string, string> = new Map(); // Track when configs were last published
   private processedSessions: Set<string> = new Set();
 
   /**
@@ -662,21 +666,21 @@ export class WeddingService {
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
-    // Update render_config features
-    const existingConfig = this.renderConfigs.get(weddingId);
-    if (!existingConfig) {
+    // Get or create draft config for updates
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
       return null;
     }
 
-    const hasPhotoSection = existingConfig.sections.some((section) => section.type === 'photo-upload');
-    const hasFaqSection = existingConfig.sections.some((section) => section.type === 'faq');
-    const hasRegistrySection = existingConfig.sections.some((section) => section.type === 'registry');
-    const hasGuestbookSection = existingConfig.sections.some((section) => section.type === 'guestbook');
+    const hasPhotoSection = draftConfig.sections.some((section) => section.type === 'photo-upload');
+    const hasFaqSection = draftConfig.sections.some((section) => section.type === 'faq');
+    const hasRegistrySection = draftConfig.sections.some((section) => section.type === 'registry');
+    const hasGuestbookSection = draftConfig.sections.some((section) => section.type === 'guestbook');
     const updatedConfig: RenderConfig = {
-      ...existingConfig,
+      ...draftConfig,
       features: updatedFeatures,
       // Also update section enabled states based on features
-      sections: existingConfig.sections.map((section) => {
+      sections: draftConfig.sections.map((section) => {
         if (section.type === 'rsvp') {
           return { ...section, enabled: updatedFeatures.RSVP };
         }
@@ -779,16 +783,18 @@ export class WeddingService {
       ];
     }
 
-    this.renderConfigs.set(weddingId, updatedConfig);
+    // Update draft, not published
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
 
-    this.logger.log(`Updated features for wedding ${weddingId}: ${JSON.stringify(updatedFeatures)}`);
+    this.logger.log(`Updated features for wedding ${weddingId} (draft): ${JSON.stringify(updatedFeatures)}`);
 
     return { wedding, renderConfig: updatedConfig };
   }
 
   /**
    * Update announcement banner for a wedding
-   * Updates both the wedding record and render_config announcement content
+   * Updates both the wedding record and DRAFT render_config announcement content
+   * Changes go to draft; call publishDraft() to make them live
    */
   updateAnnouncement(
     weddingId: string,
@@ -803,19 +809,21 @@ export class WeddingService {
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
-    const existingConfig = this.renderConfigs.get(weddingId);
-    if (!existingConfig) {
+    // Get or create draft config
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
       return null;
     }
 
     const updatedConfig: RenderConfig = {
-      ...existingConfig,
+      ...draftConfig,
       announcement,
     };
 
-    this.renderConfigs.set(weddingId, updatedConfig);
+    // Update draft, not published
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
 
-    this.logger.log(`Updated announcement banner for wedding ${weddingId}`);
+    this.logger.log(`Updated announcement banner for wedding ${weddingId} (draft)`);
 
     return { wedding, renderConfig: updatedConfig };
   }
@@ -855,34 +863,36 @@ export class WeddingService {
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
-    const existingConfig = this.renderConfigs.get(weddingId);
-    if (!existingConfig) {
+    // Get or create draft config for updates
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
       return null;
     }
 
-    // Update render_config with event details
+    // Update draft render_config with event details
     const updatedConfig: RenderConfig = {
-      ...existingConfig,
+      ...draftConfig,
       eventDetails: normalizedEventDetails,
       wedding: {
-        ...existingConfig.wedding,
+        ...draftConfig.wedding,
         date: normalizedEventDetails.date,
         venue: normalizedEventDetails.venue,
         city: normalizedEventDetails.city,
       },
     };
 
-    this.renderConfigs.set(weddingId, updatedConfig);
+    // Update draft, not published
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
 
     const eventCount = normalizedEventDetails.events?.length || 1;
-    this.logger.log(`Updated event details for wedding ${weddingId} (${eventCount} event(s))`);
+    this.logger.log(`Updated event details for wedding ${weddingId} (draft, ${eventCount} event(s))`);
 
     return { wedding, renderConfig: updatedConfig };
   }
 
   /**
    * Update FAQ items for a wedding
-   * Updates both the wedding record and render_config FAQ content
+   * Updates both the wedding record and DRAFT render_config FAQ content
    */
   updateFaq(
     weddingId: string,
@@ -897,26 +907,28 @@ export class WeddingService {
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
-    const existingConfig = this.renderConfigs.get(weddingId);
-    if (!existingConfig) {
+    // Get or create draft config for updates
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
       return null;
     }
 
     const updatedConfig: RenderConfig = {
-      ...existingConfig,
+      ...draftConfig,
       faq,
     };
 
-    this.renderConfigs.set(weddingId, updatedConfig);
+    // Update draft, not published
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
 
-    this.logger.log(`Updated FAQ for wedding ${weddingId} with ${faq.items.length} items`);
+    this.logger.log(`Updated FAQ for wedding ${weddingId} (draft, ${faq.items.length} items)`);
 
     return { wedding, renderConfig: updatedConfig };
   }
 
   /**
    * Update hero section content for a wedding
-   * Updates the hero section in render_config with new headline and subheadline
+   * Updates the hero section in DRAFT render_config with new headline and subheadline
    */
   updateHeroContent(
     weddingId: string,
@@ -927,13 +939,14 @@ export class WeddingService {
       return null;
     }
 
-    const existingConfig = this.renderConfigs.get(weddingId);
-    if (!existingConfig) {
+    // Get or create draft config for updates
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
       return null;
     }
 
-    // Update the hero section data in render_config
-    const updatedSections = existingConfig.sections.map((section) => {
+    // Update the hero section data in draft render_config
+    const updatedSections = draftConfig.sections.map((section) => {
       if (section.type === 'hero') {
         return {
           ...section,
@@ -948,17 +961,18 @@ export class WeddingService {
     });
 
     const updatedConfig: RenderConfig = {
-      ...existingConfig,
+      ...draftConfig,
       sections: updatedSections,
     };
 
-    this.renderConfigs.set(weddingId, updatedConfig);
+    // Update draft, not published
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
 
     // Update wedding timestamp
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
-    this.logger.log(`Updated hero content for wedding ${weddingId}`);
+    this.logger.log(`Updated hero content for wedding ${weddingId} (draft)`);
 
     return { wedding, renderConfig: updatedConfig };
   }
@@ -980,20 +994,22 @@ export class WeddingService {
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
-    const existingConfig = this.renderConfigs.get(weddingId);
-    if (!existingConfig) {
+    // Get or create draft config for updates
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
       return null;
     }
 
-    // Update registry in render_config
+    // Update registry in draft render_config
     const updatedConfig: RenderConfig = {
-      ...existingConfig,
+      ...draftConfig,
       registry: registry.links.length > 0 ? registry : undefined,
     };
 
-    this.renderConfigs.set(weddingId, updatedConfig);
+    // Update draft, not published
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
 
-    this.logger.log(`Updated registry for wedding ${weddingId} with ${registry.links.length} links`);
+    this.logger.log(`Updated registry for wedding ${weddingId} (draft, ${registry.links.length} links)`);
 
     return { wedding, renderConfig: updatedConfig };
   }
@@ -1015,25 +1031,27 @@ export class WeddingService {
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
-    const existingConfig = this.renderConfigs.get(weddingId);
-    if (!existingConfig) {
+    // Get or create draft config for updates
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
       return null;
     }
 
-    // Update accommodations in render_config
+    // Update accommodations in draft render_config
     const hasContent = accommodations.hotels.length > 0 ||
       accommodations.travelInfo?.airportDirections ||
       accommodations.travelInfo?.parkingInfo ||
       accommodations.travelInfo?.mapUrl;
 
     const updatedConfig: RenderConfig = {
-      ...existingConfig,
+      ...draftConfig,
       accommodations: hasContent ? accommodations : undefined,
     };
 
-    this.renderConfigs.set(weddingId, updatedConfig);
+    // Update draft, not published
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
 
-    this.logger.log(`Updated accommodations for wedding ${weddingId} with ${accommodations.hotels.length} hotels`);
+    this.logger.log(`Updated accommodations for wedding ${weddingId} (draft, ${accommodations.hotels.length} hotels)`);
 
     return { wedding, renderConfig: updatedConfig };
   }
@@ -1109,7 +1127,7 @@ export class WeddingService {
 
   /**
    * Change a wedding's template while preserving content
-   * This updates the render_config with the new template and its theme,
+   * This updates the DRAFT render_config with the new template and its theme,
    * but keeps the existing sections data (content) intact.
    */
   changeTemplate(weddingId: string, templateId: string): RenderConfig | null {
@@ -1123,27 +1141,28 @@ export class WeddingService {
       return null;
     }
 
-    const existingConfig = this.renderConfigs.get(weddingId);
-    if (!existingConfig) {
+    // Get or create draft config for updates
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
       return null;
     }
 
-    // Update render_config with new template while preserving content
+    // Update draft render_config with new template while preserving content
     const updatedConfig: RenderConfig = {
-      ...existingConfig,
+      ...draftConfig,
       templateId: template.id,
       theme: template.defaultTheme,
       // Sections (content) are preserved - only visual presentation changes
     };
 
-    // Store updated config
-    this.renderConfigs.set(weddingId, updatedConfig);
+    // Store updated draft config
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
 
     // Update wedding timestamp
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
-    this.logger.log(`Changed template for wedding ${weddingId} to ${templateId}`);
+    this.logger.log(`Changed template for wedding ${weddingId} to ${templateId} (draft)`);
 
     return updatedConfig;
   }
@@ -1198,11 +1217,22 @@ export class WeddingService {
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
-    // Regenerate render_config to update passcodeProtected flag
-    const updatedConfig = this.generateRenderConfig(wedding);
-    this.renderConfigs.set(weddingId, updatedConfig);
+    // Get or create draft config for updates
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
+      return null;
+    }
 
-    this.logger.log(`Updated passcode settings for wedding ${weddingId}: enabled=${enabled}`);
+    // Update draft render_config with passcode protection status
+    const updatedConfig: RenderConfig = {
+      ...draftConfig,
+      passcodeProtected: enabled && !!passcodeConfig.passcodeHash,
+    };
+
+    // Update draft, not published
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
+
+    this.logger.log(`Updated passcode settings for wedding ${weddingId} (draft): enabled=${enabled}`);
 
     return { wedding, renderConfig: updatedConfig };
   }
@@ -1259,12 +1289,23 @@ export class WeddingService {
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
-    // Regenerate render_config to include meal options
-    const updatedConfig = this.generateRenderConfig(wedding);
-    this.renderConfigs.set(weddingId, updatedConfig);
+    // Get or create draft config for updates
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
+      return null;
+    }
+
+    // Update draft render_config with meal options
+    const updatedConfig: RenderConfig = {
+      ...draftConfig,
+      mealConfig: mealConfig.enabled && mealConfig.options.length > 0 ? mealConfig : undefined,
+    };
+
+    // Update draft, not published
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
 
     this.logger.log(
-      `Updated meal config for wedding ${weddingId}: enabled=${mealConfig.enabled}, options=${mealConfig.options.length}`,
+      `Updated meal config for wedding ${weddingId} (draft): enabled=${mealConfig.enabled}, options=${mealConfig.options.length}`,
     );
 
     return { wedding, renderConfig: updatedConfig };
@@ -1298,21 +1339,23 @@ export class WeddingService {
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
-    const existingConfig = this.renderConfigs.get(weddingId);
-    if (!existingConfig) {
+    // Get or create draft config for updates
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
       return null;
     }
 
-    // Update guestbook in render_config (only approved messages)
+    // Update guestbook in draft render_config (only approved messages)
     const updatedConfig: RenderConfig = {
-      ...existingConfig,
+      ...draftConfig,
       guestbook: guestbook.messages.length > 0 ? guestbook : undefined,
     };
 
-    this.renderConfigs.set(weddingId, updatedConfig);
+    // Update draft, not published
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
 
     this.logger.log(
-      `Updated guestbook config for wedding ${weddingId}: ${guestbook.messages.length} approved messages`,
+      `Updated guestbook config for wedding ${weddingId} (draft): ${guestbook.messages.length} approved messages`,
     );
 
     return { wedding, renderConfig: updatedConfig };
@@ -1335,21 +1378,23 @@ export class WeddingService {
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
-    const existingConfig = this.renderConfigs.get(weddingId);
-    if (!existingConfig) {
+    // Get or create draft config for updates
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
       return null;
     }
 
-    // Update seating in render_config
+    // Update seating in draft render_config
     const updatedConfig: RenderConfig = {
-      ...existingConfig,
+      ...draftConfig,
       seating: seating.tables.length > 0 ? seating : undefined,
     };
 
-    this.renderConfigs.set(weddingId, updatedConfig);
+    // Update draft, not published
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
 
     this.logger.log(
-      `Updated seating config for wedding ${weddingId}: ${seating.tables.length} tables`,
+      `Updated seating config for wedding ${weddingId} (draft): ${seating.tables.length} tables`,
     );
 
     return { wedding, renderConfig: updatedConfig };
@@ -1357,7 +1402,7 @@ export class WeddingService {
 
   /**
    * Update gallery configuration for a wedding (admin curated photos)
-   * Updates both the wedding record and regenerates render_config
+   * Updates both the wedding record and DRAFT render_config
    * PRD: "Admin can upload curated photos"
    */
   updateGallery(
@@ -1373,16 +1418,17 @@ export class WeddingService {
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
-    const existingConfig = this.renderConfigs.get(weddingId);
-    if (!existingConfig) {
+    // Get or create draft config for updates
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
       return null;
     }
 
-    // Update gallery in render_config
+    // Update gallery in draft render_config
     const hasPhotos = gallery.photos.length > 0;
 
     // Update the gallery section enabled state
-    const updatedSections = existingConfig.sections.map((section) => {
+    const updatedSections = draftConfig.sections.map((section) => {
       if (section.type === 'gallery') {
         return { ...section, enabled: hasPhotos };
       }
@@ -1397,15 +1443,16 @@ export class WeddingService {
     }
 
     const updatedConfig: RenderConfig = {
-      ...existingConfig,
+      ...draftConfig,
       sections: updatedSections,
       gallery: hasPhotos ? gallery : undefined,
     };
 
-    this.renderConfigs.set(weddingId, updatedConfig);
+    // Update draft, not published
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
 
     this.logger.log(
-      `Updated gallery for wedding ${weddingId}: ${gallery.photos.length} photos`,
+      `Updated gallery for wedding ${weddingId} (draft): ${gallery.photos.length} photos`,
     );
 
     return { wedding, renderConfig: updatedConfig };
@@ -1586,8 +1633,9 @@ export class WeddingService {
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
-    const existingConfig = this.renderConfigs.get(weddingId);
-    if (!existingConfig) {
+    // Get or create draft config for updates
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
       return null;
     }
 
@@ -1596,7 +1644,7 @@ export class WeddingService {
     const featureEnabled = wedding.features.VIDEO_EMBED;
 
     // Update the video section enabled state
-    const updatedSections = existingConfig.sections.map((section) => {
+    const updatedSections = draftConfig.sections.map((section) => {
       if (section.type === 'video') {
         return { ...section, enabled: featureEnabled && hasVideos };
       }
@@ -1611,12 +1659,13 @@ export class WeddingService {
     }
 
     const updatedConfig: RenderConfig = {
-      ...existingConfig,
+      ...draftConfig,
       sections: updatedSections,
       video: (featureEnabled && hasVideos) ? video : undefined,
     };
 
-    this.renderConfigs.set(weddingId, updatedConfig);
+    // Update draft, not published
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
 
     this.logger.log(
       `Updated video for wedding ${weddingId}: ${video.videos.length} videos`,
@@ -1759,9 +1808,20 @@ export class WeddingService {
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
-    // Regenerate render_config to include OG image URL
-    const updatedConfig = this.generateRenderConfig(wedding);
-    this.renderConfigs.set(weddingId, updatedConfig);
+    // Get or create draft config for updates
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
+      return null;
+    }
+
+    // Update draft with new OG image URL
+    const updatedConfig: RenderConfig = {
+      ...draftConfig,
+      ogImageUrl: socialConfig.ogImageUrl,
+    };
+
+    // Update draft, not published
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
 
     this.logger.log(
       `Updated social config for wedding ${weddingId}: ogImageUrl=${socialConfig.ogImageUrl ?? 'none'}`,
@@ -1803,12 +1863,217 @@ export class WeddingService {
     wedding.updatedAt = new Date().toISOString();
     this.weddings.set(weddingId, wedding);
 
-    // Regenerate render_config without OG image
-    const updatedConfig = this.generateRenderConfig(wedding);
-    this.renderConfigs.set(weddingId, updatedConfig);
+    // Get or create draft config for updates
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
+      return null;
+    }
+
+    // Update draft without OG image
+    const updatedConfig: RenderConfig = {
+      ...draftConfig,
+      ogImageUrl: undefined,
+    };
+
+    // Update draft, not published
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
 
     this.logger.log(`Removed OG image for wedding ${weddingId}`);
 
     return { wedding, renderConfig: updatedConfig };
+  }
+
+  // ============================================================================
+  // Preview / Draft Workflow Methods
+  // PRD: "Admin can preview site before publishing"
+  // PRD: "Admin can publish or discard changes"
+  // ============================================================================
+
+  /**
+   * Get the draft render_config for a wedding (creates one if doesn't exist)
+   * The draft starts as a copy of the published config
+   */
+  getDraftRenderConfig(weddingId: string): RenderConfig | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    // If no draft exists, return a copy of the published config
+    if (!this.draftRenderConfigs.has(weddingId)) {
+      const publishedConfig = this.renderConfigs.get(weddingId);
+      if (publishedConfig) {
+        // Deep clone the published config as the initial draft
+        const draftConfig = JSON.parse(JSON.stringify(publishedConfig)) as RenderConfig;
+        this.draftRenderConfigs.set(weddingId, draftConfig);
+        this.draftUpdatedAt.set(weddingId, new Date().toISOString());
+      }
+    }
+
+    return this.draftRenderConfigs.get(weddingId) ?? null;
+  }
+
+  /**
+   * Get the published render_config for a wedding
+   * This is what the public wedding site renders from
+   */
+  getPublishedRenderConfig(weddingId: string): RenderConfig | null {
+    return this.renderConfigs.get(weddingId) ?? null;
+  }
+
+  /**
+   * Check if a wedding has unpublished draft changes
+   */
+  hasDraftChanges(weddingId: string): boolean {
+    const draftConfig = this.draftRenderConfigs.get(weddingId);
+    const publishedConfig = this.renderConfigs.get(weddingId);
+
+    if (!draftConfig || !publishedConfig) {
+      return false;
+    }
+
+    // Compare by JSON serialization (simple but effective for this use case)
+    return JSON.stringify(draftConfig) !== JSON.stringify(publishedConfig);
+  }
+
+  /**
+   * Get preview status for a wedding
+   */
+  getPreviewStatus(weddingId: string): PreviewStatus | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    return {
+      hasDraftChanges: this.hasDraftChanges(weddingId),
+      draftUpdatedAt: this.draftUpdatedAt.get(weddingId),
+      lastPublishedAt: this.lastPublishedAt.get(weddingId),
+    };
+  }
+
+  /**
+   * Update the draft render_config for a wedding
+   * This is called by all content update methods to update draft instead of published
+   */
+  private updateDraftRenderConfig(weddingId: string, config: RenderConfig): void {
+    this.draftRenderConfigs.set(weddingId, config);
+    this.draftUpdatedAt.set(weddingId, new Date().toISOString());
+  }
+
+  /**
+   * Publish draft changes - copy draft to published
+   * Returns the updated wedding and render_config
+   */
+  publishDraft(weddingId: string): { wedding: Wedding; renderConfig: RenderConfig; message: string } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    const draftConfig = this.draftRenderConfigs.get(weddingId);
+    if (!draftConfig) {
+      // No draft exists, return current published config
+      const publishedConfig = this.renderConfigs.get(weddingId);
+      if (!publishedConfig) {
+        return null;
+      }
+      return {
+        wedding,
+        renderConfig: publishedConfig,
+        message: 'No changes to publish.',
+      };
+    }
+
+    // Check if there are actual changes
+    if (!this.hasDraftChanges(weddingId)) {
+      const publishedConfig = this.renderConfigs.get(weddingId);
+      if (!publishedConfig) {
+        return null;
+      }
+      return {
+        wedding,
+        renderConfig: publishedConfig,
+        message: 'No changes to publish.',
+      };
+    }
+
+    // Copy draft to published
+    const publishedConfig = JSON.parse(JSON.stringify(draftConfig)) as RenderConfig;
+    this.renderConfigs.set(weddingId, publishedConfig);
+
+    // Update timestamps
+    const now = new Date().toISOString();
+    this.lastPublishedAt.set(weddingId, now);
+    wedding.updatedAt = now;
+    this.weddings.set(weddingId, wedding);
+
+    // Clear the draft (it now matches published)
+    this.draftRenderConfigs.delete(weddingId);
+    this.draftUpdatedAt.delete(weddingId);
+
+    this.logger.log(`Published draft for wedding ${weddingId}`);
+
+    return {
+      wedding,
+      renderConfig: publishedConfig,
+      message: 'Changes published successfully. Your site is now updated.',
+    };
+  }
+
+  /**
+   * Discard draft changes - delete draft and revert to published
+   * Returns the wedding and published render_config
+   */
+  discardDraft(weddingId: string): { wedding: Wedding; renderConfig: RenderConfig; message: string } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    const publishedConfig = this.renderConfigs.get(weddingId);
+    if (!publishedConfig) {
+      return null;
+    }
+
+    // Check if there was a draft
+    const hadDraft = this.hasDraftChanges(weddingId);
+
+    // Delete the draft
+    this.draftRenderConfigs.delete(weddingId);
+    this.draftUpdatedAt.delete(weddingId);
+
+    this.logger.log(`Discarded draft for wedding ${weddingId}`);
+
+    return {
+      wedding,
+      renderConfig: publishedConfig,
+      message: hadDraft
+        ? 'Changes discarded. Your site has been reverted to the published version.'
+        : 'No changes to discard.',
+    };
+  }
+
+  /**
+   * Helper method to get the working config for updates
+   * Returns draft if exists, otherwise creates a draft from published
+   * All content update methods should update draft, not published directly
+   */
+  private getOrCreateDraft(weddingId: string): RenderConfig | null {
+    // Get existing draft or create from published
+    let draftConfig = this.draftRenderConfigs.get(weddingId);
+
+    if (!draftConfig) {
+      const publishedConfig = this.renderConfigs.get(weddingId);
+      if (!publishedConfig) {
+        return null;
+      }
+      // Clone published as initial draft
+      draftConfig = JSON.parse(JSON.stringify(publishedConfig)) as RenderConfig;
+      this.draftRenderConfigs.set(weddingId, draftConfig);
+      this.draftUpdatedAt.set(weddingId, new Date().toISOString());
+    }
+
+    return draftConfig;
   }
 }

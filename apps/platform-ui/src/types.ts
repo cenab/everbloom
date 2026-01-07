@@ -1270,3 +1270,74 @@ export interface UpdateSocialConfigResponse {
   wedding: Wedding;
   renderConfig: RenderConfig;
 }
+
+// ============================================================================
+// Preview / Draft Workflow Types
+// PRD: "Admin can preview site before publishing"
+// PRD: "Admin can publish or discard changes"
+// ============================================================================
+
+/**
+ * Status of the render_config (published vs has draft changes)
+ */
+export type RenderConfigStatus = 'published' | 'has_draft';
+
+/**
+ * Response containing both draft and published configs for comparison
+ */
+export interface DraftRenderConfigResponse {
+  /** The draft config with uncommitted changes */
+  draftConfig: RenderConfig;
+  /** The currently published config */
+  publishedConfig: RenderConfig;
+  /** Whether the draft differs from published */
+  hasDraftChanges: boolean;
+}
+
+/**
+ * Request body for publishing a draft
+ */
+export interface PublishDraftRequest {
+  /** Optional note about what was published */
+  publishNote?: string;
+}
+
+/**
+ * Response after publishing a draft
+ */
+export interface PublishDraftResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+  message: string;
+}
+
+/**
+ * Response after discarding draft changes
+ */
+export interface DiscardDraftResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+  message: string;
+}
+
+/**
+ * Preview status information for a wedding
+ */
+export interface PreviewStatus {
+  /** Whether there are unpublished draft changes */
+  hasDraftChanges: boolean;
+  /** ISO timestamp when the draft was last updated */
+  draftUpdatedAt?: string;
+  /** ISO timestamp when the config was last published */
+  lastPublishedAt?: string;
+}
+
+/**
+ * Error code when no draft exists to discard
+ */
+export const NO_DRAFT_EXISTS = 'NO_DRAFT_EXISTS' as const;
+
+/**
+ * Error code when there are no changes to publish
+ */
+export const NO_CHANGES_TO_PUBLISH = 'NO_CHANGES_TO_PUBLISH' as const;

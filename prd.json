@@ -1447,7 +1447,7 @@
       "Verify preview shows pending changes",
       "Verify public site still shows old content"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "preview",
@@ -1461,7 +1461,7 @@
       "Click discard",
       "Verify changes are reverted"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "social",

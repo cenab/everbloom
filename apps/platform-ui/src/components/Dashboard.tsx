@@ -23,6 +23,7 @@ import { GallerySettings } from './GallerySettings';
 import { PhotoModerationSettings } from './PhotoModerationSettings';
 import { VideoSettings } from './VideoSettings';
 import { SocialSettings } from './SocialSettings';
+import { PreviewBanner } from './PreviewBanner';
 import { getAuthToken } from '../lib/auth';
 import type { Wedding, ApiResponse, RenderConfig } from '../types';
 
@@ -530,6 +531,9 @@ function WeddingDashboard({
           Back to weddings
         </button>
       )}
+
+      {/* Preview banner shows when there are unpublished changes */}
+      <PreviewBanner weddingId={wedding.id} weddingSlug={wedding.slug} />
 
       <div className="mb-8">
         <h1 className="text-2xl text-neutral-800">{wedding.name}</h1>

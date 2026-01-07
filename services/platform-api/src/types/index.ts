@@ -2338,7 +2338,9 @@ export type ErrorCode =
   | typeof INVALID_SCHEDULE_TIME
   | typeof OG_IMAGE_UPLOAD_VALIDATION_ERROR
   | typeof OG_IMAGE_UPLOAD_INVALID
-  | typeof DATA_EXPORT_FAILED;
+  | typeof DATA_EXPORT_FAILED
+  | typeof NO_DRAFT_EXISTS
+  | typeof NO_CHANGES_TO_PUBLISH;
 
 // ============================================================================
 // Privacy / Guest Data Export Types
@@ -2406,3 +2408,72 @@ export interface GuestDataExport {
  * Data export failed error code
  */
 export const DATA_EXPORT_FAILED = 'DATA_EXPORT_FAILED' as const;
+
+// ============================================================================
+// Preview / Draft Workflow Types
+// PRD: "Admin can preview site before publishing"
+// PRD: "Admin can publish or discard changes"
+// ============================================================================
+
+/**
+ * Status of render config changes
+ */
+export type RenderConfigStatus = 'published' | 'has_draft';
+
+/**
+ * Response containing draft render config
+ */
+export interface DraftRenderConfigResponse {
+  draftConfig: RenderConfig;
+  publishedConfig: RenderConfig;
+  /** True if draft differs from published */
+  hasDraftChanges: boolean;
+}
+
+/**
+ * Request to publish draft changes
+ */
+export interface PublishDraftRequest {
+  /** Optional: include a note about what was published */
+  publishNote?: string;
+}
+
+/**
+ * Response after publishing draft
+ */
+export interface PublishDraftResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+  message: string;
+}
+
+/**
+ * Response after discarding draft
+ */
+export interface DiscardDraftResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+  message: string;
+}
+
+/**
+ * Preview status for a wedding (used in dashboard)
+ */
+export interface PreviewStatus {
+  /** Whether there are unpublished changes */
+  hasDraftChanges: boolean;
+  /** Timestamp when draft was last modified */
+  draftUpdatedAt?: string;
+  /** Timestamp when site was last published */
+  lastPublishedAt?: string;
+}
+
+/**
+ * No draft exists error code
+ */
+export const NO_DRAFT_EXISTS = 'NO_DRAFT_EXISTS' as const;
+
+/**
+ * Draft and published are identical error code
+ */
+export const NO_CHANGES_TO_PUBLISH = 'NO_CHANGES_TO_PUBLISH' as const;

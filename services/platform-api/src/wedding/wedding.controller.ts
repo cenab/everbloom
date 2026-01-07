@@ -51,8 +51,13 @@ import type {
   UpdateSocialConfigRequest,
   UpdateSocialConfigResponse,
   SocialConfig,
+  PreviewStatus,
+  PublishDraftRequest,
+  PublishDraftResponse,
+  DiscardDraftResponse,
+  DraftRenderConfigResponse,
 } from '../types';
-import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, WEDDING_NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, NOT_FOUND, GALLERY_PHOTO_NOT_FOUND, VIDEO_URL_INVALID, VIDEO_NOT_FOUND } from '../types';
+import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, WEDDING_NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, NOT_FOUND, GALLERY_PHOTO_NOT_FOUND, VIDEO_URL_INVALID, VIDEO_NOT_FOUND, NO_DRAFT_EXISTS, NO_CHANGES_TO_PUBLISH } from '../types';
 
 @Controller('weddings')
 export class WeddingController {
@@ -1260,6 +1265,162 @@ export class WeddingController {
     }
 
     return { ok: true, data: result };
+  }
+
+  // ============================================================================
+  // Preview / Draft Workflow Endpoints
+  // PRD: "Admin can preview site before publishing"
+  // PRD: "Admin can publish or discard changes"
+  // ============================================================================
+
+  /**
+   * Get the preview status for a wedding
+   * Returns whether there are unpublished draft changes
+   */
+  @Get(':id/preview/status')
+  async getPreviewStatus(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+  ): Promise<ApiResponse<PreviewStatus>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    const status = this.weddingService.getPreviewStatus(id);
+
+    if (!status) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return { ok: true, data: status };
+  }
+
+  /**
+   * Get the draft render_config for preview
+   * Returns both draft and published configs for comparison
+   */
+  @Get(':id/preview/draft')
+  async getDraftRenderConfig(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+  ): Promise<ApiResponse<DraftRenderConfigResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    const draftConfig = this.weddingService.getDraftRenderConfig(id);
+    const publishedConfig = this.weddingService.getPublishedRenderConfig(id);
+
+    if (!draftConfig || !publishedConfig) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    const hasDraftChanges = this.weddingService.hasDraftChanges(id);
+
+    return {
+      ok: true,
+      data: {
+        draftConfig,
+        publishedConfig,
+        hasDraftChanges,
+      },
+    };
+  }
+
+  /**
+   * Publish draft changes to the live site
+   * Copies draft config to published config
+   */
+  @Post(':id/preview/publish')
+  async publishDraft(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: PublishDraftRequest,
+  ): Promise<ApiResponse<PublishDraftResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    // Check if there are changes to publish
+    if (!this.weddingService.hasDraftChanges(id)) {
+      throw new BadRequestException({ ok: false, error: NO_CHANGES_TO_PUBLISH });
+    }
+
+    const result = this.weddingService.publishDraft(id);
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return {
+      ok: true,
+      data: {
+        wedding: result.wedding,
+        renderConfig: result.renderConfig,
+        message: 'Changes published successfully',
+      },
+    };
+  }
+
+  /**
+   * Discard draft changes and revert to published state
+   */
+  @Post(':id/preview/discard')
+  async discardDraft(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+  ): Promise<ApiResponse<DiscardDraftResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    // Check if there's a draft to discard
+    if (!this.weddingService.hasDraftChanges(id)) {
+      throw new BadRequestException({ ok: false, error: NO_DRAFT_EXISTS });
+    }
+
+    const result = this.weddingService.discardDraft(id);
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return {
+      ok: true,
+      data: {
+        wedding: result.wedding,
+        renderConfig: result.renderConfig,
+        message: 'Draft changes discarded',
+      },
+    };
   }
 
   /**

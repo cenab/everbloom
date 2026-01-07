@@ -4874,3 +4874,78 @@ Implemented email template customization feature allowing admins to personalize 
 - Image dimension meta tags (1200x630) match the standard social media preview ratio (1.91:1)
 - To test: use Facebook Debugger (developers.facebook.com/tools/debug/) or Twitter Card Validator
 - The og:locale can be extended for i18n when that feature is implemented
+
+### 2026-01-07 - Preview/Draft Workflow for Wedding Sites
+
+**Feature worked on:** Admin can preview site before publishing + Admin can publish or discard changes (PRD: preview category)
+
+**Priority rationale:** This feature provides immediate user value without requiring external infrastructure (unlike i18n which needs translation services, or custom domains which needs DNS/SSL). All couples want to preview changes before they go live - this prevents accidental publishing of incomplete content and gives confidence when making updates.
+
+**What was done:**
+
+1. Added draft types to platform-api (services/platform-api/src/types/index.ts):
+   - `RenderConfigStatus` type ('published' | 'has_draft')
+   - `DraftRenderConfigResponse` interface (contains draft + published configs)
+   - `PublishDraftRequest` / `PublishDraftResponse` interfaces
+   - `DiscardDraftResponse` interface
+   - `PreviewStatus` interface (hasDraftChanges, draftUpdatedAt, lastPublishedAt)
+   - `NO_DRAFT_EXISTS` and `NO_CHANGES_TO_PUBLISH` error codes
+
+2. Added draft storage and methods to WeddingService (services/platform-api/src/wedding/wedding.service.ts):
+   - Added `draftRenderConfigs` Map to store draft configs separately from published
+   - Added `draftUpdatedAt` and `lastPublishedAt` Maps for timestamp tracking
+   - Core methods: `getDraftRenderConfig`, `getPublishedRenderConfig`, `hasDraftChanges`, `getPreviewStatus`, `publishDraft`, `discardDraft`
+   - Helper methods: `getOrCreateDraft`, `updateDraftRenderConfig`
+   - Updated ALL content update methods to write to draft instead of published:
+     - `updateFeatures`, `updateAnnouncement`, `updateEventDetails`, `updateFaq`
+     - `updateHeroContent`, `updateRegistry`, `updateAccommodations`, `changeTemplate`
+     - `updatePasscode`, `updateMealConfig`, `updateGuestbookConfig`, `updateSeatingConfig`
+     - `updateGallery`, `updateVideo`, `updateSocialConfig`, `removeSocialOgImage`
+
+3. Added draft/publish/discard API endpoints (services/platform-api/src/wedding/wedding.controller.ts):
+   - `GET /:id/preview/status` - Returns preview status (has changes, timestamps)
+   - `GET /:id/preview/draft` - Returns both draft and published configs for comparison
+   - `POST /:id/preview/publish` - Copies draft to published, clears draft
+   - `POST /:id/preview/discard` - Deletes draft, reverts to published state
+
+4. Added draft types to platform-ui (apps/platform-ui/src/types.ts):
+   - Same types as platform-api for consistency
+   - Used by the PreviewBanner component
+
+5. Created PreviewBanner component (apps/platform-ui/src/components/PreviewBanner.tsx):
+   - Displays amber banner when unpublished changes exist
+   - Shows "last edited X time ago" relative timestamp
+   - Three action buttons: Preview (opens site in new tab), Discard (with confirmation), Publish
+   - Auto-refreshes status every 30 seconds
+   - Shows success/error messages after actions
+
+6. Integrated PreviewBanner into Dashboard (apps/platform-ui/src/components/Dashboard.tsx):
+   - Banner appears at top of WeddingDashboard when selected wedding has draft changes
+   - Passes weddingId and slug for preview URL generation
+
+**Architecture decisions:**
+- Draft vs Published: Changes go to draft, publishing copies draft to published
+- Provisioning excluded: Initial wedding creation writes directly to published (no preview needed for new site)
+- In-memory storage: Using Maps for development (will need database migration for production)
+- JSON comparison: `hasDraftChanges` uses JSON serialization for deep equality check
+- Wedding site unchanged: Still fetches from published config only (preview uses ?preview=true query param)
+
+**PRD features now passing:**
+- "Admin can preview site before publishing" ✓
+- "Admin can publish or discard changes" ✓
+
+**Files changed:**
+- services/platform-api/src/types/index.ts - Added preview/draft types
+- services/platform-api/src/wedding/wedding.service.ts - Draft storage + methods
+- services/platform-api/src/wedding/wedding.controller.ts - API endpoints
+- apps/platform-ui/src/types.ts - Added preview/draft types
+- apps/platform-ui/src/components/PreviewBanner.tsx - New component
+- apps/platform-ui/src/components/Dashboard.tsx - Integrated PreviewBanner
+
+**Notes for next person:**
+- The wedding site currently only fetches published configs via getRenderConfig()
+- To enable actual preview, wedding site needs to check for ?preview=true and fetch from draft endpoint
+- Database migration needed: Add draft_render_config column to wedding_sites table
+- Consider adding preview authentication (prevent public access to draft via URL guessing)
+- The "Preview" button in PreviewBanner opens /w/{slug}?preview=true but the site doesn't handle this yet
+- Remaining incomplete features: i18n (3), custom-domain (3) - all require external infrastructure
