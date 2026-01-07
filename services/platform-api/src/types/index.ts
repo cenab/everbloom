@@ -2337,4 +2337,72 @@ export type ErrorCode =
   | typeof SCHEDULED_EMAIL_ALREADY_SENT
   | typeof INVALID_SCHEDULE_TIME
   | typeof OG_IMAGE_UPLOAD_VALIDATION_ERROR
-  | typeof OG_IMAGE_UPLOAD_INVALID;
+  | typeof OG_IMAGE_UPLOAD_INVALID
+  | typeof DATA_EXPORT_FAILED;
+
+// ============================================================================
+// Privacy / Guest Data Export Types
+// PRD: "Guest can request their data"
+// ============================================================================
+
+/**
+ * Request body for guest data export
+ * Guest identifies themselves via RSVP token
+ */
+export interface GuestDataExportRequest {
+  token: string;
+}
+
+/**
+ * Response after requesting data export
+ */
+export interface GuestDataExportResponse {
+  message: string;
+  /** Email address the export will be sent to */
+  sentTo: string;
+}
+
+/**
+ * The data exported for a guest (sent via email)
+ */
+export interface GuestDataExport {
+  /** When the export was generated */
+  exportedAt: string;
+  /** Guest information */
+  guest: {
+    name: string;
+    email: string;
+    partySize: number;
+    rsvpStatus: RsvpStatus;
+    dietaryNotes?: string;
+    plusOneGuests?: PlusOneGuest[];
+    mealOptionId?: string;
+    photoOptOut?: boolean;
+    inviteSentAt?: string;
+    rsvpSubmittedAt?: string;
+    createdAt: string;
+  };
+  /** Wedding information */
+  wedding: {
+    partnerNames: [string, string];
+    date?: string;
+    venue?: string;
+    city?: string;
+  };
+  /** Table assignment if applicable */
+  tableAssignment?: {
+    tableName: string;
+    seatNumber?: number;
+  };
+  /** Per-event RSVP responses if applicable */
+  eventRsvps?: Array<{
+    eventName: string;
+    eventDate: string;
+    rsvpStatus: RsvpStatus;
+  }>;
+}
+
+/**
+ * Data export failed error code
+ */
+export const DATA_EXPORT_FAILED = 'DATA_EXPORT_FAILED' as const;

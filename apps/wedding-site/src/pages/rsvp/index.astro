@@ -536,6 +536,147 @@ const title = wedding
         text-decoration: underline;
       }
 
+      /* Privacy/data section */
+      .privacy-section {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--neutral-border);
+      }
+
+      .privacy-link {
+        display: block;
+        text-align: center;
+        color: var(--neutral-dark);
+        opacity: 0.6;
+        text-decoration: none;
+        font-size: 0.8rem;
+        transition: opacity 0.2s ease;
+        cursor: pointer;
+        background: none;
+        border: none;
+        width: 100%;
+        font-family: inherit;
+      }
+
+      .privacy-link:hover {
+        opacity: 1;
+      }
+
+      .privacy-link:focus-visible {
+        opacity: 1;
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      .data-export-dialog {
+        display: none;
+        background: rgba(0, 0, 0, 0.5);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+
+      .data-export-dialog.visible {
+        display: flex;
+      }
+
+      .data-export-content {
+        background: var(--neutral-surface);
+        border-radius: 12px;
+        padding: 2rem;
+        max-width: 400px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      }
+
+      .data-export-title {
+        font-family: 'Cormorant Garamond', Georgia, serif;
+        font-size: 1.5rem;
+        color: var(--primary);
+        margin: 0 0 1rem;
+      }
+
+      .data-export-text {
+        font-size: 0.95rem;
+        line-height: 1.6;
+        color: var(--neutral-dark);
+        margin-bottom: 1.5rem;
+      }
+
+      .data-export-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+      }
+
+      .data-export-btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+        font-family: inherit;
+      }
+
+      .data-export-btn.primary {
+        background: var(--primary);
+        color: var(--neutral-light);
+      }
+
+      .data-export-btn.primary:hover:not(:disabled) {
+        opacity: 0.9;
+      }
+
+      .data-export-btn.secondary {
+        background: transparent;
+        color: var(--neutral-dark);
+        border: 1px solid var(--neutral-border);
+      }
+
+      .data-export-btn.secondary:hover {
+        border-color: var(--neutral-dark);
+      }
+
+      .data-export-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .data-export-btn:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      .data-export-status {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        border-radius: 6px;
+        font-size: 0.9rem;
+      }
+
+      .data-export-status.success {
+        background: rgba(143, 172, 139, 0.15);
+        color: var(--accent);
+      }
+
+      .data-export-status.error {
+        background: rgba(201, 130, 107, 0.15);
+        color: var(--primary);
+      }
+
+      .data-export-status.hidden {
+        display: none;
+      }
+
       /* Inline error display */
       .submission-error {
         display: none;
@@ -837,6 +978,27 @@ const title = wedding
                 Send response
               </button>
             </form>
+
+            <div class="privacy-section">
+              <button type="button" class="privacy-link" id="request-data-btn">
+                Request a copy of your data
+              </button>
+            </div>
+          </div>
+
+          <!-- Data Export Dialog -->
+          <div class="data-export-dialog" id="data-export-dialog" role="dialog" aria-labelledby="data-export-title" aria-modal="true">
+            <div class="data-export-content">
+              <h2 class="data-export-title" id="data-export-title">Request Your Data</h2>
+              <p class="data-export-text">
+                We'll send a copy of all the information we have about you to your email address.
+              </p>
+              <div class="data-export-actions" id="data-export-actions">
+                <button type="button" class="data-export-btn secondary" id="data-export-cancel">Cancel</button>
+                <button type="button" class="data-export-btn primary" id="data-export-confirm">Send to my email</button>
+              </div>
+              <div class="data-export-status hidden" id="data-export-status"></div>
+            </div>
           </div>
         </>
       )}
@@ -1161,6 +1323,90 @@ const title = wedding
           // Retry button click
           retryBtn.addEventListener('click', async () => {
             await submitRsvp();
+          });
+
+          // Data export dialog handling
+          const requestDataBtn = document.getElementById('request-data-btn');
+          const dataExportDialog = document.getElementById('data-export-dialog');
+          const dataExportCancel = document.getElementById('data-export-cancel');
+          const dataExportConfirm = document.getElementById('data-export-confirm');
+          const dataExportStatus = document.getElementById('data-export-status');
+          const dataExportActions = document.getElementById('data-export-actions');
+
+          // Get the token from the form
+          const tokenInput = document.querySelector('input[name="token"]');
+          const guestToken = tokenInput?.value;
+
+          // Open dialog
+          requestDataBtn?.addEventListener('click', () => {
+            dataExportDialog.classList.add('visible');
+            dataExportStatus.classList.add('hidden');
+            dataExportActions.style.display = 'flex';
+            dataExportConfirm.disabled = false;
+            dataExportCancel.disabled = false;
+          });
+
+          // Close dialog
+          dataExportCancel?.addEventListener('click', () => {
+            dataExportDialog.classList.remove('visible');
+          });
+
+          // Close dialog on backdrop click
+          dataExportDialog?.addEventListener('click', (e) => {
+            if (e.target === dataExportDialog) {
+              dataExportDialog.classList.remove('visible');
+            }
+          });
+
+          // Handle data export request
+          dataExportConfirm?.addEventListener('click', async () => {
+            if (!guestToken) {
+              dataExportStatus.textContent = 'Unable to process request. Please refresh the page.';
+              dataExportStatus.className = 'data-export-status error';
+              return;
+            }
+
+            dataExportConfirm.disabled = true;
+            dataExportCancel.disabled = true;
+            dataExportConfirm.textContent = 'Sending...';
+
+            try {
+              const response = await fetch(`${apiBaseUrl}/rsvp/data-export`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ token: guestToken }),
+              });
+
+              const result = await response.json();
+
+              if (result.ok) {
+                dataExportActions.style.display = 'none';
+                dataExportStatus.textContent = `${result.data.message} (${result.data.sentTo})`;
+                dataExportStatus.className = 'data-export-status success';
+              } else {
+                dataExportStatus.textContent = 'Unable to send data export. Please try again later.';
+                dataExportStatus.className = 'data-export-status error';
+                dataExportConfirm.textContent = 'Send to my email';
+                dataExportConfirm.disabled = false;
+                dataExportCancel.disabled = false;
+              }
+            } catch (error) {
+              console.error('Error requesting data export:', error);
+              dataExportStatus.textContent = 'Network error. Please check your connection and try again.';
+              dataExportStatus.className = 'data-export-status error';
+              dataExportConfirm.textContent = 'Send to my email';
+              dataExportConfirm.disabled = false;
+              dataExportCancel.disabled = false;
+            }
+          });
+
+          // Close dialog on Escape key
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && dataExportDialog.classList.contains('visible')) {
+              dataExportDialog.classList.remove('visible');
+            }
           });
         });
       </script>

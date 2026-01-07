@@ -1368,7 +1368,7 @@
       "Verify email with data is sent",
       "Verify export contains all guest data"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "privacy",

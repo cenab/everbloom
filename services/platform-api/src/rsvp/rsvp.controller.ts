@@ -7,11 +7,13 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { GuestService } from '../guest/guest.service';
 import { WeddingService } from '../wedding/wedding.service';
 import { SeatingService } from '../seating/seating.service';
+import { EmailService } from '../invitation/email.service';
 import type {
   ApiResponse,
   RsvpViewData,
@@ -19,6 +21,9 @@ import type {
   RsvpSubmitResponse,
   RsvpGuestView,
   WeddingEvent,
+  GuestDataExportRequest,
+  GuestDataExportResponse,
+  GuestDataExport,
 } from '../types';
 import {
   INVALID_TOKEN,
@@ -27,6 +32,7 @@ import {
   PLUS_ONE_LIMIT_EXCEEDED,
   INVALID_MEAL_OPTION,
   GUEST_NOT_INVITED_TO_EVENT,
+  DATA_EXPORT_FAILED,
 } from '../types';
 
 /**
@@ -42,6 +48,7 @@ export class RsvpController {
     private readonly guestService: GuestService,
     private readonly weddingService: WeddingService,
     private readonly seatingService: SeatingService,
+    private readonly emailService: EmailService,
   ) {}
 
   /**
@@ -358,6 +365,133 @@ export class RsvpController {
       data: {
         message,
         guest: guestView,
+      },
+    };
+  }
+
+  /**
+   * Request a data export for a guest
+   * POST /api/rsvp/data-export
+   * Allows guest to request all their stored data (sent via email)
+   *
+   * PRD: "Guest can request their data"
+   * PRD: "Request data export"
+   * PRD: "Verify email with data is sent"
+   * PRD: "Verify export contains all guest data"
+   *
+   * Rate limit: 3 requests per hour to prevent abuse
+   */
+  @Throttle({ strict: { ttl: 3600000, limit: 3 } })
+  @Post('data-export')
+  async requestDataExport(
+    @Body() body: GuestDataExportRequest,
+  ): Promise<ApiResponse<GuestDataExportResponse>> {
+    const { token } = body;
+
+    if (!token) {
+      throw new BadRequestException({
+        ok: false,
+        error: INVALID_TOKEN,
+      });
+    }
+
+    // Find guest by token
+    const guest = this.guestService.getGuestByRsvpToken(token);
+
+    if (!guest) {
+      throw new NotFoundException({
+        ok: false,
+        error: INVALID_TOKEN,
+      });
+    }
+
+    // Get the wedding
+    const wedding = this.weddingService.getWedding(guest.weddingId);
+
+    if (!wedding) {
+      throw new NotFoundException({
+        ok: false,
+        error: WEDDING_NOT_FOUND,
+      });
+    }
+
+    // Get render config for theme
+    const renderConfig = this.weddingService.getRenderConfig(wedding.id);
+
+    // Get table assignment if seating chart is enabled
+    const tableAssignment = wedding.features.SEATING_CHART
+      ? this.seatingService.getGuestTableAssignment(guest.id)
+      : null;
+
+    // Build event RSVPs if applicable
+    let eventRsvps: GuestDataExport['eventRsvps'];
+    if (guest.eventRsvps && wedding.eventDetails?.events) {
+      eventRsvps = Object.entries(guest.eventRsvps).map(([eventId, rsvpData]) => {
+        const event = wedding.eventDetails?.events?.find(e => e.id === eventId);
+        return {
+          eventName: event?.name || eventId,
+          eventDate: event?.date || 'Unknown',
+          rsvpStatus: rsvpData.rsvpStatus,
+        };
+      });
+    }
+
+    // Build the data export
+    const dataExport: GuestDataExport = {
+      exportedAt: new Date().toISOString(),
+      guest: {
+        name: guest.name,
+        email: guest.email,
+        partySize: guest.partySize,
+        rsvpStatus: guest.rsvpStatus,
+        dietaryNotes: guest.dietaryNotes,
+        plusOneGuests: guest.plusOneGuests,
+        mealOptionId: guest.mealOptionId,
+        photoOptOut: guest.photoOptOut,
+        inviteSentAt: guest.inviteSentAt,
+        rsvpSubmittedAt: guest.rsvpSubmittedAt,
+        createdAt: guest.createdAt,
+      },
+      wedding: {
+        partnerNames: wedding.partnerNames,
+        date: wedding.eventDetails?.date,
+        venue: wedding.eventDetails?.venue,
+        city: wedding.eventDetails?.city,
+      },
+      tableAssignment: tableAssignment ? {
+        tableName: tableAssignment.tableName,
+        seatNumber: tableAssignment.seatNumber,
+      } : undefined,
+      eventRsvps,
+    };
+
+    // Build and send the email
+    const emailContent = this.emailService.buildDataExportEmail(
+      guest,
+      dataExport,
+      renderConfig?.theme,
+    );
+
+    const result = await this.emailService.sendEmail(emailContent);
+
+    if (!result.success) {
+      throw new InternalServerErrorException({
+        ok: false,
+        error: DATA_EXPORT_FAILED,
+      });
+    }
+
+    // Mask email for privacy in response
+    const maskedEmail = guest.email.replace(
+      /^(.{2})(.*)(@.*)$/,
+      (_, first, middle, domain) => first + '*'.repeat(Math.min(middle.length, 5)) + domain,
+    );
+
+    return {
+      ok: true,
+      data: {
+        message: 'Your data export has been sent to your email address.',
+        sentTo: maskedEmail,
       },
     };
   }

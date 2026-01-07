@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { Guest, Theme, Wedding, EmailTemplateContent } from '../types';
+import type { Guest, Theme, Wedding, EmailTemplateContent, GuestDataExport } from '../types';
 
 /**
  * Email content for transactional emails
@@ -783,6 +783,271 @@ ${partnerNames}
       htmlBody,
       textBody,
     };
+  }
+
+  /**
+   * Build data export email content
+   * PRD: "Guest can request their data"
+   * PRD: "Verify email with data is sent"
+   * @param guest The guest who requested their data
+   * @param dataExport The guest's exported data
+   * @param theme Optional theme to use for email colors (falls back to default)
+   */
+  buildDataExportEmail(
+    guest: Guest,
+    dataExport: GuestDataExport,
+    theme?: Theme,
+  ): EmailContent {
+    const colors = theme || DEFAULT_THEME;
+    const partnerNames = dataExport.wedding.partnerNames.join(' & ');
+
+    const subject = `Your Data Export - ${partnerNames}'s Wedding`;
+
+    // Format the data as readable text
+    const formatDate = (dateStr?: string) => {
+      if (!dateStr) return 'Not specified';
+      return new Date(dateStr).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    };
+
+    const formatDateTime = (dateStr?: string) => {
+      if (!dateStr) return 'Not specified';
+      return new Date(dateStr).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    };
+
+    // Build data summary HTML
+    const dataRows = [
+      { label: 'Name', value: dataExport.guest.name },
+      { label: 'Email', value: dataExport.guest.email },
+      { label: 'Party Size', value: dataExport.guest.partySize.toString() },
+      { label: 'RSVP Status', value: this.formatRsvpStatus(dataExport.guest.rsvpStatus) },
+    ];
+
+    if (dataExport.guest.dietaryNotes) {
+      dataRows.push({ label: 'Dietary Notes', value: dataExport.guest.dietaryNotes });
+    }
+
+    if (dataExport.guest.mealOptionId) {
+      dataRows.push({ label: 'Meal Selection ID', value: dataExport.guest.mealOptionId });
+    }
+
+    if (dataExport.guest.photoOptOut) {
+      dataRows.push({ label: 'Photo Opt-Out', value: 'Yes' });
+    }
+
+    if (dataExport.guest.inviteSentAt) {
+      dataRows.push({ label: 'Invite Sent', value: formatDateTime(dataExport.guest.inviteSentAt) });
+    }
+
+    if (dataExport.guest.rsvpSubmittedAt) {
+      dataRows.push({ label: 'RSVP Submitted', value: formatDateTime(dataExport.guest.rsvpSubmittedAt) });
+    }
+
+    dataRows.push({ label: 'Profile Created', value: formatDateTime(dataExport.guest.createdAt) });
+
+    // Plus-ones if any
+    let plusOnesHtml = '';
+    let plusOnesText = '';
+    if (dataExport.guest.plusOneGuests && dataExport.guest.plusOneGuests.length > 0) {
+      plusOnesHtml = `
+        <h3 style="color: ${colors.primary}; margin-top: 24px;">Plus-One Guests</h3>
+        <ul style="margin: 8px 0;">
+          ${dataExport.guest.plusOneGuests.map(p => `<li>${p.name}${p.dietaryNotes ? ` (Dietary: ${p.dietaryNotes})` : ''}</li>`).join('\n          ')}
+        </ul>
+      `;
+      plusOnesText = '\n\nPlus-One Guests:\n' +
+        dataExport.guest.plusOneGuests.map(p => `- ${p.name}${p.dietaryNotes ? ` (Dietary: ${p.dietaryNotes})` : ''}`).join('\n');
+    }
+
+    // Table assignment if any
+    let tableHtml = '';
+    let tableText = '';
+    if (dataExport.tableAssignment) {
+      tableHtml = `
+        <h3 style="color: ${colors.primary}; margin-top: 24px;">Table Assignment</h3>
+        <p>Table: ${dataExport.tableAssignment.tableName}${dataExport.tableAssignment.seatNumber ? ` (Seat ${dataExport.tableAssignment.seatNumber})` : ''}</p>
+      `;
+      tableText = `\n\nTable Assignment: ${dataExport.tableAssignment.tableName}${dataExport.tableAssignment.seatNumber ? ` (Seat ${dataExport.tableAssignment.seatNumber})` : ''}`;
+    }
+
+    // Event RSVPs if any
+    let eventsHtml = '';
+    let eventsText = '';
+    if (dataExport.eventRsvps && dataExport.eventRsvps.length > 0) {
+      eventsHtml = `
+        <h3 style="color: ${colors.primary}; margin-top: 24px;">Event RSVPs</h3>
+        <ul style="margin: 8px 0;">
+          ${dataExport.eventRsvps.map(e => `<li>${e.eventName} (${formatDate(e.eventDate)}): ${this.formatRsvpStatus(e.rsvpStatus)}</li>`).join('\n          ')}
+        </ul>
+      `;
+      eventsText = '\n\nEvent RSVPs:\n' +
+        dataExport.eventRsvps.map(e => `- ${e.eventName} (${formatDate(e.eventDate)}): ${this.formatRsvpStatus(e.rsvpStatus)}`).join('\n');
+    }
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: ${colors.neutralDark};
+      background-color: ${colors.neutralLight};
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    .card {
+      background: ${this.lightenColor(colors.neutralLight, 0.02)};
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    h1 {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 28px;
+      font-weight: 400;
+      color: ${colors.primary};
+      margin: 0 0 8px 0;
+      text-align: center;
+    }
+    h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: ${colors.accent};
+      margin: 0 0 24px 0;
+      text-align: center;
+    }
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 24px 0 12px 0;
+    }
+    p {
+      margin: 0 0 16px 0;
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    }
+    .data-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid ${this.lightenColor(colors.neutralDark, 0.8)};
+    }
+    .data-table td:first-child {
+      font-weight: 500;
+      color: ${this.lightenColor(colors.neutralDark, 0.2)};
+      width: 140px;
+    }
+    .footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid ${this.lightenColor(colors.neutralDark, 0.7)};
+      font-size: 12px;
+      color: ${this.lightenColor(colors.neutralDark, 0.4)};
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h2>Data Export Request</h2>
+      <h1>${partnerNames}'s Wedding</h1>
+
+      <p style="margin-top: 24px;">Dear ${guest.name},</p>
+      <p>As requested, here is a copy of all the data we have stored about you for this wedding.</p>
+
+      <h3 style="color: ${colors.primary};">Your Information</h3>
+      <table class="data-table">
+        ${dataRows.map(row => `<tr><td>${row.label}</td><td>${row.value}</td></tr>`).join('\n        ')}
+      </table>
+
+      ${plusOnesHtml}
+      ${tableHtml}
+      ${eventsHtml}
+
+      <h3 style="color: ${colors.primary}; margin-top: 24px;">Wedding Information</h3>
+      <table class="data-table">
+        <tr><td>Couple</td><td>${partnerNames}</td></tr>
+        <tr><td>Date</td><td>${formatDate(dataExport.wedding.date)}</td></tr>
+        ${dataExport.wedding.venue ? `<tr><td>Venue</td><td>${dataExport.wedding.venue}</td></tr>` : ''}
+        ${dataExport.wedding.city ? `<tr><td>City</td><td>${dataExport.wedding.city}</td></tr>` : ''}
+      </table>
+
+      <div class="footer">
+        <p>This export was generated on ${formatDateTime(dataExport.exportedAt)}.</p>
+        <p>If you have any questions about your data or wish to have it removed, please contact the wedding organizers directly.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+    `.trim();
+
+    const textBody = `
+DATA EXPORT REQUEST
+${partnerNames}'s Wedding
+
+Dear ${guest.name},
+
+As requested, here is a copy of all the data we have stored about you for this wedding.
+
+YOUR INFORMATION
+${dataRows.map(row => `${row.label}: ${row.value}`).join('\n')}${plusOnesText}${tableText}${eventsText}
+
+WEDDING INFORMATION
+Couple: ${partnerNames}
+Date: ${formatDate(dataExport.wedding.date)}
+${dataExport.wedding.venue ? `Venue: ${dataExport.wedding.venue}` : ''}
+${dataExport.wedding.city ? `City: ${dataExport.wedding.city}` : ''}
+
+---
+This export was generated on ${formatDateTime(dataExport.exportedAt)}.
+If you have any questions about your data or wish to have it removed, please contact the wedding organizers directly.
+    `.trim();
+
+    return {
+      to: guest.email,
+      toName: guest.name,
+      subject,
+      htmlBody,
+      textBody,
+    };
+  }
+
+  /**
+   * Format RSVP status for display
+   */
+  private formatRsvpStatus(status: string): string {
+    switch (status) {
+      case 'attending':
+        return 'Attending';
+      case 'not_attending':
+        return 'Not Attending';
+      case 'pending':
+        return 'Awaiting Response';
+      default:
+        return status;
+    }
   }
 
   /**

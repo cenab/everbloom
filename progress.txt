@@ -4734,3 +4734,77 @@ Implemented email template customization feature allowing admins to personalize 
 - Error messages use role="alert" for immediate screen reader announcement
 - The existing skip link, heading hierarchy, and image alt text were already compliant
 - Consider running Lighthouse accessibility audit periodically to verify compliance
+
+---
+
+### 2026-01-07 - Guest Data Export Feature
+
+**Feature worked on:** Guest can request their data (PRD: privacy category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. It's a GDPR/privacy compliance feature that provides clear user value
+2. It's a single focused feature that follows existing patterns (email sending, guest data retrieval)
+3. It doesn't require new infrastructure (uses existing email service and RSVP token authentication)
+4. It completes the privacy workflow for guests: request data → receive email with all stored information
+5. More complex features like i18n or custom domains require larger scope changes
+
+**What was done:**
+1. Added privacy types to platform-api types:
+   - `GuestDataExportRequest` interface with token field
+   - `GuestDataExportResponse` interface with message and sentTo fields
+   - `GuestDataExport` interface containing all exportable guest data
+   - `DATA_EXPORT_FAILED` error code
+
+2. Added data export email builder to EmailService:
+   - `buildDataExportEmail(guest, dataExport, theme)` method
+   - Formatted HTML email with all guest data in a readable table
+   - Includes: guest info, party size, RSVP status, dietary notes, plus-ones, meal selections, photo opt-out, invite/RSVP dates
+   - Includes: wedding info (couple names, date, venue, city)
+   - Includes: table assignment and per-event RSVPs if applicable
+   - `formatRsvpStatus()` helper for human-readable status display
+
+3. Created data export endpoint in RsvpController:
+   - `POST /api/rsvp/data-export` - public endpoint (token-authenticated)
+   - Rate limited to 3 requests per hour to prevent abuse
+   - Validates token, fetches guest and wedding data
+   - Builds comprehensive data export including table assignments and event RSVPs
+   - Sends email via EmailService
+   - Returns masked email address in response for privacy
+
+4. Updated RsvpModule to include InvitationModule for EmailService access
+
+5. Added data export UI to wedding site RSVP page:
+   - "Request a copy of your data" link at bottom of RSVP form
+   - Modal dialog explaining what will be sent
+   - Confirm/Cancel buttons with loading state
+   - Success message showing masked email address
+   - Error handling with retry capability
+   - Keyboard accessible (Escape to close, tab navigation)
+
+**API Endpoints:**
+- `POST /api/rsvp/data-export` - Request guest data export (token-authenticated)
+  - Request: `{ token: string }`
+  - Response: `{ message: string, sentTo: string }` (sentTo is masked email)
+  - Rate limit: 3 requests per hour
+  - Errors: INVALID_TOKEN, WEDDING_NOT_FOUND, DATA_EXPORT_FAILED
+
+**Design system adherence:**
+- Modal uses theme colors (primary, accent, neutrals)
+- No pure black/white colors - uses CSS variables
+- Human language: "Request Your Data", "Send to my email"
+- Calm, minimal design with clear actions
+- Mobile-responsive dialog
+- Accessible: role="dialog", aria-modal, aria-labelledby, keyboard navigation
+
+**PRD features now passing:**
+- "Guest can request their data" ✓
+
+**Notes for next person:**
+- Data export is at POST /api/rsvp/data-export (uses same token as RSVP)
+- Export email includes ALL guest data: basic info, plus-ones, meal options, table assignment, event RSVPs
+- Email uses wedding theme colors for consistent branding
+- Response masks email for privacy (e.g., "jo*****@gmail.com")
+- Rate limit of 3/hour prevents abuse while allowing legitimate re-requests
+- The export is immediate (not queued) since it's a single email
+- In dev mode, export email is logged to console (look for "📧 DEVELOPMENT MODE")
+- To test: visit RSVP page → click "Request a copy of your data" → confirm → check API console for logged email
