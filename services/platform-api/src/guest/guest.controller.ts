@@ -7,11 +7,13 @@ import {
   Param,
   Body,
   Headers,
+  Res,
   UnauthorizedException,
   NotFoundException,
   ConflictException,
   ForbiddenException,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { GuestService } from './guest.service';
 import { WeddingService } from '../wedding/wedding.service';
 import { AuthService } from '../auth/auth.service';
@@ -106,6 +108,52 @@ export class GuestController {
         summary,
       },
     };
+  }
+
+  /**
+   * Export guest list to CSV
+   * PRD: "Admin can export guest list to CSV"
+   */
+  @Get('export')
+  async exportGuests(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    await this.requireWeddingOwner(authHeader, weddingId);
+
+    const guests = this.guestService.getGuestsForWedding(weddingId);
+
+    // Build CSV content
+    const headers = ['Name', 'Email', 'RSVP Status', 'Party Size', 'Dietary Notes', 'Invite Sent', 'RSVP Date'];
+    const rows = guests.map((guest) => [
+      this.escapeCsvField(guest.name),
+      this.escapeCsvField(guest.email),
+      guest.rsvpStatus,
+      guest.partySize.toString(),
+      this.escapeCsvField(guest.dietaryNotes || ''),
+      guest.inviteSentAt ? new Date(guest.inviteSentAt).toLocaleDateString() : '',
+      guest.rsvpSubmittedAt ? new Date(guest.rsvpSubmittedAt).toLocaleDateString() : '',
+    ]);
+
+    const csv = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+
+    // Set headers for file download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="guest-list.csv"');
+    res.send(csv);
+  }
+
+  /**
+   * Escape a field for CSV output (handle commas, quotes, newlines)
+   */
+  private escapeCsvField(value: string): string {
+    if (!value) return '';
+    // If field contains comma, quote, or newline, wrap in quotes and escape quotes
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+      return `"${value.replace(/"/g, '""')}"`;
+    }
+    return value;
   }
 
   /**

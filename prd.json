@@ -1567,7 +1567,7 @@
       "Open CSV file",
       "Verify all guest data is included"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "export",

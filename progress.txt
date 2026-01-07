@@ -2915,3 +2915,53 @@ No stack traces, internal messages, or technical details are ever exposed.
 - SVG format is used for default image; production might want PNG for better social media compatibility
 - Twitter Card uses `summary_large_image` for prominent preview on Twitter/X
 
+
+---
+
+### 2026-01-07 - Admin Can Export Guest List to CSV
+
+**Feature worked on:** Admin can export guest list to CSV (PRD: export category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. Export functionality is essential for real wedding planning workflows
+2. Admins need to share guest data with caterers, venues, and other vendors
+3. It builds directly on existing guest data infrastructure
+4. It's relatively simple to implement (no new infrastructure needed)
+5. It's foundational for other export features (RSVP export, email export)
+
+**What was done:**
+1. Added export endpoint to GuestController:
+   - `GET /api/weddings/:weddingId/guests/export` - authenticated endpoint
+   - Returns CSV file with guest data (Name, Email, RSVP Status, Party Size, Dietary Notes, Invite Sent, RSVP Date)
+   - Proper CSV escaping for fields containing commas, quotes, or newlines
+   - Sets Content-Type: text/csv and Content-Disposition for file download
+
+2. Added export button to Guests component:
+   - Download icon button in the header toolbar (between Tags and Import CSV)
+   - Disabled when guest list is empty
+   - Triggers file download when clicked
+   - Uses Blob API to handle CSV download in browser
+
+3. Added DownloadIcon component for the export button.
+
+**API Endpoints:**
+- `GET /api/weddings/:weddingId/guests/export` - Export guests to CSV (requires auth)
+  - Response: CSV file download with filename "guest-list.csv"
+  - Content includes all core guest fields
+
+**Design system adherence:**
+- Export button uses same styling as other toolbar buttons (btn-secondary)
+- Icon is consistent with other icons in the toolbar
+- Human language: button simply says "Export"
+- Disabled state when no guests to export
+
+**PRD features now passing:**
+- "Admin can export guest list to CSV" ✓
+
+**Notes for next person:**
+- Export endpoint is at GET /api/weddings/:weddingId/guests/export
+- CSV includes: Name, Email, RSVP Status, Party Size, Dietary Notes, Invite Sent date, RSVP Date
+- Export respects CSV standards (quotes around fields with special chars, escaped quotes)
+- Download uses browser's native file download via Blob URL
+- The export button is always visible but disabled when guest list is empty
+- This pattern can be reused for the "Export RSVPs for caterer" feature (add meal selections, dietary info)
