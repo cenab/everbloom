@@ -1429,6 +1429,109 @@ export interface SendRemindersResponse {
   jobIds: string[];
 }
 
+// ============================================================================
+// Scheduled Email Types
+// PRD: "Admin can schedule emails for future send"
+// ============================================================================
+
+/**
+ * A scheduled email record for tracking scheduled sends
+ */
+export interface ScheduledEmail {
+  id: string;
+  weddingId: string;
+  /** Array of guest IDs to send to */
+  guestIds: string[];
+  /** Type of email to send */
+  emailType: EmailType;
+  /** ISO timestamp when the email should be sent */
+  scheduledAt: string;
+  /** Status of the scheduled email */
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  /** When the scheduled email was created */
+  createdAt: string;
+  /** When the scheduled email was last updated */
+  updatedAt: string;
+  /** BullMQ job ID for tracking/cancellation */
+  jobId?: string;
+  /** Results after sending (populated when completed) */
+  results?: {
+    sent: number;
+    failed: number;
+    total: number;
+  };
+}
+
+/**
+ * Request body for scheduling emails
+ */
+export interface ScheduleEmailRequest {
+  guestIds: string[];
+  emailType: EmailType;
+  /** ISO timestamp when the email should be sent */
+  scheduledAt: string;
+}
+
+/**
+ * Response from scheduling an email
+ */
+export interface ScheduleEmailResponse {
+  scheduledEmail: ScheduledEmail;
+  jobId: string;
+}
+
+/**
+ * Request body for cancelling a scheduled email
+ */
+export interface CancelScheduledEmailRequest {
+  scheduledEmailId: string;
+}
+
+/**
+ * Response from cancelling a scheduled email
+ */
+export interface CancelScheduledEmailResponse {
+  success: boolean;
+  scheduledEmail: ScheduledEmail;
+}
+
+/**
+ * Response containing list of scheduled emails
+ */
+export interface ScheduledEmailsListResponse {
+  scheduledEmails: ScheduledEmail[];
+}
+
+/**
+ * Scheduled email job payload for the worker queue
+ */
+export interface ScheduledEmailJobData {
+  scheduledEmailId: string;
+  weddingId: string;
+  guestIds: string[];
+  emailType: EmailType;
+}
+
+/**
+ * Queue name for scheduled emails
+ */
+export const SCHEDULED_EMAIL_QUEUE_NAME = 'scheduled-emails' as const;
+
+/**
+ * Scheduled email not found error code
+ */
+export const SCHEDULED_EMAIL_NOT_FOUND = 'SCHEDULED_EMAIL_NOT_FOUND' as const;
+
+/**
+ * Scheduled email already sent error code
+ */
+export const SCHEDULED_EMAIL_ALREADY_SENT = 'SCHEDULED_EMAIL_ALREADY_SENT' as const;
+
+/**
+ * Invalid schedule time error code
+ */
+export const INVALID_SCHEDULE_TIME = 'INVALID_SCHEDULE_TIME' as const;
+
 /**
  * Reminder job payload for the worker queue
  */
@@ -2141,4 +2244,7 @@ export type ErrorCode =
   | typeof GALLERY_PHOTO_NOT_FOUND
   | typeof GALLERY_UPLOAD_VALIDATION_ERROR
   | typeof VIDEO_URL_INVALID
-  | typeof VIDEO_NOT_FOUND;
+  | typeof VIDEO_NOT_FOUND
+  | typeof SCHEDULED_EMAIL_NOT_FOUND
+  | typeof SCHEDULED_EMAIL_ALREADY_SENT
+  | typeof INVALID_SCHEDULE_TIME;

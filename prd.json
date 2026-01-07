@@ -1121,7 +1121,7 @@
       "Confirm scheduling",
       "Verify scheduled job is created"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "email-scheduling",
@@ -1132,7 +1132,7 @@
       "Cancel a scheduled send",
       "Verify email is removed from queue"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "email-scheduling",
@@ -1143,7 +1143,7 @@
       "Verify emails are sent",
       "Verify email_outbox records are created"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "email-templates",

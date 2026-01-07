@@ -13,10 +13,19 @@ import type {
   SendRemindersResponse,
   SendSaveTheDateResult,
   SendThankYouResult,
+  ScheduledEmail,
+  ScheduledEmailJobData,
+  ScheduleEmailResponse,
 } from '../types';
-import { REMINDER_QUEUE_FAILED } from '../types';
+import {
+  REMINDER_QUEUE_FAILED,
+  SCHEDULED_EMAIL_NOT_FOUND,
+  SCHEDULED_EMAIL_ALREADY_SENT,
+  INVALID_SCHEDULE_TIME,
+} from '../types';
 import { EmailService } from './email.service';
 import { ReminderQueueService } from './reminder-queue.service';
+import { ScheduledEmailQueueService } from './scheduled-email-queue.service';
 import { GuestService } from '../guest/guest.service';
 import { WeddingService } from '../wedding/wedding.service';
 
@@ -27,9 +36,13 @@ export class InvitationService {
   // In-memory store for email_outbox (development mode)
   private emailOutbox: Map<string, EmailOutbox> = new Map();
 
+  // In-memory store for scheduled emails (development mode)
+  private scheduledEmails: Map<string, ScheduledEmail> = new Map();
+
   constructor(
     private readonly emailService: EmailService,
     private readonly reminderQueueService: ReminderQueueService,
+    private readonly scheduledEmailQueueService: ScheduledEmailQueueService,
     private readonly guestService: GuestService,
     private readonly weddingService: WeddingService,
   ) {}
@@ -727,5 +740,249 @@ export class InvitationService {
     // which is not currently implemented, so we leave it undefined
 
     return stats;
+  }
+
+  // ============================================================================
+  // Scheduled Email Methods
+  // PRD: "Admin can schedule emails for future send"
+  // ============================================================================
+
+  /**
+   * Schedule an email to be sent at a future time
+   * PRD: "Admin can schedule emails for future send"
+   */
+  async scheduleEmail(
+    weddingId: string,
+    guestIds: string[],
+    emailType: EmailType,
+    scheduledAt: string,
+  ): Promise<ScheduleEmailResponse> {
+    const wedding = this.weddingService.getWedding(weddingId);
+    if (!wedding) {
+      throw new Error('WEDDING_NOT_FOUND');
+    }
+
+    // Validate scheduled time is in the future
+    const scheduledTime = new Date(scheduledAt).getTime();
+    const now = Date.now();
+    if (scheduledTime <= now) {
+      throw new Error(INVALID_SCHEDULE_TIME);
+    }
+
+    // Validate guest IDs belong to this wedding
+    for (const guestId of guestIds) {
+      const guest = this.guestService.getGuest(guestId);
+      if (!guest || guest.weddingId !== weddingId) {
+        throw new Error('GUEST_NOT_FOUND');
+      }
+    }
+
+    // Create scheduled email record
+    const id = randomBytes(16).toString('hex');
+    const scheduledEmail: ScheduledEmail = {
+      id,
+      weddingId,
+      guestIds,
+      emailType,
+      scheduledAt,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Create job data
+    const jobData: ScheduledEmailJobData = {
+      scheduledEmailId: id,
+      weddingId,
+      guestIds,
+      emailType,
+    };
+
+    // Schedule the email via BullMQ
+    const jobId = await this.scheduledEmailQueueService.scheduleEmail(
+      jobData,
+      scheduledAt,
+    );
+
+    scheduledEmail.jobId = jobId;
+    this.scheduledEmails.set(id, scheduledEmail);
+
+    this.logger.log(
+      `Scheduled ${emailType} email for ${guestIds.length} guest(s) at ${scheduledAt}`,
+    );
+
+    return {
+      scheduledEmail,
+      jobId,
+    };
+  }
+
+  /**
+   * Get all scheduled emails for a wedding
+   * PRD: "Admin can view and cancel scheduled emails"
+   */
+  getScheduledEmailsForWedding(weddingId: string): ScheduledEmail[] {
+    const emails: ScheduledEmail[] = [];
+    for (const email of this.scheduledEmails.values()) {
+      if (email.weddingId === weddingId) {
+        emails.push(email);
+      }
+    }
+    // Sort by scheduledAt ascending (soonest first)
+    return emails.sort(
+      (a, b) =>
+        new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
+    );
+  }
+
+  /**
+   * Get a single scheduled email by ID
+   */
+  getScheduledEmail(scheduledEmailId: string): ScheduledEmail | undefined {
+    return this.scheduledEmails.get(scheduledEmailId);
+  }
+
+  /**
+   * Cancel a scheduled email
+   * PRD: "Admin can view and cancel scheduled emails"
+   */
+  async cancelScheduledEmail(
+    weddingId: string,
+    scheduledEmailId: string,
+  ): Promise<ScheduledEmail> {
+    const scheduledEmail = this.scheduledEmails.get(scheduledEmailId);
+
+    if (!scheduledEmail || scheduledEmail.weddingId !== weddingId) {
+      throw new Error(SCHEDULED_EMAIL_NOT_FOUND);
+    }
+
+    // Check if already sent or cancelled
+    if (scheduledEmail.status === 'completed') {
+      throw new Error(SCHEDULED_EMAIL_ALREADY_SENT);
+    }
+
+    if (scheduledEmail.status === 'cancelled') {
+      return scheduledEmail;
+    }
+
+    // Cancel the BullMQ job
+    const cancelled = await this.scheduledEmailQueueService.cancelScheduledEmail(
+      scheduledEmailId,
+    );
+
+    if (!cancelled) {
+      // Job might be already processing
+      throw new Error(SCHEDULED_EMAIL_ALREADY_SENT);
+    }
+
+    // Update status
+    scheduledEmail.status = 'cancelled';
+    scheduledEmail.updatedAt = new Date().toISOString();
+    this.scheduledEmails.set(scheduledEmailId, scheduledEmail);
+
+    this.logger.log(`Cancelled scheduled email ${scheduledEmailId}`);
+
+    return scheduledEmail;
+  }
+
+  /**
+   * Update scheduled email status (called by worker after processing)
+   */
+  updateScheduledEmailStatus(
+    scheduledEmailId: string,
+    status: 'processing' | 'completed' | 'cancelled',
+    results?: { sent: number; failed: number; total: number },
+  ): boolean {
+    const scheduledEmail = this.scheduledEmails.get(scheduledEmailId);
+    if (!scheduledEmail) {
+      return false;
+    }
+
+    scheduledEmail.status = status;
+    scheduledEmail.updatedAt = new Date().toISOString();
+    if (results) {
+      scheduledEmail.results = results;
+    }
+
+    this.scheduledEmails.set(scheduledEmailId, scheduledEmail);
+    return true;
+  }
+
+  /**
+   * Execute a scheduled email send (called by worker)
+   * This method actually sends the emails when the scheduled time arrives
+   */
+  async executeScheduledEmail(
+    jobData: ScheduledEmailJobData,
+  ): Promise<{ sent: number; failed: number; total: number }> {
+    const { scheduledEmailId, weddingId, guestIds, emailType } = jobData;
+
+    // Mark as processing
+    this.updateScheduledEmailStatus(scheduledEmailId, 'processing');
+
+    let results: { sent: number; failed: number; total: number };
+
+    try {
+      // Execute the appropriate send method based on email type
+      switch (emailType) {
+        case 'invitation':
+          const inviteResults = await this.sendInvitations(weddingId, guestIds);
+          results = {
+            sent: inviteResults.sent,
+            failed: inviteResults.failed,
+            total: inviteResults.total,
+          };
+          break;
+
+        case 'reminder':
+          const reminderResults = await this.enqueueReminders(weddingId, guestIds);
+          results = {
+            sent: reminderResults.queued,
+            failed: reminderResults.total - reminderResults.queued,
+            total: reminderResults.total,
+          };
+          break;
+
+        case 'save_the_date':
+          const stdResults = await this.sendSaveTheDates(weddingId, guestIds);
+          results = {
+            sent: stdResults.sent,
+            failed: stdResults.failed,
+            total: stdResults.total,
+          };
+          break;
+
+        case 'thank_you':
+          const tyResults = await this.sendThankYous(weddingId, guestIds);
+          results = {
+            sent: tyResults.sent,
+            failed: tyResults.failed,
+            total: tyResults.total,
+          };
+          break;
+
+        default:
+          results = { sent: 0, failed: guestIds.length, total: guestIds.length };
+      }
+
+      // Mark as completed with results
+      this.updateScheduledEmailStatus(scheduledEmailId, 'completed', results);
+
+      this.logger.log(
+        `Executed scheduled email ${scheduledEmailId}: ${results.sent} sent, ${results.failed} failed`,
+      );
+
+      return results;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to execute scheduled email ${scheduledEmailId}: ${errorMessage}`,
+      );
+
+      results = { sent: 0, failed: guestIds.length, total: guestIds.length };
+      this.updateScheduledEmailStatus(scheduledEmailId, 'completed', results);
+
+      throw error;
+    }
   }
 }

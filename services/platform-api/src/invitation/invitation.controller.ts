@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Body,
   Param,
   Headers,
@@ -26,12 +27,19 @@ import type {
   EmailOutbox,
   EmailStatisticsResponse,
   UpdateOutboxStatusRequest,
+  ScheduleEmailRequest,
+  ScheduleEmailResponse,
+  ScheduledEmailsListResponse,
+  CancelScheduledEmailResponse,
   ApiResponse,
 } from '../types';
 import {
   FEATURE_DISABLED,
   NO_GUESTS_SELECTED,
   REMINDER_QUEUE_FAILED,
+  SCHEDULED_EMAIL_NOT_FOUND,
+  SCHEDULED_EMAIL_ALREADY_SENT,
+  INVALID_SCHEDULE_TIME,
   UNAUTHORIZED,
   WEDDING_NOT_FOUND,
 } from '../types';
@@ -278,6 +286,210 @@ export class InvitationController {
     }
 
     return { ok: true, data: { updated } };
+  }
+
+// ============================================================================
+  // Scheduled Email Endpoints
+  // PRD: "Admin can schedule emails for future send"
+  // ============================================================================
+
+  /**
+   * Schedule an email to be sent at a future time
+   * PRD: "Admin can schedule emails for future send"
+   */
+  @Post('schedule')
+  async scheduleEmail(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+    @Body() body: ScheduleEmailRequest,
+  ): Promise<ApiResponse<ScheduleEmailResponse>> {
+    await this.requireWeddingOwner(authHeader, weddingId);
+
+    // Validate request
+    if (!body.guestIds || body.guestIds.length === 0) {
+      throw new BadRequestException({
+        ok: false,
+        error: NO_GUESTS_SELECTED,
+        message: 'Please select at least one guest',
+      });
+    }
+
+    if (!body.emailType) {
+      throw new BadRequestException({
+        ok: false,
+        error: 'VALIDATION_ERROR',
+        message: 'Email type is required',
+      });
+    }
+
+    if (!body.scheduledAt) {
+      throw new BadRequestException({
+        ok: false,
+        error: 'VALIDATION_ERROR',
+        message: 'Scheduled time is required',
+      });
+    }
+
+    // Validate scheduled time format
+    const scheduledTime = new Date(body.scheduledAt);
+    if (isNaN(scheduledTime.getTime())) {
+      throw new BadRequestException({
+        ok: false,
+        error: INVALID_SCHEDULE_TIME,
+        message: 'Invalid scheduled time format. Use ISO 8601 format.',
+      });
+    }
+
+    // Validate email type
+    const validEmailTypes = ['invitation', 'reminder', 'save_the_date', 'thank_you'];
+    if (!validEmailTypes.includes(body.emailType)) {
+      throw new BadRequestException({
+        ok: false,
+        error: 'VALIDATION_ERROR',
+        message: `Email type must be one of: ${validEmailTypes.join(', ')}`,
+      });
+    }
+
+    try {
+      const result = await this.invitationService.scheduleEmail(
+        weddingId,
+        body.guestIds,
+        body.emailType,
+        body.scheduledAt,
+      );
+      return { ok: true, data: result };
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === 'WEDDING_NOT_FOUND') {
+          throw new NotFoundException({
+            ok: false,
+            error: WEDDING_NOT_FOUND,
+            message: 'Wedding not found',
+          });
+        }
+        if (error.message === INVALID_SCHEDULE_TIME) {
+          throw new BadRequestException({
+            ok: false,
+            error: INVALID_SCHEDULE_TIME,
+            message: 'Scheduled time must be in the future',
+          });
+        }
+        if (error.message === 'GUEST_NOT_FOUND') {
+          throw new BadRequestException({
+            ok: false,
+            error: 'GUEST_NOT_FOUND',
+            message: 'One or more guests not found',
+          });
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get all scheduled emails for a wedding
+   * PRD: "Admin can view and cancel scheduled emails"
+   */
+  @Get('scheduled')
+  async getScheduledEmails(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+  ): Promise<ApiResponse<ScheduledEmailsListResponse>> {
+    await this.requireWeddingOwner(authHeader, weddingId);
+
+    const scheduledEmails =
+      this.invitationService.getScheduledEmailsForWedding(weddingId);
+    return { ok: true, data: { scheduledEmails } };
+  }
+
+  /**
+   * Cancel a scheduled email
+   * PRD: "Admin can view and cancel scheduled emails"
+   */
+  @Delete('scheduled/:scheduledEmailId')
+  async cancelScheduledEmail(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+    @Param('scheduledEmailId') scheduledEmailId: string,
+  ): Promise<ApiResponse<CancelScheduledEmailResponse>> {
+    await this.requireWeddingOwner(authHeader, weddingId);
+
+    try {
+      const scheduledEmail = await this.invitationService.cancelScheduledEmail(
+        weddingId,
+        scheduledEmailId,
+      );
+      return {
+        ok: true,
+        data: {
+          success: true,
+          scheduledEmail,
+        },
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === SCHEDULED_EMAIL_NOT_FOUND) {
+          throw new NotFoundException({
+            ok: false,
+            error: SCHEDULED_EMAIL_NOT_FOUND,
+            message: 'Scheduled email not found',
+          });
+        }
+        if (error.message === SCHEDULED_EMAIL_ALREADY_SENT) {
+          throw new BadRequestException({
+            ok: false,
+            error: SCHEDULED_EMAIL_ALREADY_SENT,
+            message: 'This email has already been sent and cannot be cancelled',
+          });
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Execute a scheduled email (called by worker when scheduled time arrives)
+   * PRD: "Scheduled emails send at correct time"
+   */
+  @Post('execute-scheduled')
+  async executeScheduledEmail(
+    @Headers('x-worker-token') workerToken: string | undefined,
+    @Param('weddingId') weddingId: string,
+    @Body()
+    body: {
+      scheduledEmailId: string;
+      guestIds: string[];
+      emailType: string;
+    },
+  ): Promise<ApiResponse<{ sent: number; failed: number; total: number }>> {
+    this.requireWorkerToken(workerToken);
+
+    if (!body.scheduledEmailId || !body.guestIds || !body.emailType) {
+      throw new BadRequestException({
+        ok: false,
+        error: 'VALIDATION_ERROR',
+        message: 'Missing required fields',
+      });
+    }
+
+    try {
+      const result = await this.invitationService.executeScheduledEmail({
+        scheduledEmailId: body.scheduledEmailId,
+        weddingId,
+        guestIds: body.guestIds,
+        emailType: body.emailType as 'invitation' | 'reminder' | 'save_the_date' | 'thank_you' | 'update',
+      });
+      return { ok: true, data: result };
+    } catch (error) {
+      if (error instanceof Error && error.message === 'WEDDING_NOT_FOUND') {
+        throw new NotFoundException({
+          ok: false,
+          error: WEDDING_NOT_FOUND,
+          message: 'Wedding not found',
+        });
+      }
+      throw error;
+    }
   }
 
   /**

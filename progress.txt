@@ -4371,3 +4371,81 @@ Implemented email template customization feature allowing admins to personalize 
 - Could support more platforms (TikTok, Instagram)
 - Could add video thumbnail preview for Vimeo (requires API call)
 - Could add video autoplay options (not recommended for UX)
+
+---
+
+## 2026-01-07: Email Scheduling Feature
+
+**Feature:** Email Scheduling (3 PRD items)
+- Admin can schedule emails for future send
+- Admin can view and cancel scheduled emails
+- Scheduled emails send at correct time
+
+**Implementation:**
+
+1. **Platform API Types (services/platform-api/src/types/index.ts):**
+   - Added ScheduledEmail interface with id, weddingId, guestIds, emailType, scheduledAt, status, results
+   - Added ScheduleEmailRequest interface
+   - Added SCHEDULED_EMAIL_QUEUE_NAME constant
+   - Added error codes: SCHEDULED_EMAIL_NOT_FOUND, SCHEDULED_EMAIL_ALREADY_SENT, INVALID_SCHEDULE_TIME
+
+2. **ScheduledEmailQueueService (services/platform-api/src/invitation/scheduled-email-queue.service.ts) [NEW]:**
+   - BullMQ queue service for scheduled emails
+   - Uses BullMQ delay option for future send times
+   - scheduleEmail() calculates delay from scheduledAt timestamp
+   - cancelScheduledEmail() removes job from queue
+   - Exponential backoff retry (3 attempts, 5s initial delay)
+
+3. **InvitationService (services/platform-api/src/invitation/invitation.service.ts):**
+   - Added in-memory scheduled emails storage
+   - scheduleEmail() creates scheduled email record and queues job with delay
+   - getScheduledEmailsForWedding() lists all scheduled emails
+   - cancelScheduledEmail() cancels pending scheduled emails
+   - executeScheduledEmail() called by worker to send emails at scheduled time
+
+4. **InvitationController (services/platform-api/src/invitation/invitation.controller.ts):**
+   - POST /schedule - Schedule an email for future send
+   - GET /scheduled - List scheduled emails for wedding
+   - DELETE /scheduled/:scheduledEmailId - Cancel a scheduled email
+   - POST /execute-scheduled - Worker callback to execute scheduled email
+
+5. **InvitationModule (services/platform-api/src/invitation/invitation.module.ts):**
+   - Registered ScheduledEmailQueueService in providers and exports
+
+6. **Worker Types (services/worker/src/types.ts):**
+   - Added ScheduledEmailJobData interface
+   - Added SCHEDULED_EMAIL_QUEUE_NAME constant
+
+7. **Worker Main (services/worker/src/main.ts):**
+   - Added scheduled email worker that listens to scheduled-emails queue
+   - Calls platform API execute-scheduled endpoint when job fires
+   - Handles job completion and failure logging
+
+8. **Platform UI Types (apps/platform-ui/src/types.ts):**
+   - Added ScheduledEmail interface
+   - Added ScheduleEmailRequest interface
+
+9. **ScheduledEmails Component (apps/platform-ui/src/components/ScheduledEmails.tsx) [NEW]:**
+   - Full scheduling UI with email type selection, date/time picker, guest selection
+   - Lists pending scheduled emails with cancel functionality
+   - Shows completed/cancelled email history
+   - Modal for schedule form
+   - Integration with TanStack Query for data fetching
+
+**Architecture decisions:**
+- BullMQ delay option handles scheduling natively (no cron jobs needed)
+- Worker calls back to platform API for email execution (keeps logic centralized)
+- In-memory storage for dev/prototype (production would use DB)
+- Scheduled emails have statuses: pending, processing, completed, cancelled
+- Results tracked: sent count, failed count, total count
+
+**PRD features now passing:**
+- "Admin can schedule emails for future send" ✓
+- "Admin can view and cancel scheduled emails" ✓
+- "Scheduled emails send at correct time" ✓
+
+**Notes for next person:**
+- Consider adding database persistence for scheduled emails
+- Could add email preview before scheduling
+- Could add recurring scheduled emails (weekly reminders, etc.)
+- Worker authentication could be strengthened for production

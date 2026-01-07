@@ -1,6 +1,10 @@
 import { Worker } from 'bullmq';
-import type { ReminderJobData, UpdateOutboxStatusRequest } from './types';
-import { REMINDER_QUEUE_NAME } from './types';
+import type {
+  ReminderJobData,
+  ScheduledEmailJobData,
+  UpdateOutboxStatusRequest,
+} from './types';
+import { REMINDER_QUEUE_NAME, SCHEDULED_EMAIL_QUEUE_NAME } from './types';
 
 type RedisConnection = {
   host: string;
@@ -194,7 +198,103 @@ reminderWorker.on('failed', (job, error) => {
   console.error(`Reminder job ${job?.id} failed: ${error.message}`);
 });
 
+// ============================================================================
+// Scheduled Email Worker
+// PRD: "Scheduled emails send at correct time"
+// ============================================================================
+
+async function executeScheduledEmail(
+  data: ScheduledEmailJobData,
+): Promise<{ sent: number; failed: number; total: number }> {
+  const apiBaseUrl = process.env.PLATFORM_API_URL || 'http://localhost:3001/api';
+  const workerToken = process.env.WORKER_TOKEN;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (workerToken) {
+    headers['x-worker-token'] = workerToken;
+  }
+
+  // The platform API handles the actual email sending
+  // We just trigger it by calling a special endpoint
+  try {
+    const response = await fetch(
+      `${apiBaseUrl}/weddings/${data.weddingId}/invitations/execute-scheduled`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          scheduledEmailId: data.scheduledEmailId,
+          guestIds: data.guestIds,
+          emailType: data.emailType,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(
+        `Failed to execute scheduled email ${data.scheduledEmailId}: ${response.status} - ${errorText}`,
+      );
+      return { sent: 0, failed: data.guestIds.length, total: data.guestIds.length };
+    }
+
+    const result = await response.json() as {
+      ok: boolean;
+      data?: { sent: number; failed: number; total: number };
+    };
+
+    if (result.ok && result.data) {
+      return result.data;
+    }
+
+    return { sent: 0, failed: data.guestIds.length, total: data.guestIds.length };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(
+      `Failed to execute scheduled email ${data.scheduledEmailId}: ${errorMessage}`,
+    );
+    return { sent: 0, failed: data.guestIds.length, total: data.guestIds.length };
+  }
+}
+
+const scheduledEmailWorker = new Worker<ScheduledEmailJobData>(
+  SCHEDULED_EMAIL_QUEUE_NAME,
+  async (job) => {
+    console.log(`Processing scheduled email ${job.data.scheduledEmailId}...`);
+    const result = await executeScheduledEmail(job.data);
+
+    console.log(
+      `Scheduled email ${job.data.scheduledEmailId} completed: ${result.sent} sent, ${result.failed} failed`,
+    );
+
+    if (result.failed > 0 && result.sent === 0) {
+      throw new Error(`All ${result.failed} emails failed to send`);
+    }
+
+    return result;
+  },
+  {
+    connection: getRedisConnection(),
+    concurrency,
+  },
+);
+
+console.log(
+  `Scheduled email worker listening on queue "${SCHEDULED_EMAIL_QUEUE_NAME}" with concurrency ${concurrency}.`,
+);
+
+scheduledEmailWorker.on('completed', (job) => {
+  console.log(`Scheduled email job ${job.id} completed.`);
+});
+
+scheduledEmailWorker.on('failed', (job, error) => {
+  console.error(`Scheduled email job ${job?.id} failed: ${error.message}`);
+});
+
 process.on('SIGINT', async () => {
   await reminderWorker.close();
+  await scheduledEmailWorker.close();
   process.exit(0);
 });

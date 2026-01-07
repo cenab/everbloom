@@ -671,6 +671,72 @@ export interface SendThankYouResponse {
 }
 
 // ============================================================================
+// Scheduled Email Types
+// PRD: "Admin can schedule emails for future send"
+// ============================================================================
+
+/**
+ * A scheduled email record for tracking scheduled sends
+ */
+export interface ScheduledEmail {
+  id: string;
+  weddingId: string;
+  /** Array of guest IDs to send to */
+  guestIds: string[];
+  /** Type of email to send */
+  emailType: EmailType;
+  /** ISO timestamp when the email should be sent */
+  scheduledAt: string;
+  /** Status of the scheduled email */
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  /** When the scheduled email was created */
+  createdAt: string;
+  /** When the scheduled email was last updated */
+  updatedAt: string;
+  /** BullMQ job ID for tracking/cancellation */
+  jobId?: string;
+  /** Results after sending (populated when completed) */
+  results?: {
+    sent: number;
+    failed: number;
+    total: number;
+  };
+}
+
+/**
+ * Request body for scheduling emails
+ */
+export interface ScheduleEmailRequest {
+  guestIds: string[];
+  emailType: EmailType;
+  /** ISO timestamp when the email should be sent */
+  scheduledAt: string;
+}
+
+/**
+ * Response from scheduling an email
+ */
+export interface ScheduleEmailResponse {
+  scheduledEmail: ScheduledEmail;
+  jobId: string;
+}
+
+/**
+ * Response containing list of scheduled emails
+ */
+export interface ScheduledEmailsListResponse {
+  scheduledEmails: ScheduledEmail[];
+}
+
+/**
+ * Response from cancelling a scheduled email
+ */
+export interface CancelScheduledEmailResponse {
+  success: boolean;
+  scheduledEmail: ScheduledEmail;
+}
+
+// ============================================================================
 // Email Statistics Types (Admin Dashboard)
 // ============================================================================
 
