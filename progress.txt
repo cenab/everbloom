@@ -290,3 +290,75 @@
 - Endpoint requires Bearer token authentication
 - Only the wedding owner can fetch their render_config
 - The config contains all data needed for the wedding site to render without additional DB queries
+
+---
+
+### 2026-01-06 - Wedding Site Renders from render_config
+
+**Feature worked on:** Wedding site renders exclusively from render_config (PRD: site category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. It completes the provisioning→rendering pipeline
+2. It unblocks all guest-facing features (RSVP, photos, announcements)
+3. Without a rendered wedding site, none of the other guest-facing features can be tested
+4. It demonstrates the core architecture: platform provisions, site renders
+
+**What was done:**
+1. Added public endpoint for wedding site config:
+   - `GET /api/site-config/:slug` - No auth required, wedding slug is the identifier
+   - Created SiteConfigController (services/platform-api/src/wedding/site-config.controller.ts)
+   - Returns render_config for active weddings only
+
+2. Added shared package dependency to wedding-site:
+   - Added `@wedding-bestie/shared` workspace dependency for types
+
+3. Created API client for fetching site config:
+   - `apps/wedding-site/src/lib/api.ts`
+   - `fetchSiteConfig(slug)` - single fetch for all rendering data
+
+4. Created Astro components for wedding site rendering:
+   - `WeddingLayout.astro` - Base layout with theme CSS variables and fonts
+   - `SectionRenderer.astro` - Maps section types to components, respects feature flags
+   - `HeroSection.astro` - Hero section with partner names headline
+   - `EventDetailsSection.astro` - Event details with date, venue, city
+   - `RsvpSection.astro` - RSVP CTA section (only renders if RSVP feature enabled)
+
+5. Created dynamic route `/w/[slug]`:
+   - `apps/wedding-site/src/pages/w/[slug].astro`
+   - Fetches render_config via single API call (no database joins)
+   - Returns 404 if wedding not found or inactive
+
+**Architecture adherence:**
+- Wedding site renders EXCLUSIVELY from render_config (no direct DB queries)
+- Single data fetch per page load
+- Feature flags respected (RSVP section only shows if feature enabled)
+- Theme CSS variables set from render_config theme
+- No joins, no multi-table queries
+
+**Design system adherence:**
+- Typography: Cormorant Garamond (serif) for headings, Inter (sans) for body
+- Colors: Theme-driven via CSS variables (no hardcoded colors)
+- No pure black (#000000) or pure white (#FFFFFF)
+- Generous whitespace, calm visual style
+- Mobile-first responsive design
+
+**API Endpoints added:**
+- `GET /api/site-config/:slug` - Public endpoint for wedding site rendering
+  - Returns render_config with template, theme, features, sections, wedding info
+  - No authentication required
+  - Returns 404 for non-existent or inactive weddings
+
+**PRD features now passing:**
+- "Wedding site renders exclusively from render_config" ✓
+
+**Next steps:**
+- Implement template switching feature in admin dashboard
+- Or implement guest-facing RSVP flow
+- Consider adding announcement banner rendering
+
+**Notes for next person:**
+- Wedding sites are at `/w/{slug}` (e.g., `/w/john-and-jane-abc123`)
+- The site fetches config from platform-api at startup
+- Set `PUBLIC_PLATFORM_API_URL` env var for production deployment
+- In dev, defaults to `http://localhost:3001/api`
+- To test: create a wedding via Stripe checkout, then visit `/w/{slug}`

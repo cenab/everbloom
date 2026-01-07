@@ -12,6 +12,7 @@
     "test": "echo 'No tests yet'"
   },
   "dependencies": {
+    "@wedding-bestie/shared": "workspace:*",
     "astro": "^4.2.0"
   },
   "devDependencies": {

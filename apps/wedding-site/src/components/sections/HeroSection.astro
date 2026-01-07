@@ -1,0 +1,46 @@
+---
+import type { Section, Theme } from '@wedding-bestie/shared';
+
+interface Props {
+  section: Section;
+  theme: Theme;
+}
+
+const { section, theme } = Astro.props;
+const { headline } = section.data as { headline?: string };
+---
+
+<section
+  class="hero-section"
+  style={`--primary: ${theme.primary}; --accent: ${theme.accent}; --neutral-light: ${theme.neutralLight}; --neutral-dark: ${theme.neutralDark};`}
+>
+  <div class="hero-content">
+    <h1 class="hero-headline">{headline || 'Our Wedding'}</h1>
+  </div>
+</section>
+
+<style>
+  .hero-section {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--neutral-light);
+    padding: 4rem 2rem;
+  }
+
+  .hero-content {
+    text-align: center;
+    max-width: 800px;
+  }
+
+  .hero-headline {
+    font-family: 'Cormorant Garamond', 'Georgia', serif;
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    font-weight: 400;
+    color: var(--neutral-dark);
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+    margin: 0;
+  }
+</style>

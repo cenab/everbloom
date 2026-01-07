@@ -1,0 +1,43 @@
+---
+import type { RenderConfig } from '@wedding-bestie/shared';
+import HeroSection from './sections/HeroSection.astro';
+import EventDetailsSection from './sections/EventDetailsSection.astro';
+import RsvpSection from './sections/RsvpSection.astro';
+
+interface Props {
+  config: RenderConfig;
+}
+
+const { config } = Astro.props;
+const { sections, theme, wedding, features } = config;
+
+// Filter enabled sections and sort by order
+const enabledSections = sections
+  .filter((section) => section.enabled)
+  .sort((a, b) => a.order - b.order);
+---
+
+{enabledSections.map((section) => {
+  switch (section.type) {
+    case 'hero':
+      return <HeroSection section={section} theme={theme} />;
+    case 'event-details':
+      return (
+        <EventDetailsSection
+          section={section}
+          theme={theme}
+          weddingDate={wedding.date}
+          venue={wedding.venue}
+          city={wedding.city}
+        />
+      );
+    case 'rsvp':
+      // Only render RSVP if the feature is enabled
+      if (features.RSVP) {
+        return <RsvpSection section={section} theme={theme} slug={wedding.slug} />;
+      }
+      return null;
+    default:
+      return null;
+  }
+})}

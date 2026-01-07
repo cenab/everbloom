@@ -1,0 +1,27 @@
+---
+/**
+ * Wedding site dynamic route
+ * Renders exclusively from render_config - no direct database joins
+ */
+import { fetchSiteConfig } from '../../lib/api';
+import WeddingLayout from '../../components/WeddingLayout.astro';
+import SectionRenderer from '../../components/SectionRenderer.astro';
+
+const { slug } = Astro.params;
+
+if (!slug) {
+  return Astro.redirect('/');
+}
+
+// Fetch render_config - this is the ONLY data fetch for rendering
+const config = await fetchSiteConfig(slug);
+
+if (!config) {
+  // Wedding not found - return 404
+  return new Response('Wedding not found', { status: 404 });
+}
+---
+
+<WeddingLayout config={config}>
+  <SectionRenderer config={config} />
+</WeddingLayout>

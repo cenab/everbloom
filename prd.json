@@ -190,7 +190,7 @@
       "Verify page loads using render_config only",
       "Verify no direct database joins are used in site rendering"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "site",
