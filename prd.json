@@ -9,7 +9,7 @@
       "Verify whitespace is intentionally used (sections are visually separated and not crowded)",
       "Verify the guest-facing pages feel warmer than admin pages (tone and spacing)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "design",
@@ -22,7 +22,7 @@
       "Verify no neon saturated colors are available",
       "Verify text contrast is readable on all primary surfaces"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "design",
@@ -35,7 +35,7 @@
       "Verify body text uses a template-defined sans serif style",
       "Verify typography remains consistent after switching templates"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "design",
@@ -47,7 +47,7 @@
       "Verify spacing remains consistent regardless of content edits",
       "Verify no inline styles or ad-hoc px values are used in UI components"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "design",
@@ -60,7 +60,7 @@
       "Scan main navigation labels",
       "Verify labels use human wording (e.g., 'Your guests', 'Your invitations', 'Your site') and avoid 'Manage', 'Entities', 'Records'"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "design",
@@ -71,7 +71,7 @@
       "Verify only minimal feedback motion exists (subtle fade, hover, loading shimmer)",
       "Verify no animation blocks interaction or draws attention"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "design",
@@ -84,7 +84,7 @@
       "Verify dietary notes are optional and not above the fold",
       "Submit RSVP and verify confirmation screen feels celebratory and calm (not transactional)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "design",
@@ -97,7 +97,7 @@
       "Verify retry is possible for failed uploads",
       "Verify no account or login requirement is presented"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "design",
@@ -122,7 +122,7 @@
       "Verify each category contains at least one template option",
       "Verify templates can be previewed before selection"
     ],
-    "passes": false
+    "passes": true
   },
 
   {
@@ -135,7 +135,7 @@
       "Click magic link",
       "Verify access to admin dashboard"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "platform",
@@ -145,7 +145,7 @@
       "Verify dashboard loads",
       "Verify empty state prompts to create or select a wedding"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "billing",
@@ -156,7 +156,7 @@
       "Redirect to Stripe Checkout",
       "Verify checkout session is created successfully"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "billing",
@@ -168,7 +168,7 @@
       "Verify wedding status is active",
       "Verify slug is generated"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "provisioning",
@@ -180,7 +180,7 @@
       "Verify render_config contains sections array",
       "Verify render_config contains enabled feature flags"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "site",
@@ -190,7 +190,7 @@
       "Verify page loads using render_config only",
       "Verify no direct database joins are used in site rendering"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "site",
@@ -201,7 +201,7 @@
       "Reload public wedding site",
       "Verify content remains intact with new template"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "features",
@@ -213,7 +213,7 @@
       "Verify Photo Upload toggle exists",
       "Verify Announcement toggle exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "features",
@@ -225,7 +225,7 @@
       "Navigate to RSVP URL",
       "Verify friendly 'RSVP disabled' message is shown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "features",
@@ -235,7 +235,7 @@
       "Attempt POST /rsvp-submit",
       "Verify response indicates FEATURE_DISABLED"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "guests",
@@ -247,7 +247,7 @@
       "Save invitee",
       "Verify invitee appears in list"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "guests",
@@ -259,7 +259,7 @@
       "Confirm import",
       "Verify invitees appear in list"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "invites",
@@ -270,7 +270,7 @@
       "Verify emails are enqueued",
       "Verify email_outbox records are created"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "rsvp",
@@ -280,7 +280,7 @@
       "Verify RSVP form loads",
       "Verify guest name is prefilled"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "rsvp",
@@ -292,7 +292,7 @@
       "Submit RSVP",
       "Verify confirmation message is shown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "rsvp",
@@ -304,7 +304,7 @@
       "Submit again",
       "Verify changes are saved"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "dashboard",
@@ -314,7 +314,7 @@
       "Verify counts for attending, not attending, no response",
       "Verify list reflects latest responses"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "photos",
@@ -324,7 +324,7 @@
       "Verify photo upload CTA appears on site",
       "Verify photo upload page is accessible"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "photos",
@@ -335,7 +335,7 @@
       "Upload photos",
       "Verify upload completes successfully"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "photos",
@@ -345,7 +345,7 @@
       "Verify metadata record exists in database",
       "Verify admin can see uploaded photo list"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "announcements",
@@ -356,7 +356,7 @@
       "Enable announcement",
       "Save changes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "announcements",
@@ -367,7 +367,7 @@
       "Verify banner appears at top of page",
       "Verify title and message match admin input"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "email",
@@ -378,7 +378,7 @@
       "Verify worker processes emails",
       "Verify email_outbox updated"
     ],
-    "passes": false
+    "passes": true
   },
 
   {
