@@ -362,3 +362,85 @@
 - Set `PUBLIC_PLATFORM_API_URL` env var for production deployment
 - In dev, defaults to `http://localhost:3001/api`
 - To test: create a wedding via Stripe checkout, then visit `/w/{slug}`
+
+---
+
+### 2026-01-06 - Admin Can Add Invitees Manually
+
+**Feature worked on:** Admin can add invitees manually (PRD: guests category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. It's the foundation for all guest management features
+2. Without guests, RSVP and invitation features cannot function
+3. It completes the core admin workflow: login → create wedding → add guests
+4. It unblocks downstream features: CSV import, sending invites, RSVP tracking
+
+**What was done:**
+1. Added Guest types to shared package:
+   - `RsvpStatus` type ('pending' | 'attending' | 'not_attending')
+   - `Guest` interface with all guest fields (id, weddingId, name, email, partySize, rsvpStatus, etc.)
+   - `CreateGuestRequest` and `UpdateGuestRequest` for API calls
+   - `GuestListResponse` for list endpoint
+   - Error codes: `GUEST_NOT_FOUND`, `GUEST_ALREADY_EXISTS`, `WEDDING_NOT_FOUND`
+
+2. Created GuestService (services/platform-api/src/guest/guest.service.ts):
+   - In-memory storage for development
+   - `createGuest()` - creates new guest with RSVP token, checks for duplicate emails
+   - `updateGuest()` - updates guest details
+   - `deleteGuest()` - removes guest
+   - `getGuest()` / `getGuestsForWedding()` - retrieval methods
+   - `getGuestSummary()` - aggregates RSVP counts
+
+3. Created GuestController (services/platform-api/src/guest/guest.controller.ts):
+   - `GET /api/weddings/:weddingId/guests` - list all guests
+   - `POST /api/weddings/:weddingId/guests` - create guest
+   - `GET /api/weddings/:weddingId/guests/:guestId` - get single guest
+   - `PUT /api/weddings/:weddingId/guests/:guestId` - update guest
+   - `DELETE /api/weddings/:weddingId/guests/:guestId` - delete guest
+   - All endpoints require authentication and verify wedding ownership
+
+4. Created GuestModule and registered in AppModule
+
+5. Created Guests page component (apps/platform-ui/src/components/Guests.tsx):
+   - List view with guest cards showing name, email, RSVP status
+   - Add guest form with name and email inputs
+   - Delete functionality with confirmation
+   - Empty state with friendly messaging
+   - Loading states
+
+6. Updated Dashboard component:
+   - Now fetches weddings from API on mount
+   - Auto-selects first wedding if only one exists
+   - Shows wedding selection when multiple weddings
+   - WeddingDashboard view with navigation cards
+   - "Your guests" card navigates to Guests page
+   - "Your site" card links to wedding site
+
+**API Endpoints:**
+- `GET /api/weddings/:weddingId/guests` - List guests (requires auth)
+- `POST /api/weddings/:weddingId/guests` - Create guest (requires auth)
+- `GET /api/weddings/:weddingId/guests/:guestId` - Get guest (requires auth)
+- `PUT /api/weddings/:weddingId/guests/:guestId` - Update guest (requires auth)
+- `DELETE /api/weddings/:weddingId/guests/:guestId` - Delete guest (requires auth)
+
+**Design system adherence:**
+- Calm, minimal UI with intentional whitespace
+- Human language: "Your guests", "Add your first guest", "No guests yet"
+- RSVP status badges with muted colors
+- No pure black/white colors
+- Large, clear form inputs
+
+**PRD features now passing:**
+- "Admin can add invitees manually" ✓
+
+**Next steps:**
+- Implement CSV import for bulk guest adding
+- Implement invitation sending
+- Implement guest-facing RSVP flow
+
+**Notes for next person:**
+- Guests are stored in-memory (restart API = lose data)
+- Each guest gets a unique RSVP token on creation (32 bytes, hex encoded)
+- Duplicate email check is per-wedding (same email can be in different weddings)
+- Dashboard auto-selects first wedding if user has only one
+- Guest list is sorted alphabetically by name

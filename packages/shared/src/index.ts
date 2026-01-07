@@ -249,3 +249,72 @@ export interface WeddingProvisionResponse {
   wedding: Wedding;
   renderConfig: RenderConfig;
 }
+
+// ============================================================================
+// Guest Types
+// ============================================================================
+
+/**
+ * RSVP status for a guest
+ */
+export type RsvpStatus = 'pending' | 'attending' | 'not_attending';
+
+/**
+ * Guest/invitee record in the platform system
+ */
+export interface Guest {
+  id: string;
+  weddingId: string;
+  name: string;
+  email: string;
+  partySize: number;
+  rsvpStatus: RsvpStatus;
+  dietaryNotes?: string;
+  rsvpToken?: string;
+  inviteSentAt?: string;
+  rsvpSubmittedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Request body for creating a guest
+ */
+export interface CreateGuestRequest {
+  name: string;
+  email: string;
+  partySize?: number;
+}
+
+/**
+ * Request body for updating a guest
+ */
+export interface UpdateGuestRequest {
+  name?: string;
+  email?: string;
+  partySize?: number;
+  dietaryNotes?: string;
+}
+
+/**
+ * Guest list response
+ */
+export interface GuestListResponse {
+  guests: Guest[];
+  total: number;
+}
+
+/**
+ * Guest not found error code
+ */
+export const GUEST_NOT_FOUND = 'GUEST_NOT_FOUND' as const;
+
+/**
+ * Guest already exists (duplicate email) error code
+ */
+export const GUEST_ALREADY_EXISTS = 'GUEST_ALREADY_EXISTS' as const;
+
+/**
+ * Wedding not found error code
+ */
+export const WEDDING_NOT_FOUND = 'WEDDING_NOT_FOUND' as const;

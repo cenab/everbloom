@@ -247,7 +247,7 @@
       "Save invitee",
       "Verify invitee appears in list"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "guests",
