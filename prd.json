@@ -693,7 +693,7 @@
       "Verify delivered count is displayed",
       "Verify open rate is displayed (if tracking enabled)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "analytics",

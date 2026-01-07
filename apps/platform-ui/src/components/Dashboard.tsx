@@ -9,10 +9,11 @@ import { EventSettings } from './EventSettings';
 import { FaqSettings } from './FaqSettings';
 import { PasscodeSettings } from './PasscodeSettings';
 import { HeroSettings } from './HeroSettings';
+import { EmailStatisticsDashboard } from './EmailStatistics';
 import { getAuthToken } from '../lib/auth';
 import type { Wedding, ApiResponse, RenderConfig } from '../types';
 
-type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero';
+type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'email-stats';
 
 /**
  * Admin Dashboard component.
@@ -170,6 +171,17 @@ export function Dashboard() {
     );
   }
 
+  if (view === 'email-stats' && selectedWedding) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <EmailStatisticsDashboard
+          weddingId={selectedWedding.id}
+          onBack={() => setView('dashboard')}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -202,6 +214,7 @@ export function Dashboard() {
           onNavigateToFaq={() => setView('faq')}
           onNavigateToPasscode={() => setView('passcode')}
           onNavigateToHero={() => setView('hero')}
+          onNavigateToEmailStats={() => setView('email-stats')}
           onBack={weddings.length > 1 ? () => setSelectedWedding(null) : undefined}
         />
       )}
@@ -280,6 +293,7 @@ interface WeddingDashboardProps {
   onNavigateToFaq: () => void;
   onNavigateToPasscode: () => void;
   onNavigateToHero: () => void;
+  onNavigateToEmailStats: () => void;
   onBack?: () => void;
 }
 
@@ -298,6 +312,7 @@ function WeddingDashboard({
   onNavigateToFaq,
   onNavigateToPasscode,
   onNavigateToHero,
+  onNavigateToEmailStats,
   onBack,
 }: WeddingDashboardProps) {
   return (
@@ -382,6 +397,12 @@ function WeddingDashboard({
             onClick={onNavigateToPasscode}
           />
         )}
+        <DashboardCard
+          title="Email statistics"
+          description="Track invitation and reminder delivery"
+          icon={<EnvelopeIcon className="w-6 h-6" />}
+          onClick={onNavigateToEmailStats}
+        />
         <DashboardCard
           title="Your site"
           description="View your wedding website"
@@ -630,6 +651,24 @@ function LockIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+      />
+    </svg>
+  );
+}
+
+function EnvelopeIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
       />
     </svg>
   );

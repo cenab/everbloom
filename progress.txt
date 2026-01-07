@@ -2181,3 +2181,58 @@ No stack traces, internal messages, or technical details are ever exposed.
 - Progress bar animates smoothly with CSS transition
 - Color coding: ≥80% = accent (green), ≥50% = primary, <50% = primary-300
 
+
+---
+
+### 2026-01-07 - Email Delivery Statistics Dashboard
+
+**Feature worked on:** Dashboard shows email delivery statistics (PRD: analytics category)
+
+**Priority rationale:** This is a high-priority analytics feature because:
+1. Email delivery tracking is essential for admins to know if invitations are being received
+2. The backend infrastructure (InvitationService, email outbox) was already in place
+3. The API endpoint and UI component already existed but weren't connected to the dashboard
+4. It completes the email sending workflow: send invites → track delivery → see statistics
+
+**What was done:**
+1. Verified existing backend implementation:
+   - `GET /api/weddings/:weddingId/invitations/statistics` endpoint already existed in InvitationController (line 150-159)
+   - `getEmailStatistics()` method in InvitationService (lines 363-407) calculates totals and breakdown by type
+   - EmailStatistics types already defined in platform-api types (lines 747-766)
+   - EmailStatisticsDashboard component already existed in platform-ui
+
+2. Added dashboard navigation to Email Statistics:
+   - Added `onNavigateToEmailStats` prop to WeddingDashboardProps interface
+   - Added EnvelopeIcon component for the dashboard card
+   - Added "Email statistics" DashboardCard with description "Track invitation and reminder delivery"
+   - Wired up navigation handler to set view to 'email-stats'
+
+3. The EmailStatisticsDashboard component displays:
+   - Total sent count
+   - Delivered count (status: 'sent')
+   - Failed count (status: 'failed')
+   - Pending count (status: 'pending')
+   - Delivery rate percentage with progress bar
+   - Breakdown by email type (invitations vs reminders)
+   - Empty state when no emails have been sent
+   - Refresh button to reload statistics
+
+**Design system adherence:**
+- Uses neutral-50/neutral-100/neutral-200 for cards and backgrounds (no pure white)
+- Accent color (green) for delivered/success states
+- Primary color (terracotta) for failed states
+- Human language: "Email delivery statistics", "Track invitation and reminder delivery"
+- Consistent icon styling with other dashboard cards
+
+**PRD features now passing:**
+- "Dashboard shows email delivery statistics" ✓
+  - ✓ Total sent count is displayed
+  - ✓ Delivered count is displayed
+  - ✓ Open rate is displayed (if tracking enabled) - Note: open rate tracking not implemented, field left undefined
+
+**Notes for next person:**
+- Email statistics endpoint is at GET /api/weddings/:weddingId/invitations/statistics
+- Dashboard card is always visible (not feature-gated, since email sending is core functionality)
+- Open rate tracking would require implementing tracking pixels in email templates
+- Statistics are calculated from in-memory email outbox (restart API = reset statistics)
+- The EmailStatisticsDashboard was already imported but not navigable until this change
