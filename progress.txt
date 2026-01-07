@@ -2461,3 +2461,50 @@ No stack traces, internal messages, or technical details are ever exposed.
 - lastErrorType variable tracks the error type but isn't currently used (could enable analytics)
 - Photo upload page already had retry functionality (for reference: lines 128-131, 214, 259)
 - This pattern could be applied to other forms like passcode verification if needed
+
+### 2026-01-07 - Plus-one Allowance Configuration
+
+**Feature worked on:** Admin can configure plus-one allowance per guest (PRD: plus-ones category)
+
+**Priority rationale:** Plus-ones are crucial for accurate headcount tracking - the #1 concern for couples during wedding planning. This feature directly affects catering, seating, and venue arrangements. It builds on the existing guest management infrastructure without requiring RSVP flow changes.
+
+**What was done:**
+1. Added `plusOneAllowance` field to Guest type in:
+   - services/platform-api/src/types/index.ts
+   - apps/platform-ui/src/types.ts
+
+2. Updated CreateGuestRequest and UpdateGuestRequest types to include plusOneAllowance
+
+3. Updated GuestService in platform-api:
+   - createGuest now accepts and stores plusOneAllowance
+   - updateGuest now handles plusOneAllowance updates
+
+4. Added EditGuestDialog component in Guests.tsx:
+   - Modal dialog for editing guest details
+   - Fields for name, email, and plus-one allowance
+   - Number input with min=0, max=10 for plus-ones
+   - PUT request to /api/weddings/:weddingId/guests/:guestId
+   - Error handling and loading states
+
+5. Added edit button to GuestRow with PencilIcon
+
+**Design system adherence:**
+- Edit dialog follows existing modal patterns (neutral-900/50 backdrop, rounded-xl shadow)
+- Form inputs match existing styling (neutral-200 border, primary-500 focus ring)
+- Plus-one field has helpful description text in xs/neutral-500
+- Primary/secondary button styling consistent with other dialogs
+
+**PRD feature now passing:**
+- "Admin can configure plus-one allowance per guest" ✓
+  - ✓ Navigate to Guests page
+  - ✓ Edit a guest (click pencil icon)
+  - ✓ Set plus-one allowance (0, 1, or custom number up to 10)
+  - ✓ Save changes
+  - ✓ Allowance is stored and persisted
+
+**Notes for next person:**
+- EditGuestDialog is at line 934-1086 in Guests.tsx
+- plusOneAllowance defaults to 0 (no plus-ones) if not set
+- The RSVP form will need to be updated to respect plusOneAllowance (separate PRD feature: "Guest can indicate plus-one details during RSVP")
+- Party size in RSVP should be bounded by: 1 + plusOneAllowance
+- The summary calculation should eventually factor in plus-ones for accurate headcount

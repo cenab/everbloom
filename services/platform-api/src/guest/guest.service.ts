@@ -76,6 +76,7 @@ export class GuestService {
       partySize: request.partySize ?? 1,
       rsvpStatus: 'pending' as RsvpStatus,
       rsvpTokenHash: tokenHash, // Store hash, not raw token
+      plusOneAllowance: request.plusOneAllowance,
       createdAt: now,
       updatedAt: now,
     };
@@ -105,6 +106,7 @@ export class GuestService {
       email: request.email ?? guest.email,
       partySize: request.partySize ?? guest.partySize,
       dietaryNotes: request.dietaryNotes ?? guest.dietaryNotes,
+      plusOneAllowance: request.plusOneAllowance !== undefined ? request.plusOneAllowance : guest.plusOneAllowance,
       updatedAt: new Date().toISOString(),
     };
 

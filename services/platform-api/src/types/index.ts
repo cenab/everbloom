@@ -434,6 +434,8 @@ export interface Guest {
   rsvpTokenHash?: string;
   /** Array of tag IDs assigned to this guest */
   tagIds?: string[];
+  /** Plus-one allowance: 0 = no plus-ones, positive number = allowed plus-ones */
+  plusOneAllowance?: number;
   inviteSentAt?: string;
   rsvpSubmittedAt?: string;
   createdAt: string;
@@ -447,6 +449,7 @@ export interface CreateGuestRequest {
   name: string;
   email: string;
   partySize?: number;
+  plusOneAllowance?: number;
 }
 
 /**
@@ -457,6 +460,7 @@ export interface UpdateGuestRequest {
   email?: string;
   partySize?: number;
   dietaryNotes?: string;
+  plusOneAllowance?: number;
 }
 
 /**

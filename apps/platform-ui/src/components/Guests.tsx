@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type {
   Guest,
   CreateGuestRequest,
+  UpdateGuestRequest,
   GuestListResponse,
   ApiResponse,
   CsvGuestRow,
@@ -70,6 +71,7 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
   const [showTagManager, setShowTagManager] = useState(false);
   const [filterTagIds, setFilterTagIds] = useState<string[]>([]);
   const [showAssignTags, setShowAssignTags] = useState(false);
+  const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
 
   const fetchEmailOutbox = useCallback(async () => {
     try {
@@ -139,6 +141,11 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
 
   const handleGuestDeleted = (guestId: string) => {
     setGuests((prev) => prev.filter((g) => g.id !== guestId));
+  };
+
+  const handleGuestUpdated = (updatedGuest: Guest) => {
+    setGuests((prev) => prev.map((g) => (g.id === updatedGuest.id ? updatedGuest : g)));
+    setEditingGuest(null);
   };
 
   const handleGuestsImported = (newGuests: Guest[]) => {
@@ -326,6 +333,15 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
         />
       )}
 
+      {editingGuest && (
+        <EditGuestDialog
+          weddingId={weddingId}
+          guest={editingGuest}
+          onSuccess={handleGuestUpdated}
+          onCancel={() => setEditingGuest(null)}
+        />
+      )}
+
       {error && (
         <div className="p-4 bg-primary-50 border border-primary-200 rounded-lg text-primary-800 mb-6">
           {error}
@@ -379,6 +395,7 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
           emailOutbox={emailOutbox}
           weddingId={weddingId}
           onDelete={handleGuestDeleted}
+          onEdit={setEditingGuest}
           selectedIds={selectedGuestIds}
           onToggleSelect={handleToggleSelect}
           onSelectAll={handleSelectAll}
@@ -914,6 +931,161 @@ function CsvImportForm({ weddingId, onSuccess, onCancel }: CsvImportFormProps) {
   );
 }
 
+interface EditGuestDialogProps {
+  weddingId: string;
+  guest: Guest;
+  onSuccess: (guest: Guest) => void;
+  onCancel: () => void;
+}
+
+/**
+ * Edit guest dialog component.
+ * PRD: "Admin can configure plus-one allowance per guest"
+ */
+function EditGuestDialog({ weddingId, guest, onSuccess, onCancel }: EditGuestDialogProps) {
+  const [name, setName] = useState(guest.name);
+  const [email, setEmail] = useState(guest.email);
+  const [plusOneAllowance, setPlusOneAllowance] = useState(guest.plusOneAllowance ?? 0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const canSubmit = name.trim() && email.trim();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const token = getAuthToken();
+      const body: UpdateGuestRequest = {
+        name: name.trim(),
+        email: email.trim(),
+        plusOneAllowance,
+      };
+
+      const response = await fetch(`/api/weddings/${weddingId}/guests/${guest.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data: ApiResponse<Guest> = await response.json();
+
+      if (data.ok) {
+        onSuccess(data.data);
+      } else {
+        setError('Unable to update guest. Please try again.');
+      }
+    } catch {
+      setError('Unable to update guest. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-neutral-900/50 flex items-center justify-center z-50">
+      <div className="bg-neutral-50 rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg text-neutral-800">Edit guest</h3>
+          <button
+            onClick={onCancel}
+            className="text-neutral-400 hover:text-neutral-600"
+          >
+            <XIcon className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label
+              htmlFor="editGuestName"
+              className="block text-sm font-medium text-neutral-700 mb-1"
+            >
+              Name
+            </label>
+            <input
+              id="editGuestName"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="John Smith"
+              className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="editGuestEmail"
+              className="block text-sm font-medium text-neutral-700 mb-1"
+            >
+              Email
+            </label>
+            <input
+              id="editGuestEmail"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="john@example.com"
+              className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="editPlusOneAllowance"
+              className="block text-sm font-medium text-neutral-700 mb-1"
+            >
+              Plus-one allowance
+            </label>
+            <p className="text-xs text-neutral-500 mb-2">
+              Number of additional guests this person can bring (0 = no plus-ones)
+            </p>
+            <input
+              id="editPlusOneAllowance"
+              type="number"
+              min="0"
+              max="10"
+              value={plusOneAllowance}
+              onChange={(e) => setPlusOneAllowance(parseInt(e.target.value, 10) || 0)}
+              className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+
+          {error && (
+            <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg text-primary-800 text-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="flex gap-3 justify-end pt-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="btn-secondary"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!canSubmit || isSubmitting}
+              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Saving...' : 'Save changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function DocumentIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -956,6 +1128,7 @@ interface GuestListProps {
   emailOutbox: EmailOutbox[];
   weddingId: string;
   onDelete: (guestId: string) => void;
+  onEdit: (guest: Guest) => void;
   selectedIds: Set<string>;
   onToggleSelect: (guestId: string) => void;
   onSelectAll: () => void;
@@ -967,6 +1140,7 @@ function GuestList({
   emailOutbox,
   weddingId,
   onDelete,
+  onEdit,
   selectedIds,
   onToggleSelect,
   onSelectAll,
@@ -1002,6 +1176,7 @@ function GuestList({
             emailStatus={getLatestEmailStatus(guest.id, emailOutbox)}
             weddingId={weddingId}
             onDelete={onDelete}
+            onEdit={onEdit}
             isSelected={selectedIds.has(guest.id)}
             onToggleSelect={() => onToggleSelect(guest.id)}
           />
@@ -1017,11 +1192,12 @@ interface GuestRowProps {
   emailStatus: EmailStatusInfo | null;
   weddingId: string;
   onDelete: (guestId: string) => void;
+  onEdit: (guest: Guest) => void;
   isSelected: boolean;
   onToggleSelect: () => void;
 }
 
-function GuestRow({ guest, tags, emailStatus, weddingId, onDelete, isSelected, onToggleSelect }: GuestRowProps) {
+function GuestRow({ guest, tags, emailStatus, weddingId, onDelete, onEdit, isSelected, onToggleSelect }: GuestRowProps) {
   // Get the tags for this guest
   const guestTags = tags.filter((t) => guest.tagIds?.includes(t.id));
   const [isDeleting, setIsDeleting] = useState(false);
@@ -1089,6 +1265,13 @@ function GuestRow({ guest, tags, emailStatus, weddingId, onDelete, isSelected, o
       <div className="flex items-center gap-4">
         <InviteStatusBadge emailStatus={emailStatus} inviteSentAt={guest.inviteSentAt} />
         <RsvpStatusBadge status={guest.rsvpStatus} />
+        <button
+          onClick={() => onEdit(guest)}
+          className="text-neutral-400 hover:text-primary-600 p-2 rounded-lg hover:bg-neutral-100 transition-colors"
+          title="Edit guest"
+        >
+          <PencilIcon className="w-5 h-5" />
+        </button>
         <button
           onClick={handleDelete}
           disabled={isDeleting}
@@ -1299,6 +1482,24 @@ function TrashIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+      />
+    </svg>
+  );
+}
+
+function PencilIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
       />
     </svg>
   );

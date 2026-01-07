@@ -729,7 +729,7 @@
       "Save changes",
       "Verify allowance is stored"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "plus-ones",
