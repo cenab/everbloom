@@ -13,7 +13,8 @@ export type FeatureFlag =
   | 'REGISTRY'
   | 'ACCOMMODATIONS'
   | 'GUESTBOOK'
-  | 'MUSIC_REQUESTS';
+  | 'MUSIC_REQUESTS'
+  | 'SEATING_CHART';
 
 /**
  * Template categories matching product positioning
@@ -290,6 +291,8 @@ export interface RenderConfig {
   accommodations?: AccommodationsConfig;
   /** Guestbook messages (approved only for public display) */
   guestbook?: GuestbookConfig;
+  /** Seating chart configuration (tables with assigned guests) */
+  seating?: SeatingConfig;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -1458,6 +1461,166 @@ export interface ExportPlaylistResponse {
  */
 export const MUSIC_REQUESTS_DISABLED = 'MUSIC_REQUESTS_DISABLED' as const;
 
+// ============================================================================
+// Seating Management Types
+// ============================================================================
+
+/**
+ * A table in the seating arrangement
+ */
+export interface SeatingTable {
+  id: string;
+  weddingId: string;
+  /** Table name or number (e.g., "Table 1", "Head Table", "Family Table") */
+  name: string;
+  /** Maximum capacity for this table */
+  capacity: number;
+  /** Optional notes for the table (e.g., "Near the dance floor") */
+  notes?: string;
+  /** Order for display */
+  order: number;
+  createdAt: string;
+}
+
+/**
+ * A guest's seating assignment
+ */
+export interface SeatingAssignment {
+  guestId: string;
+  tableId: string;
+  /** Optional seat number within the table */
+  seatNumber?: number;
+  assignedAt: string;
+}
+
+/**
+ * Seating configuration for the wedding site
+ * This is included in render_config for public display
+ */
+export interface SeatingConfig {
+  /** All tables with their assignments */
+  tables: Array<{
+    id: string;
+    name: string;
+    capacity: number;
+    notes?: string;
+    order: number;
+    /** Guest names assigned to this table (public display) */
+    guests: Array<{
+      name: string;
+      seatNumber?: number;
+    }>;
+  }>;
+}
+
+/**
+ * Request to create a new table
+ */
+export interface CreateTableRequest {
+  name: string;
+  capacity: number;
+  notes?: string;
+}
+
+/**
+ * Request to update a table
+ */
+export interface UpdateTableRequest {
+  name?: string;
+  capacity?: number;
+  notes?: string;
+}
+
+/**
+ * Request to assign guests to a table
+ */
+export interface AssignGuestsToTableRequest {
+  guestIds: string[];
+  tableId: string;
+}
+
+/**
+ * Request to remove guests from their tables
+ */
+export interface UnassignGuestsRequest {
+  guestIds: string[];
+}
+
+/**
+ * Response containing table list
+ */
+export interface TableListResponse {
+  tables: SeatingTable[];
+}
+
+/**
+ * Response containing table with assigned guests
+ */
+export interface TableWithGuestsResponse {
+  table: SeatingTable;
+  guests: Array<{
+    id: string;
+    name: string;
+    seatNumber?: number;
+  }>;
+}
+
+/**
+ * Response containing all tables with their guests
+ */
+export interface SeatingOverviewResponse {
+  tables: Array<{
+    table: SeatingTable;
+    guests: Array<{
+      id: string;
+      name: string;
+      seatNumber?: number;
+    }>;
+    /** Number of seats remaining */
+    availableSeats: number;
+  }>;
+  /** Guests not yet assigned to any table */
+  unassignedGuests: Array<{
+    id: string;
+    name: string;
+  }>;
+  /** Summary statistics */
+  summary: {
+    totalTables: number;
+    totalCapacity: number;
+    totalAssigned: number;
+    totalUnassigned: number;
+  };
+}
+
+/**
+ * Response after updating seating
+ */
+export interface UpdateSeatingResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+/**
+ * Table not found error code
+ */
+export const TABLE_NOT_FOUND = 'TABLE_NOT_FOUND' as const;
+
+/**
+ * Table capacity exceeded error code
+ */
+export const TABLE_CAPACITY_EXCEEDED = 'TABLE_CAPACITY_EXCEEDED' as const;
+
+/**
+ * Guest already assigned to a table error code
+ */
+export const GUEST_ALREADY_ASSIGNED = 'GUEST_ALREADY_ASSIGNED' as const;
+
+/**
+ * Seating chart feature disabled error code
+ */
+export const SEATING_CHART_DISABLED = 'SEATING_CHART_DISABLED' as const;
+
 /**
  * All error codes as a union type for documentation
  */
@@ -1495,4 +1658,8 @@ export type ErrorCode =
   | typeof INVALID_MEAL_OPTION
   | typeof MEAL_OPTIONS_NOT_CONFIGURED
   | typeof GUESTBOOK_MESSAGE_NOT_FOUND
-  | typeof MUSIC_REQUESTS_DISABLED;
+  | typeof MUSIC_REQUESTS_DISABLED
+  | typeof TABLE_NOT_FOUND
+  | typeof TABLE_CAPACITY_EXCEEDED
+  | typeof GUEST_ALREADY_ASSIGNED
+  | typeof SEATING_CHART_DISABLED;

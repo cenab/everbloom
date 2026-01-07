@@ -59,6 +59,10 @@ const FEATURE_INFO: Record<FeatureFlag, { label: string; description: string }> 
     label: 'Song requests',
     description: 'Let guests suggest songs for your celebration',
   },
+  SEATING_CHART: {
+    label: 'Seating chart',
+    description: 'Display table assignments for your guests',
+  },
 };
 
 /**
@@ -77,6 +81,7 @@ const PLAN_AVAILABLE_FEATURES: Record<string, FeatureFlag[]> = {
     'ACCOMMODATIONS',
     'GUESTBOOK',
     'MUSIC_REQUESTS',
+    'SEATING_CHART',
   ],
 };
 

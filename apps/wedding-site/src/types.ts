@@ -13,7 +13,8 @@ export type FeatureFlag =
   | 'REGISTRY'
   | 'ACCOMMODATIONS'
   | 'GUESTBOOK'
-  | 'MUSIC_REQUESTS';
+  | 'MUSIC_REQUESTS'
+  | 'SEATING_CHART';
 
 /**
  * Theme configuration for wedding sites
@@ -176,6 +177,8 @@ export interface RenderConfig {
   accommodations?: AccommodationsConfig;
   /** Guestbook messages (approved only) */
   guestbook?: GuestbookConfig;
+  /** Seating chart configuration */
+  seating?: SeatingConfig;
   /** Whether passcode protection is enabled (hash is never exposed) */
   passcodeProtected?: boolean;
   wedding: {
@@ -384,4 +387,30 @@ export interface SubmitSongRequestRequest {
 export interface SubmitSongRequestResponse {
   ok: true;
   message: string;
+}
+
+// ============================================================================
+// Seating Chart Types
+// ============================================================================
+
+/**
+ * Seating configuration for rendering
+ */
+export interface SeatingConfig {
+  tables: SeatingTableDisplay[];
+}
+
+/**
+ * Table display data for public site
+ */
+export interface SeatingTableDisplay {
+  id: string;
+  name: string;
+  capacity: number;
+  notes?: string;
+  order: number;
+  guests: Array<{
+    name: string;
+    seatNumber?: number;
+  }>;
 }

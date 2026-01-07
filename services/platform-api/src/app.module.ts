@@ -11,6 +11,7 @@ import { InvitationModule } from './invitation/invitation.module';
 import { PhotosModule } from './photos/photos.module';
 import { GuestbookModule } from './guestbook/guestbook.module';
 import { MusicModule } from './music/music.module';
+import { SeatingModule } from './seating/seating.module';
 
 /**
  * Rate limiting configuration.
@@ -54,6 +55,7 @@ import { MusicModule } from './music/music.module';
     PhotosModule,
     GuestbookModule,
     MusicModule,
+    SeatingModule,
   ],
   controllers: [AppController],
   providers: [

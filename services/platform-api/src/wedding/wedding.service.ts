@@ -21,6 +21,7 @@ import type {
   RegistryConfig,
   AccommodationsConfig,
   GuestbookConfig,
+  SeatingConfig,
 } from '../types';
 
 const scryptAsync = promisify(scrypt);
@@ -172,6 +173,21 @@ const createMusicRequestSection = (order: number, enabled: boolean): Section => 
   data: { ...DEFAULT_MUSIC_REQUEST_SECTION_DATA },
 });
 
+const SEATING_SECTION_ID = 'seating';
+
+const DEFAULT_SEATING_SECTION_DATA = {
+  title: 'Seating Chart',
+  description: 'Find your table assignment for the celebration.',
+};
+
+const createSeatingSection = (order: number, enabled: boolean): Section => ({
+  id: SEATING_SECTION_ID,
+  type: 'seating',
+  enabled,
+  order,
+  data: { ...DEFAULT_SEATING_SECTION_DATA },
+});
+
 /**
  * Features enabled by plan tier
  */
@@ -188,6 +204,7 @@ const PLAN_FEATURES: Record<PlanTier, FeatureFlag[]> = {
     'ACCOMMODATIONS',
     'GUESTBOOK',
     'MUSIC_REQUESTS',
+    'SEATING_CHART',
   ],
 };
 
@@ -205,6 +222,7 @@ const ALL_FEATURES: FeatureFlag[] = [
   'ACCOMMODATIONS',
   'GUESTBOOK',
   'MUSIC_REQUESTS',
+  'SEATING_CHART',
 ];
 
 /**
@@ -381,6 +399,7 @@ export class WeddingService {
         createAccommodationsSection(6, wedding.features.ACCOMMODATIONS),
         createGuestbookSection(7, wedding.features.GUESTBOOK),
         createMusicRequestSection(8, wedding.features.MUSIC_REQUESTS),
+        createSeatingSection(9, wedding.features.SEATING_CHART),
       ],
       wedding: {
         slug: wedding.slug,
@@ -608,6 +627,12 @@ export class WeddingService {
         if (section.type === 'guestbook') {
           return { ...section, enabled: updatedFeatures.GUESTBOOK };
         }
+        if (section.type === 'music-request') {
+          return { ...section, enabled: updatedFeatures.MUSIC_REQUESTS };
+        }
+        if (section.type === 'seating') {
+          return { ...section, enabled: updatedFeatures.SEATING_CHART };
+        }
         return section;
       }),
     };
@@ -659,6 +684,15 @@ export class WeddingService {
       updatedConfig.sections = [
         ...updatedConfig.sections,
         createMusicRequestSection(maxOrder + 1, updatedFeatures.MUSIC_REQUESTS),
+      ];
+    }
+
+    const hasSeatingSection = updatedConfig.sections.some((section) => section.type === 'seating');
+    if (!hasSeatingSection) {
+      const maxOrder = updatedConfig.sections.reduce((max, section) => Math.max(max, section.order), -1);
+      updatedConfig.sections = [
+        ...updatedConfig.sections,
+        createSeatingSection(maxOrder + 1, updatedFeatures.SEATING_CHART),
       ];
     }
 
@@ -1127,6 +1161,43 @@ export class WeddingService {
 
     this.logger.log(
       `Updated guestbook config for wedding ${weddingId}: ${guestbook.messages.length} approved messages`,
+    );
+
+    return { wedding, renderConfig: updatedConfig };
+  }
+
+  /**
+   * Update seating config in render_config
+   * Called after seating assignments are modified
+   * PRD: "Seating chart can be displayed on public site"
+   */
+  updateSeatingConfig(
+    weddingId: string,
+    seating: SeatingConfig,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    const existingConfig = this.renderConfigs.get(weddingId);
+    if (!existingConfig) {
+      return null;
+    }
+
+    // Update seating in render_config
+    const updatedConfig: RenderConfig = {
+      ...existingConfig,
+      seating: seating.tables.length > 0 ? seating : undefined,
+    };
+
+    this.renderConfigs.set(weddingId, updatedConfig);
+
+    this.logger.log(
+      `Updated seating config for wedding ${weddingId}: ${seating.tables.length} tables`,
     );
 
     return { wedding, renderConfig: updatedConfig };

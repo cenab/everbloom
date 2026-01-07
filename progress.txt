@@ -3601,3 +3601,100 @@ With HTTP status 429 Too Many Requests.
 - When a couple changes their template/theme, future emails will use the new colors
 - Already-sent emails retain their original colors (immutable once sent)
 
+
+### 2026-01-07 - Seating Management Feature
+
+**Feature worked on:** Seating management (Admin can create table assignments, assign guests to tables, display seating chart on public site)
+
+**Priority rationale:** Seating management is a core wedding planning feature that was next in line after the music requests feature. All 4 seating-related PRD items had `"passes": false` and it's essential for wedding day organization.
+
+**What was done:**
+1. Added seating types to platform-api:
+   - SeatingTable, SeatingAssignment, SeatingConfig types
+   - API request/response types (CreateTableRequest, AssignGuestsToTableRequest, etc.)
+   - Error codes (TABLE_NOT_FOUND, TABLE_CAPACITY_EXCEEDED)
+   - Added SEATING_CHART to FeatureFlag and PLAN_FEATURES (premium tier)
+   - Added SeatingConfig to RenderConfig interface
+
+2. Created SeatingService (services/platform-api/src/seating/seating.service.ts):
+   - In-memory stores for tables and assignments
+   - Table CRUD operations (createTable, updateTable, deleteTable, reorderTables)
+   - Guest assignment operations (assignGuestsToTable, unassignGuests)
+   - getSeatingConfig() for render_config (public display)
+   - getSeatingOverview() for admin UI with summary stats
+
+3. Created SeatingController (services/platform-api/src/seating/seating.controller.ts):
+   - REST endpoints under /weddings/:weddingId/seating
+   - GET / - get seating overview
+   - GET/POST/PUT/DELETE /tables - table CRUD
+   - PUT /tables/reorder - reorder tables
+   - POST /assign - assign guests to table
+   - POST /unassign - unassign guests
+   - Feature flag checking (SEATING_CHART must be enabled)
+
+4. Created SeatingModule and registered in AppModule
+
+5. Added updateSeatingConfig() to WeddingService for render_config sync
+
+6. Created SeatingManager admin UI component (apps/platform-ui/src/components/SeatingManager.tsx):
+   - Summary cards showing total tables, capacity, assigned/unassigned counts
+   - Table creation form with name, capacity, notes
+   - Table editing with inline edit mode
+   - Guest assignment via multi-select from unassigned attending guests
+   - Table reordering (up/down buttons)
+   - Delete table functionality
+
+7. Integrated SeatingManager into Dashboard:
+   - Added 'seating' view and navigation handler
+   - Added seating card to dashboard grid (conditional on SEATING_CHART feature)
+   - Added TableIcon component
+
+8. Added seating types to platform-ui (apps/platform-ui/src/types.ts)
+
+9. Added seating types to wedding-site (apps/wedding-site/src/types.ts):
+   - SEATING_CHART feature flag
+   - SeatingConfig and SeatingTableDisplay types
+
+10. Created SeatingSection.astro component for public wedding site:
+    - Displays tables in a grid layout
+    - Shows table name, capacity, guest count, notes
+    - Lists guests with optional seat numbers
+
+11. Updated SectionRenderer.astro to render seating section
+
+12. Added createSeatingSection() helper and seating section generation in wedding provisioning
+
+13. Added SEATING_CHART to feature info in CreateWedding.tsx and FeatureSettings.tsx
+
+**Files created:**
+- services/platform-api/src/seating/seating.service.ts
+- services/platform-api/src/seating/seating.controller.ts
+- services/platform-api/src/seating/seating.module.ts
+- apps/platform-ui/src/components/SeatingManager.tsx
+- apps/wedding-site/src/components/sections/SeatingSection.astro
+
+**Files modified:**
+- services/platform-api/src/types/index.ts (seating types)
+- services/platform-api/src/app.module.ts (SeatingModule import)
+- services/platform-api/src/wedding/wedding.service.ts (updateSeatingConfig, section creation)
+- apps/platform-ui/src/types.ts (seating types)
+- apps/platform-ui/src/components/Dashboard.tsx (seating view, card)
+- apps/platform-ui/src/components/CreateWedding.tsx (SEATING_CHART feature info)
+- apps/platform-ui/src/components/FeatureSettings.tsx (SEATING_CHART feature info)
+- apps/wedding-site/src/types.ts (seating types)
+- apps/wedding-site/src/components/SectionRenderer.astro (seating section)
+
+**PRD features now passing:**
+- "Admin can create table assignments" ✓
+- "Admin can assign guests to tables" ✓
+- "Guest can view their table assignment" ✓
+- "Seating chart can be displayed on public site" ✓
+
+**Notes for next person:**
+- SEATING_CHART is a premium feature (included in PLAN_FEATURES.premium)
+- Tables are stored in-memory (SeatingService) for development
+- Seating config is synced to render_config via updateSeatingConfig() after any change
+- The seating section displays only guests with attending RSVP status
+- Table capacity is enforced during assignment
+- Guests can only be assigned to one table at a time (reassignment removes previous)
+- Seat numbers are optional (stored in SeatingAssignment.seatNumber)

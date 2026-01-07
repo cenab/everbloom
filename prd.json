@@ -810,7 +810,7 @@
       "Set table capacity",
       "Save table configuration"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "seating",
@@ -822,7 +822,7 @@
       "Save assignments",
       "Verify assignments persist"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "seating",
@@ -833,7 +833,7 @@
       "Verify table assignment is displayed (if assigned)",
       "Verify friendly message if not yet assigned"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "seating",
@@ -844,7 +844,7 @@
       "Verify seating chart section is visible",
       "Verify chart shows table layout with guest names"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "registry",

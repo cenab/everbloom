@@ -1,0 +1,213 @@
+---
+import type { Section, Theme, SeatingConfig } from '../../types';
+
+interface Props {
+  section: Section;
+  theme: Theme;
+  seating?: SeatingConfig;
+}
+
+const { section, theme, seating } = Astro.props;
+const { title, description } = section.data as { title?: string; description?: string };
+
+// Get tables, sorted by order
+const tables = seating?.tables?.sort((a, b) => a.order - b.order) || [];
+---
+
+<section
+  class="seating-section"
+  style={`--primary: ${theme.primary}; --accent: ${theme.accent}; --neutral-light: ${theme.neutralLight}; --neutral-dark: ${theme.neutralDark};`}
+>
+  <div class="seating-content">
+    <h2 class="section-title">{title || 'Seating Chart'}</h2>
+    {description && <p class="section-description">{description}</p>}
+
+    {tables.length === 0 ? (
+      <p class="no-tables">Seating arrangements will be available soon.</p>
+    ) : (
+      <div class="tables-grid">
+        {tables.map((table) => (
+          <article class="table-card">
+            <div class="table-header">
+              <h3 class="table-name">{table.name}</h3>
+              <span class="table-count">
+                {table.guests.length} / {table.capacity}
+              </span>
+            </div>
+            {table.notes && (
+              <p class="table-notes">{table.notes}</p>
+            )}
+            {table.guests.length > 0 ? (
+              <ul class="guest-list">
+                {table.guests.map((guest) => (
+                  <li class="guest-item">
+                    {guest.seatNumber !== undefined && (
+                      <span class="seat-number">{guest.seatNumber}.</span>
+                    )}
+                    <span class="guest-name">{guest.name}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p class="no-guests">No guests assigned yet</p>
+            )}
+          </article>
+        ))}
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .seating-section {
+    background-color: var(--neutral-light);
+    padding: 6rem 2rem;
+  }
+
+  .seating-content {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .section-title {
+    font-family: 'Cormorant Garamond', 'Georgia', serif;
+    font-size: clamp(1.75rem, 5vw, 2.5rem);
+    font-weight: 400;
+    color: var(--neutral-dark);
+    margin: 0 0 1.5rem 0;
+    letter-spacing: 0.02em;
+    text-align: center;
+  }
+
+  .section-description {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 1.125rem;
+    color: var(--neutral-dark);
+    opacity: 0.8;
+    line-height: 1.6;
+    margin: 0 0 3rem 0;
+    text-align: center;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .no-tables {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 1rem;
+    color: var(--neutral-dark);
+    opacity: 0.6;
+    text-align: center;
+    margin: 2rem 0;
+  }
+
+  .tables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .table-card {
+    background-color: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: box-shadow 0.2s ease;
+  }
+
+  .table-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .table-name {
+    font-family: 'Cormorant Garamond', 'Georgia', serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--neutral-dark);
+    margin: 0;
+  }
+
+  .table-count {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 0.875rem;
+    color: var(--primary);
+    font-weight: 500;
+    background-color: rgba(0, 0, 0, 0.04);
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+  }
+
+  .table-notes {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 0.875rem;
+    color: var(--neutral-dark);
+    opacity: 0.7;
+    font-style: italic;
+    margin: 0 0 1rem 0;
+  }
+
+  .guest-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .guest-item {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 0.9375rem;
+    color: var(--neutral-dark);
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .guest-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .seat-number {
+    font-size: 0.8125rem;
+    color: var(--neutral-dark);
+    opacity: 0.5;
+    min-width: 1.5rem;
+  }
+
+  .guest-name {
+    flex: 1;
+  }
+
+  .no-guests {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 0.875rem;
+    color: var(--neutral-dark);
+    opacity: 0.5;
+    margin: 0;
+    font-style: italic;
+  }
+
+  @media (max-width: 640px) {
+    .seating-section {
+      padding: 4rem 1.5rem;
+    }
+
+    .tables-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .table-card {
+      padding: 1.25rem;
+    }
+  }
+</style>

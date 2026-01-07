@@ -81,6 +81,10 @@ const FEATURE_INFO: Record<FeatureFlag, { label: string; description: string }> 
     label: 'Song requests',
     description: 'Let guests suggest songs for your celebration',
   },
+  SEATING_CHART: {
+    label: 'Seating chart',
+    description: 'Display table assignments for your guests',
+  },
 };
 
 /**
@@ -99,6 +103,7 @@ const PLAN_AVAILABLE_FEATURES: Record<PlanTier, FeatureFlag[]> = {
     'ACCOMMODATIONS',
     'GUESTBOOK',
     'MUSIC_REQUESTS',
+    'SEATING_CHART',
   ],
 };
 
@@ -112,6 +117,7 @@ const DEFAULT_FEATURE_SELECTION: Record<FeatureFlag, boolean> = {
   REGISTRY: false,
   ACCOMMODATIONS: false,
   GUESTBOOK: false,
+  SEATING_CHART: false,
   MUSIC_REQUESTS: false,
 };
 

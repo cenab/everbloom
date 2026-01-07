@@ -9,13 +9,14 @@ import RegistrySection from './sections/RegistrySection.astro';
 import AccommodationsSection from './sections/AccommodationsSection.astro';
 import GuestbookSection from './sections/GuestbookSection.astro';
 import MusicRequestSection from './sections/MusicRequestSection.astro';
+import SeatingSection from './sections/SeatingSection.astro';
 
 interface Props {
   config: RenderConfig;
 }
 
 const { config } = Astro.props;
-const { sections, theme, wedding, features, faq, registry, accommodations, guestbook } = config;
+const { sections, theme, wedding, features, faq, registry, accommodations, guestbook, seating } = config;
 
 // Filter enabled sections and sort by order
 const enabledSections = sections
@@ -74,6 +75,11 @@ const enabledSections = sections
     case 'music-request':
       if (features.MUSIC_REQUESTS) {
         return <MusicRequestSection section={section} theme={theme} slug={wedding.slug} />;
+      }
+      return null;
+    case 'seating':
+      if (features.SEATING_CHART) {
+        return <SeatingSection section={section} theme={theme} seating={seating} />;
       }
       return null;
     default:

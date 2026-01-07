@@ -13,7 +13,8 @@ export type FeatureFlag =
   | 'REGISTRY'
   | 'ACCOMMODATIONS'
   | 'GUESTBOOK'
-  | 'MUSIC_REQUESTS';
+  | 'MUSIC_REQUESTS'
+  | 'SEATING_CHART';
 
 /**
  * Template categories matching product positioning
@@ -835,4 +836,96 @@ export interface SongRequest {
 export interface SongRequestListResponse {
   songRequests: SongRequest[];
   total: number;
+}
+
+// ============================================================================
+// Seating Management Types
+// ============================================================================
+
+/**
+ * A table in the seating arrangement
+ */
+export interface SeatingTable {
+  id: string;
+  weddingId: string;
+  name: string;
+  capacity: number;
+  notes?: string;
+  order: number;
+  createdAt: string;
+}
+
+/**
+ * Seating configuration for display
+ */
+export interface SeatingConfig {
+  tables: Array<{
+    id: string;
+    name: string;
+    capacity: number;
+    notes?: string;
+    order: number;
+    guests: Array<{
+      name: string;
+      seatNumber?: number;
+    }>;
+  }>;
+}
+
+/**
+ * Request to create a new table
+ */
+export interface CreateTableRequest {
+  name: string;
+  capacity: number;
+  notes?: string;
+}
+
+/**
+ * Request to update a table
+ */
+export interface UpdateTableRequest {
+  name?: string;
+  capacity?: number;
+  notes?: string;
+}
+
+/**
+ * Request to assign guests to a table
+ */
+export interface AssignGuestsToTableRequest {
+  guestIds: string[];
+  tableId: string;
+}
+
+/**
+ * Response containing table list
+ */
+export interface TableListResponse {
+  tables: SeatingTable[];
+}
+
+/**
+ * Response containing all tables with their guests
+ */
+export interface SeatingOverviewResponse {
+  tables: Array<{
+    table: SeatingTable;
+    guests: Array<{
+      id: string;
+      name: string;
+      seatNumber?: number;
+    }>;
+    availableSeats: number;
+  }>;
+  unassignedGuests: Array<{
+    id: string;
+    name: string;
+  }>;
+  summary: {
+    totalTables: number;
+    totalCapacity: number;
+    totalAssigned: number;
+    totalUnassigned: number;
+  };
 }
