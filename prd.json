@@ -124,7 +124,6 @@
     ],
     "passes": true
   },
-
   {
     "category": "platform",
     "description": "Admin can log in via magic link",
@@ -380,7 +379,6 @@
     ],
     "passes": true
   },
-
   {
     "category": "calendar",
     "description": "Admin can configure event details for calendar invites",
@@ -426,7 +424,6 @@
     ],
     "passes": true
   },
-
   {
     "category": "faq",
     "description": "Admin can add FAQ items",
@@ -473,7 +470,6 @@
     ],
     "passes": true
   },
-
   {
     "category": "passcode",
     "description": "Admin can set site passcode",
@@ -513,7 +509,6 @@
     ],
     "passes": true
   },
-
   {
     "category": "security",
     "description": "RSVP tokens are cryptographically secure",
@@ -546,7 +541,6 @@
     ],
     "passes": true
   },
-
   {
     "category": "guests",
     "description": "Admin can create guest tags for segmentation",
@@ -582,7 +576,6 @@
     ],
     "passes": true
   },
-
   {
     "category": "guests",
     "description": "Admin can see invite delivery status",
@@ -606,7 +599,6 @@
     ],
     "passes": true
   },
-
   {
     "category": "content",
     "description": "Admin can edit hero section content",
@@ -647,7 +639,6 @@
     ],
     "passes": true
   },
-
   {
     "category": "errors",
     "description": "Site shows friendly message if render_config is missing",
@@ -682,7 +673,6 @@
     ],
     "passes": true
   },
-
   {
     "category": "analytics",
     "description": "Dashboard shows email delivery statistics",
@@ -718,7 +708,6 @@
     ],
     "passes": true
   },
-
   {
     "category": "plus-ones",
     "description": "Admin can configure plus-one allowance per guest",
@@ -765,7 +754,6 @@
     ],
     "passes": true
   },
-
   {
     "category": "meals",
     "description": "Admin can configure meal options",
@@ -813,7 +801,6 @@
     ],
     "passes": true
   },
-
   {
     "category": "seating",
     "description": "Admin can create table assignments",
@@ -859,7 +846,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "registry",
     "description": "Admin can add gift registry links",
@@ -894,7 +880,6 @@
     ],
     "passes": true
   },
-
   {
     "category": "accommodations",
     "description": "Admin can add hotel recommendations",
@@ -929,7 +914,7 @@
       "Verify accommodations section is visible",
       "Verify hotel details and booking links work"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "accommodations",
@@ -941,9 +926,8 @@
       "Verify travel section is visible",
       "Verify map embed or link works"
     ],
-    "passes": false
+    "passes": true
   },
-
   {
     "category": "guestbook",
     "description": "Guest can leave a message for the couple",
@@ -989,7 +973,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "music",
     "description": "Guest can suggest songs",
@@ -1032,7 +1015,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "events",
     "description": "Admin can create multiple events",
@@ -1080,7 +1062,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "save-the-date",
     "description": "Admin can send save-the-date emails",
@@ -1105,7 +1086,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "thank-you",
     "description": "Admin can send thank-you emails",
@@ -1130,7 +1110,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "email-scheduling",
     "description": "Admin can schedule emails for future send",
@@ -1166,7 +1145,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "email-templates",
     "description": "Admin can customize invitation email content",
@@ -1205,7 +1183,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "gallery",
     "description": "Admin can upload curated photos",
@@ -1242,7 +1219,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "video",
     "description": "Admin can embed videos",
@@ -1267,7 +1243,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "photo-moderation",
     "description": "Admin can enable photo moderation",
@@ -1303,7 +1278,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "i18n",
     "description": "Admin can set site language",
@@ -1340,7 +1314,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "accessibility",
     "description": "Site meets WCAG 2.1 AA standards",
@@ -1386,7 +1359,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "privacy",
     "description": "Guest can request their data",
@@ -1431,7 +1403,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "custom-domain",
     "description": "Admin can connect custom domain",
@@ -1467,7 +1438,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "preview",
     "description": "Admin can preview site before publishing",
@@ -1493,7 +1463,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "social",
     "description": "Site has proper OG meta tags for sharing",
@@ -1531,7 +1500,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "rate-limiting",
     "description": "API endpoints are rate limited",
@@ -1555,7 +1523,6 @@
     ],
     "passes": false
   },
-
   {
     "category": "export",
     "description": "Admin can export guest list to CSV",

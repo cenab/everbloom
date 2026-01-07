@@ -3244,3 +3244,72 @@ No stack traces, internal messages, or technical details are ever exposed.
 - Hotels have an order field for sorting display
 - The feature is gated behind the ACCOMMODATIONS feature flag (premium tier only)
 - Travel info is stored alongside hotels in the same config
+
+---
+
+### 2026-01-07 - Accommodations Section Display on Public Site
+
+**Feature worked on:** Accommodations section displays on public site + Travel info section displays on public site (PRD: accommodations category)
+
+**Priority rationale:** This is a high-priority feature because:
+1. The admin-side accommodation management was already complete (hotels + travel info saving)
+2. Without public display, couples' accommodation data was invisible to guests
+3. It follows established patterns (similar to FAQ, registry sections)
+4. It's a relatively simple feature with high user value
+5. Accommodations are essential for destination/out-of-town weddings
+
+**What was done:**
+1. Added accommodations types to wedding-site types.ts:
+   - `Hotel` interface with id, name, address, bookingUrl, roomBlockCode, notes, order
+   - `TravelInfo` interface with airportDirections, parkingInfo, mapUrl
+   - `AccommodationsConfig` interface with hotels array and optional travelInfo
+   - Added 'ACCOMMODATIONS' to FeatureFlag union type
+   - Added accommodations field to RenderConfig interface
+
+2. Created AccommodationsSection.astro component:
+   - Hotels section with hotel cards displaying name, address, room block code, notes, and booking link
+   - Travel info section with airport directions, parking info, and map link
+   - SVG icons for airplane (airport) and parking (P)
+   - Mobile-responsive grid layout for hotels (side-by-side on desktop, stacked on mobile)
+   - Empty state message when no accommodations configured
+   - Design system compliance:
+     - No pure black/white - uses theme variables
+     - Serif headings (Cormorant Garamond), sans-serif body (Inter)
+     - Curated accent colors for room block codes
+     - Large tap targets for booking links
+
+3. Updated SectionRenderer.astro:
+   - Imported AccommodationsSection component
+   - Added accommodations to destructured config
+   - Added case handler for 'accommodations' section type
+   - Feature flag check for ACCOMMODATIONS before rendering
+
+**Design system adherence:**
+- Hotel cards with subtle backgrounds and soft borders (no hard edges)
+- Room block code highlight using accent color background
+- Primary color for booking buttons and map links
+- Icons with matching theme colors
+- Mobile-first responsive design
+- Human language: "Where to Stay", "Accommodations", "Getting There"
+- No pure black (#000000) or pure white (#FFFFFF)
+
+**API flow (already complete):**
+- Admin saves accommodations via PUT /api/weddings/:id/accommodations
+- render_config includes accommodations data when hotels or travel info exist
+- Public site fetches via GET /api/site-config/:slug
+- AccommodationsSection renders from render_config.accommodations
+
+**PRD features now passing:**
+- "Accommodations section displays on public site" ✓
+- "Travel info section displays on public site" ✓
+
+**Notes for next person:**
+- ACCOMMODATIONS is a premium-only feature (not available on starter plan)
+- Accommodations section renders after registry section (order 6)
+- Hotels display in a responsive grid (2 columns on desktop, 1 on mobile)
+- Travel info shows below hotels with icon-based layout
+- Booking links open in new tab with external link indicator
+- Map link has outlined button style (different from primary booking buttons)
+- Empty state shows "Accommodation details will appear here" message
+- To test: create premium wedding → dashboard → "Accommodations" → add hotel → save → view wedding site
+

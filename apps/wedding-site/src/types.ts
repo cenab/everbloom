@@ -10,7 +10,8 @@ export type FeatureFlag =
   | 'ANNOUNCEMENT_BANNER'
   | 'FAQ_SECTION'
   | 'PASSCODE_SITE'
-  | 'REGISTRY';
+  | 'REGISTRY'
+  | 'ACCOMMODATIONS';
 
 /**
  * Theme configuration for wedding sites
@@ -80,6 +81,45 @@ export interface RegistryConfig {
   links: RegistryLink[];
 }
 
+// ============================================================================
+// Accommodations Types
+// ============================================================================
+
+/**
+ * A single hotel/accommodation recommendation
+ */
+export interface Hotel {
+  id: string;
+  name: string;
+  address: string;
+  bookingUrl?: string;
+  /** Room block code for group discounts */
+  roomBlockCode?: string;
+  /** Optional notes (e.g., "10 min walk from venue") */
+  notes?: string;
+  order: number;
+}
+
+/**
+ * Travel/transportation directions
+ */
+export interface TravelInfo {
+  /** Directions from airport (e.g., "Take I-95 South...") */
+  airportDirections?: string;
+  /** Parking information */
+  parkingInfo?: string;
+  /** Google Maps or embed URL */
+  mapUrl?: string;
+}
+
+/**
+ * Accommodations configuration for the wedding
+ */
+export interface AccommodationsConfig {
+  hotels: Hotel[];
+  travelInfo?: TravelInfo;
+}
+
 /**
  * Type of event in a wedding
  */
@@ -130,6 +170,8 @@ export interface RenderConfig {
   faq?: FaqConfig;
   mealConfig?: MealConfig;
   registry?: RegistryConfig;
+  /** Accommodations and travel info */
+  accommodations?: AccommodationsConfig;
   /** Whether passcode protection is enabled (hash is never exposed) */
   passcodeProtected?: boolean;
   wedding: {
