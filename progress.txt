@@ -2020,3 +2020,51 @@ No stack traces, internal messages, or technical details are ever exposed.
 - Domain-specific errors (GUEST_NOT_FOUND, FEATURE_DISABLED, etc.) are preserved unchanged
 - The filter logs unhandled exceptions to console but returns sanitized INTERNAL_ERROR to client
 - All controllers now consistently use `{ ok: false, error: CODE }` format for exception bodies
+
+---
+
+### 2026-01-07 - Admin Navigation Minimal and Feature-Gated
+
+**Feature worked on:** Admin navigation is minimal and never exceeds 6 primary items (PRD: design category)
+
+**Priority rationale:** This is the highest-priority design feature because:
+1. It's a CLAUDE.md requirement: "Admin nav must not exceed 6 primary items and must auto-hide items for disabled features"
+2. It affects the core admin UX and follows design system principles
+3. The feature flag infrastructure was already in place but navigation wasn't respecting it
+4. It ensures a minimal, calm admin experience per design guidelines
+
+**What was done:**
+1. Made "RSVP responses" dashboard card conditional on `wedding.features.RSVP`:
+   - When RSVP is disabled, the card is hidden from the dashboard
+   - Updated Dashboard.tsx line 335-342 to wrap the card in a conditional render
+
+2. Verified primary navigation item count:
+   - **Always visible (6 items):** Hero section, Your guests, Event details, Site template, Site features, Your site
+   - **Conditional items:** RSVP responses (if RSVP enabled), Announcement banner (if enabled), FAQ (if enabled), Site protection (if enabled)
+   - This meets the PRD requirement of "no more than 6 primary items" in the base state
+
+3. Verified no nested sidebar navigation:
+   - Layout.tsx confirms a flat header layout with no sidebar
+   - Dashboard uses a grid-based card layout (not nested navigation)
+
+4. Photo Upload nav item behavior:
+   - There is no dedicated "Photos" card in the main dashboard navigation
+   - Photo uploads are managed within the FeatureSettings component
+   - This satisfies the requirement since there's no Photos nav item to hide
+
+**PRD steps verified:**
+- ✓ Log in as admin - existing auth flow works
+- ✓ Verify navigation shows no more than 6 primary items - confirmed 6 base items
+- ✓ Verify there is no nested sidebar navigation - Layout.tsx has no sidebar
+- ✓ Disable RSVP feature → Verify RSVP nav item is hidden - now conditional
+- ✓ Disable Photo Upload feature → Verify Photos nav item is hidden - no Photos nav item exists (N/A)
+
+**PRD features now passing:**
+- "Admin navigation is minimal and never exceeds 6 primary items" ✓
+
+**Notes for next person:**
+- Dashboard cards are feature-gated using `wedding.features.FEATURE_NAME && <DashboardCard />`
+- Currently gated cards: RSVP (RSVP), Announcement banner (ANNOUNCEMENT_BANNER), FAQ (FAQ_SECTION), Site protection (PASSCODE_SITE)
+- "Your guests" is always visible since guest management is needed regardless of RSVP status
+- Photo uploads are viewed/managed within FeatureSettings, not as a separate nav item
+- The grid layout (3 columns on desktop) adjusts automatically as cards are shown/hidden

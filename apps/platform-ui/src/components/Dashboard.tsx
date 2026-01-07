@@ -332,12 +332,14 @@ function WeddingDashboard({
           icon={<UsersIcon className="w-6 h-6" />}
           onClick={onNavigateToGuests}
         />
-        <DashboardCard
-          title="RSVP responses"
-          description="Track who's coming to your celebration"
-          icon={<ClipboardIcon className="w-6 h-6" />}
-          onClick={onNavigateToRsvp}
-        />
+        {wedding.features.RSVP && (
+          <DashboardCard
+            title="RSVP responses"
+            description="Track who's coming to your celebration"
+            icon={<ClipboardIcon className="w-6 h-6" />}
+            onClick={onNavigateToRsvp}
+          />
+        )}
         <DashboardCard
           title="Event details"
           description="Set date, time, and venue for calendar invites"

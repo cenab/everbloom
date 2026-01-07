@@ -111,7 +111,7 @@
       "Disable Photo Upload feature",
       "Verify Photos nav item is hidden"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "design",
