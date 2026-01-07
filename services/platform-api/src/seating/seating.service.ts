@@ -265,6 +265,7 @@ export class SeatingService {
 
   /**
    * Generate seating config for render_config (public display)
+   * NOTE: Guest names are NOT included for privacy - only table info and guest counts
    */
   getSeatingConfig(weddingId: string): SeatingConfig {
     const tables = this.getTablesForWedding(weddingId);
@@ -272,25 +273,6 @@ export class SeatingService {
     return {
       tables: tables.map((table) => {
         const guestAssignments = this.getGuestsAtTable(table.id);
-        const guests: Array<{ name: string; seatNumber?: number }> = [];
-
-        for (const a of guestAssignments) {
-          const guest = this.guestService.getGuest(a.guestId);
-          if (guest) {
-            guests.push({
-              name: guest.name,
-              seatNumber: a.seatNumber,
-            });
-          }
-        }
-
-        // Sort by seat number if available, then by name
-        guests.sort((a, b) => {
-          if (a.seatNumber !== undefined && b.seatNumber !== undefined) {
-            return a.seatNumber - b.seatNumber;
-          }
-          return a.name.localeCompare(b.name);
-        });
 
         return {
           id: table.id,
@@ -298,9 +280,37 @@ export class SeatingService {
           capacity: table.capacity,
           notes: table.notes,
           order: table.order,
-          guests,
+          guestCount: guestAssignments.length,
         };
       }),
+    };
+  }
+
+  /**
+   * Get a guest's table assignment for RSVP view
+   * Returns null if guest is not assigned to any table
+   */
+  getGuestTableAssignment(guestId: string): {
+    tableName: string;
+    tableId: string;
+    seatNumber?: number;
+    tableNotes?: string;
+  } | null {
+    const assignment = this.assignments.get(guestId);
+    if (!assignment) {
+      return null;
+    }
+
+    const table = this.tables.get(assignment.tableId);
+    if (!table) {
+      return null;
+    }
+
+    return {
+      tableName: table.name,
+      tableId: table.id,
+      seatNumber: assignment.seatNumber,
+      tableNotes: table.notes,
     };
   }
 

@@ -11,6 +11,7 @@ import {
 import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { GuestService } from '../guest/guest.service';
 import { WeddingService } from '../wedding/wedding.service';
+import { SeatingService } from '../seating/seating.service';
 import type {
   ApiResponse,
   RsvpViewData,
@@ -33,12 +34,14 @@ import {
  * No authentication required - RSVP token provides access
  *
  * PRD: "Rate limits prevent abuse" - RSVP endpoints have strict limits
+ * PRD: "Guest list is hidden from other guests" - only individual table assignment shown
  */
 @Controller('rsvp')
 export class RsvpController {
   constructor(
     private readonly guestService: GuestService,
     private readonly weddingService: WeddingService,
+    private readonly seatingService: SeatingService,
   ) {}
 
   /**
@@ -96,6 +99,11 @@ export class RsvpController {
     // Get render config for theme
     const renderConfig = this.weddingService.getRenderConfig(wedding.id);
 
+    // Get table assignment if seating chart is enabled
+    const tableAssignment = wedding.features.SEATING_CHART
+      ? this.seatingService.getGuestTableAssignment(guest.id)
+      : null;
+
     // Build response with only what's needed for RSVP view
     const guestView: RsvpGuestView = {
       id: guest.id,
@@ -109,6 +117,7 @@ export class RsvpController {
       mealOptionId: guest.mealOptionId,
       eventRsvps: guest.eventRsvps,
       invitedEventIds: guest.invitedEventIds,
+      tableAssignment: tableAssignment || undefined,
     };
 
     // Get events the guest is invited to (for multi-event weddings)
@@ -303,6 +312,11 @@ export class RsvpController {
       });
     }
 
+    // Get table assignment if seating chart is enabled
+    const submitTableAssignment = wedding.features.SEATING_CHART
+      ? this.seatingService.getGuestTableAssignment(updatedGuest.id)
+      : null;
+
     // Build response
     const guestView: RsvpGuestView = {
       id: updatedGuest.id,
@@ -316,6 +330,7 @@ export class RsvpController {
       mealOptionId: updatedGuest.mealOptionId,
       eventRsvps: updatedGuest.eventRsvps,
       invitedEventIds: updatedGuest.invitedEventIds,
+      tableAssignment: submitTableAssignment || undefined,
     };
 
     // Build appropriate message based on submission type

@@ -22,6 +22,10 @@ const tables = seating?.tables?.sort((a, b) => a.order - b.order) || [];
     <h2 class="section-title">{title || 'Seating Chart'}</h2>
     {description && <p class="section-description">{description}</p>}
 
+    <p class="seating-info">
+      To view your table assignment, please check your RSVP confirmation.
+    </p>
+
     {tables.length === 0 ? (
       <p class="no-tables">Seating arrangements will be available soon.</p>
     ) : (
@@ -31,25 +35,11 @@ const tables = seating?.tables?.sort((a, b) => a.order - b.order) || [];
             <div class="table-header">
               <h3 class="table-name">{table.name}</h3>
               <span class="table-count">
-                {table.guests.length} / {table.capacity}
+                {table.guestCount} / {table.capacity}
               </span>
             </div>
             {table.notes && (
               <p class="table-notes">{table.notes}</p>
-            )}
-            {table.guests.length > 0 ? (
-              <ul class="guest-list">
-                {table.guests.map((guest) => (
-                  <li class="guest-item">
-                    {guest.seatNumber !== undefined && (
-                      <span class="seat-number">{guest.seatNumber}.</span>
-                    )}
-                    <span class="guest-name">{guest.name}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p class="no-guests">No guests assigned yet</p>
             )}
           </article>
         ))}
@@ -85,11 +75,21 @@ const tables = seating?.tables?.sort((a, b) => a.order - b.order) || [];
     color: var(--neutral-dark);
     opacity: 0.8;
     line-height: 1.6;
-    margin: 0 0 3rem 0;
+    margin: 0 0 1.5rem 0;
     text-align: center;
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
+  }
+
+  .seating-info {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 0.9375rem;
+    color: var(--neutral-dark);
+    opacity: 0.7;
+    text-align: center;
+    margin: 0 0 2.5rem 0;
+    font-style: italic;
   }
 
   .no-tables {
@@ -103,7 +103,7 @@ const tables = seating?.tables?.sort((a, b) => a.order - b.order) || [];
 
   .tables-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 1.5rem;
   }
 
@@ -111,7 +111,7 @@ const tables = seating?.tables?.sort((a, b) => a.order - b.order) || [];
     background-color: rgba(255, 255, 255, 0.5);
     border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 12px;
-    padding: 1.5rem;
+    padding: 1.25rem;
     transition: box-shadow 0.2s ease;
   }
 
@@ -123,14 +123,11 @@ const tables = seating?.tables?.sort((a, b) => a.order - b.order) || [];
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.75rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   }
 
   .table-name {
     font-family: 'Cormorant Garamond', 'Georgia', serif;
-    font-size: 1.25rem;
+    font-size: 1.125rem;
     font-weight: 600;
     color: var(--neutral-dark);
     margin: 0;
@@ -138,63 +135,21 @@ const tables = seating?.tables?.sort((a, b) => a.order - b.order) || [];
 
   .table-count {
     font-family: 'Inter', 'Helvetica Neue', sans-serif;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--primary);
     font-weight: 500;
     background-color: rgba(0, 0, 0, 0.04);
-    padding: 0.25rem 0.625rem;
+    padding: 0.25rem 0.5rem;
     border-radius: 9999px;
   }
 
   .table-notes {
     font-family: 'Inter', 'Helvetica Neue', sans-serif;
-    font-size: 0.875rem;
-    color: var(--neutral-dark);
-    opacity: 0.7;
-    font-style: italic;
-    margin: 0 0 1rem 0;
-  }
-
-  .guest-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  .guest-item {
-    font-family: 'Inter', 'Helvetica Neue', sans-serif;
-    font-size: 0.9375rem;
-    color: var(--neutral-dark);
-    padding: 0.5rem 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .guest-item:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-  }
-
-  .seat-number {
     font-size: 0.8125rem;
     color: var(--neutral-dark);
-    opacity: 0.5;
-    min-width: 1.5rem;
-  }
-
-  .guest-name {
-    flex: 1;
-  }
-
-  .no-guests {
-    font-family: 'Inter', 'Helvetica Neue', sans-serif;
-    font-size: 0.875rem;
-    color: var(--neutral-dark);
-    opacity: 0.5;
-    margin: 0;
+    opacity: 0.6;
     font-style: italic;
+    margin: 0.75rem 0 0 0;
   }
 
   @media (max-width: 640px) {
@@ -207,7 +162,7 @@ const tables = seating?.tables?.sort((a, b) => a.order - b.order) || [];
     }
 
     .table-card {
-      padding: 1.25rem;
+      padding: 1rem;
     }
   }
 </style>

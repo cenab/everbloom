@@ -787,6 +787,13 @@ export interface RsvpGuestView {
   eventRsvps?: EventRsvpMap;
   /** Event IDs this guest is invited to (if not invited to all) */
   invitedEventIds?: string[];
+  /** Table assignment (if seating chart is enabled and guest is assigned) */
+  tableAssignment?: {
+    tableName: string;
+    tableId: string;
+    seatNumber?: number;
+    tableNotes?: string;
+  };
 }
 
 /**
@@ -1733,21 +1740,33 @@ export interface SeatingAssignment {
 /**
  * Seating configuration for the wedding site
  * This is included in render_config for public display
+ * NOTE: Guest names are NOT included for privacy - guests look up their own table via RSVP token
  */
 export interface SeatingConfig {
-  /** All tables with their assignments */
+  /** All tables (without guest names for privacy) */
   tables: Array<{
     id: string;
     name: string;
     capacity: number;
     notes?: string;
     order: number;
-    /** Guest names assigned to this table (public display) */
-    guests: Array<{
-      name: string;
-      seatNumber?: number;
-    }>;
+    /** Number of guests assigned to this table (not names) */
+    guestCount: number;
   }>;
+}
+
+/**
+ * A guest's table assignment information (for RSVP view)
+ */
+export interface GuestTableAssignment {
+  /** Table name the guest is assigned to */
+  tableName: string;
+  /** Table ID */
+  tableId: string;
+  /** Optional seat number within the table */
+  seatNumber?: number;
+  /** Optional table notes (e.g., "Near the dance floor") */
+  tableNotes?: string;
 }
 
 /**

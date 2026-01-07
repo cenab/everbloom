@@ -1390,7 +1390,7 @@
       "Verify API does not expose guest data",
       "Verify seating chart only shows assigned table (if enabled)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "privacy",

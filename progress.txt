@@ -4036,3 +4036,65 @@ Implemented email template customization feature allowing admins to personalize 
 - Resetting a template removes it from storage (falls back to default)
 - The email service builds HTML emails with greeting/body/closing structure
 - Merge field replacement is done at send time, not preview time
+
+---
+
+### 2026-01-07 - Guest List Privacy (Seating Chart Privacy Fix)
+
+**Feature worked on:** Guest list is hidden from other guests (PRD: privacy category)
+
+**Priority rationale:** This is a critical privacy/security feature because:
+1. The seating chart was exposing full guest names publicly on the wedding site
+2. Guest lists should be private - guests should only see their own table assignment
+3. This is a security issue that could expose personal information
+4. It's essential for production readiness and user trust
+
+**What was done:**
+1. **Updated SeatingConfig type (services/platform-api/src/types/index.ts):**
+   - Changed from including guest names to only including guestCount
+   - Added GuestTableAssignment type for individual guest lookups
+   - Seating config now only shows: table id, name, capacity, notes, order, guestCount
+
+2. **Updated RsvpGuestView type (services/platform-api/src/types/index.ts):**
+   - Added optional tableAssignment field with tableName, tableId, seatNumber, tableNotes
+   - Allows guests to see their own table assignment via RSVP token
+
+3. **Updated SeatingService (services/platform-api/src/seating/seating.service.ts):**
+   - Modified getSeatingConfig() to NOT include guest names - only table info and guest counts
+   - Added new getGuestTableAssignment(guestId) method for individual lookups
+   - Returns null if guest is not assigned to any table
+
+4. **Updated RsvpModule and RsvpController:**
+   - Imported SeatingModule to access SeatingService
+   - Modified viewRsvp() to include guest's table assignment if SEATING_CHART is enabled
+   - Modified submitRsvp() response to also include table assignment
+
+5. **Updated wedding-site types (apps/wedding-site/src/types.ts):**
+   - Changed SeatingTableDisplay to use guestCount instead of guests array
+   - Added GuestTableAssignment type
+   - Updated RsvpGuestView to include tableAssignment
+
+6. **Updated SeatingSection.astro component:**
+   - Removed guest name display entirely
+   - Now shows table cards with name, capacity/guestCount, and notes only
+   - Added info message: "To view your table assignment, please check your RSVP confirmation."
+   - Simplified CSS by removing guest-list related styles
+
+**Privacy implementation:**
+- Public seating chart shows ONLY table information (name, capacity, count, notes)
+- Guest names are NEVER exposed in render_config or public API
+- Individual guests can see their own table assignment via RSVP token
+- Table assignment is returned as part of RsvpViewData response
+- Guestbook names are intentional (guests sign their own messages)
+
+**PRD features now passing:**
+- "Guest list is hidden from other guests" ✓
+
+**Notes for next person:**
+- Seating chart on public site now displays table overview without guest names
+- Guests see their table assignment on their RSVP confirmation page
+- Table assignment lookup uses RSVP token for authentication
+- The seating admin view still shows full guest assignments (authenticated)
+- SEATING_CHART feature flag controls whether table assignment is returned in RSVP view
+- To test: create wedding → enable seating chart → assign guests to tables → view public site (no names) → view RSVP page (shows individual assignment)
+

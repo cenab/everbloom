@@ -265,6 +265,8 @@ export interface RsvpGuestView {
   plusOneGuests?: PlusOneGuest[];
   /** Selected meal option ID for the primary guest (if meal selection is enabled) */
   mealOptionId?: string;
+  /** Table assignment (if seating chart is enabled and guest is assigned) */
+  tableAssignment?: GuestTableAssignment;
 }
 
 /**
@@ -394,14 +396,15 @@ export interface SubmitSongRequestResponse {
 // ============================================================================
 
 /**
- * Seating configuration for rendering
+ * Seating configuration for rendering (public display)
+ * NOTE: Guest names are NOT included for privacy - guests look up their own table via RSVP token
  */
 export interface SeatingConfig {
   tables: SeatingTableDisplay[];
 }
 
 /**
- * Table display data for public site
+ * Table display data for public site (no guest names for privacy)
  */
 export interface SeatingTableDisplay {
   id: string;
@@ -409,8 +412,16 @@ export interface SeatingTableDisplay {
   capacity: number;
   notes?: string;
   order: number;
-  guests: Array<{
-    name: string;
-    seatNumber?: number;
-  }>;
+  /** Number of guests assigned (not names, for privacy) */
+  guestCount: number;
+}
+
+/**
+ * A guest's table assignment information (returned via RSVP token)
+ */
+export interface GuestTableAssignment {
+  tableName: string;
+  tableId: string;
+  seatNumber?: number;
+  tableNotes?: string;
 }
