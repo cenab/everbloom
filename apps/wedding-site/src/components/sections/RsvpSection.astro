@@ -1,14 +1,17 @@
 ---
 import type { Section, Theme } from '../../types';
+import { getTranslations } from '../../lib/i18n';
 
 interface Props {
   section: Section;
   theme: Theme;
   slug: string;
+  language?: string;
 }
 
-const { section, theme, slug } = Astro.props;
+const { section, theme, slug, language } = Astro.props;
 const { title, description } = section.data as { title?: string; description?: string };
+const t = getTranslations(language);
 ---
 
 <section
@@ -16,11 +19,11 @@ const { title, description } = section.data as { title?: string; description?: s
   style={`--primary: ${theme.primary}; --accent: ${theme.accent}; --neutral-light: ${theme.neutralLight}; --neutral-dark: ${theme.neutralDark};`}
 >
   <div class="rsvp-content">
-    <h2 class="section-title">{title || 'RSVP'}</h2>
+    <h2 class="section-title">{title || t.rsvpTitle}</h2>
     {description && <p class="section-description">{description}</p>}
 
     <a href={`/w/${slug}/rsvp`} class="rsvp-button">
-      Respond to our invitation
+      {t.rsvpRespondButton}
     </a>
   </div>
 </section>

@@ -23,11 +23,12 @@ import { GallerySettings } from './GallerySettings';
 import { PhotoModerationSettings } from './PhotoModerationSettings';
 import { VideoSettings } from './VideoSettings';
 import { SocialSettings } from './SocialSettings';
+import { LanguageSettings } from './LanguageSettings';
 import { PreviewBanner } from './PreviewBanner';
 import { getAuthToken } from '../lib/auth';
 import type { Wedding, ApiResponse, RenderConfig } from '../types';
 
-type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'accommodations' | 'email-stats' | 'photo-stats' | 'guestbook' | 'music' | 'seating' | 'communications' | 'email-templates' | 'gallery' | 'photo-moderation' | 'video' | 'social';
+type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'accommodations' | 'email-stats' | 'photo-stats' | 'guestbook' | 'music' | 'seating' | 'communications' | 'email-templates' | 'gallery' | 'photo-moderation' | 'video' | 'social' | 'language';
 
 /**
  * Admin Dashboard component.
@@ -348,6 +349,18 @@ export function Dashboard() {
     );
   }
 
+  if (view === 'language' && selectedWedding) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <LanguageSettings
+          wedding={selectedWedding}
+          onBack={() => setView('dashboard')}
+          onLanguageChanged={fetchWeddings}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -394,6 +407,7 @@ export function Dashboard() {
           onNavigateToPhotoModeration={() => setView('photo-moderation')}
           onNavigateToVideo={() => setView('video')}
           onNavigateToSocial={() => setView('social')}
+          onNavigateToLanguage={() => setView('language')}
           onBack={weddings.length > 1 ? () => setSelectedWedding(null) : undefined}
         />
       )}
@@ -486,6 +500,7 @@ interface WeddingDashboardProps {
   onNavigateToPhotoModeration: () => void;
   onNavigateToVideo: () => void;
   onNavigateToSocial: () => void;
+  onNavigateToLanguage: () => void;
   onBack?: () => void;
 }
 
@@ -518,6 +533,7 @@ function WeddingDashboard({
   onNavigateToPhotoModeration,
   onNavigateToVideo,
   onNavigateToSocial,
+  onNavigateToLanguage,
   onBack,
 }: WeddingDashboardProps) {
   return (
@@ -706,6 +722,12 @@ function WeddingDashboard({
           description="Customize link preview image"
           icon={<ShareIcon className="w-6 h-6" />}
           onClick={onNavigateToSocial}
+        />
+        <DashboardCard
+          title="Site language"
+          description="Change your site's display language"
+          icon={<LanguageIcon className="w-6 h-6" />}
+          onClick={onNavigateToLanguage}
         />
         <DashboardCard
           title="Your site"
@@ -1230,6 +1252,24 @@ function ShareIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"
+      />
+    </svg>
+  );
+}
+
+function LanguageIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802"
       />
     </svg>
   );

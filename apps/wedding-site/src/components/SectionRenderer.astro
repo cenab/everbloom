@@ -18,7 +18,7 @@ interface Props {
 }
 
 const { config } = Astro.props;
-const { sections, theme, wedding, features, faq, registry, accommodations, guestbook, seating, gallery, video } = config;
+const { sections, theme, wedding, features, faq, registry, accommodations, guestbook, seating, gallery, video, language } = config;
 
 // Filter enabled sections and sort by order
 const enabledSections = sections
@@ -46,7 +46,7 @@ const enabledSections = sections
     case 'rsvp':
       // Only render RSVP if the feature is enabled
       if (features.RSVP) {
-        return <RsvpSection section={section} theme={theme} slug={wedding.slug} />;
+        return <RsvpSection section={section} theme={theme} slug={wedding.slug} language={language} />;
       }
       return null;
     case 'photo-upload':

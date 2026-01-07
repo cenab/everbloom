@@ -188,6 +188,8 @@ export interface RenderConfig {
   passcodeProtected?: boolean;
   /** Custom OG image URL for social sharing (PRD: "Admin can customize share image") */
   ogImageUrl?: string;
+  /** Site language for i18n (PRD: "Admin can set site language") */
+  language?: string;
   wedding: {
     slug: string;
     partnerNames: [string, string];

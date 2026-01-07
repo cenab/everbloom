@@ -212,6 +212,8 @@ export interface RenderConfig {
   video?: VideoConfig;
   /** Custom OG image URL for social sharing */
   ogImageUrl?: string;
+  /** Site language for i18n */
+  language?: string;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -348,6 +350,8 @@ export interface Wedding {
   video?: VideoConfig;
   /** Social sharing configuration (custom OG image) */
   socialConfig?: SocialConfig;
+  /** Site language for i18n */
+  language?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -1341,3 +1345,60 @@ export const NO_DRAFT_EXISTS = 'NO_DRAFT_EXISTS' as const;
  * Error code when there are no changes to publish
  */
 export const NO_CHANGES_TO_PUBLISH = 'NO_CHANGES_TO_PUBLISH' as const;
+
+// ============================================================================
+// Language / i18n Types
+// PRD: "Admin can set site language"
+// ============================================================================
+
+/**
+ * Supported languages for wedding sites
+ */
+export type SupportedLanguage =
+  | 'en'
+  | 'es'
+  | 'fr'
+  | 'pt'
+  | 'de'
+  | 'it'
+  | 'nl'
+  | 'ja'
+  | 'zh'
+  | 'ko';
+
+/**
+ * A language option with display names
+ */
+export interface LanguageOption {
+  code: SupportedLanguage;
+  name: string;
+  nativeName: string;
+}
+
+/**
+ * Request to update wedding site language
+ */
+export interface UpdateLanguageRequest {
+  language: SupportedLanguage;
+}
+
+/**
+ * Response after updating language
+ */
+export interface UpdateLanguageResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+/**
+ * Response from languages list endpoint
+ */
+export interface LanguageListResponse {
+  languages: LanguageOption[];
+  defaultLanguage: SupportedLanguage;
+}
+
+/**
+ * Error code when an invalid language is provided
+ */
+export const INVALID_LANGUAGE = 'INVALID_LANGUAGE' as const;

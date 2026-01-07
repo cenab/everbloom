@@ -513,6 +513,8 @@ export interface RenderConfig {
   gallery?: GalleryConfig;
   /** Embedded videos (engagement video, proposal video, etc.) */
   video?: VideoConfig;
+  /** Site language for UI labels (defaults to 'en') */
+  language?: string;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -813,6 +815,8 @@ export interface Wedding {
   video?: VideoConfig;
   /** Social sharing configuration (custom OG image) */
   socialConfig?: SocialConfig;
+  /** Site language (defaults to 'en' if not set) */
+  language?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -2340,7 +2344,8 @@ export type ErrorCode =
   | typeof OG_IMAGE_UPLOAD_INVALID
   | typeof DATA_EXPORT_FAILED
   | typeof NO_DRAFT_EXISTS
-  | typeof NO_CHANGES_TO_PUBLISH;
+  | typeof NO_CHANGES_TO_PUBLISH
+  | typeof INVALID_LANGUAGE;
 
 // ============================================================================
 // Privacy / Guest Data Export Types
@@ -2477,3 +2482,62 @@ export const NO_DRAFT_EXISTS = 'NO_DRAFT_EXISTS' as const;
  * Draft and published are identical error code
  */
 export const NO_CHANGES_TO_PUBLISH = 'NO_CHANGES_TO_PUBLISH' as const;
+
+// ============================================================================
+// Internationalization (i18n) Types
+// PRD: "Admin can set site language"
+// PRD: "Site supports multiple languages"
+// ============================================================================
+
+/**
+ * Supported language codes for wedding sites
+ * Based on common wedding languages globally
+ */
+export type SupportedLanguage =
+  | 'en' // English
+  | 'es' // Spanish
+  | 'fr' // French
+  | 'pt' // Portuguese
+  | 'de' // German
+  | 'it' // Italian
+  | 'nl' // Dutch
+  | 'ja' // Japanese
+  | 'zh' // Chinese (Simplified)
+  | 'ko'; // Korean
+
+/**
+ * Available language for selection
+ */
+export interface LanguageOption {
+  code: SupportedLanguage;
+  name: string;
+  nativeName: string;
+}
+
+/**
+ * Request to update site language
+ */
+export interface UpdateLanguageRequest {
+  language: SupportedLanguage;
+}
+
+/**
+ * Response after updating language
+ */
+export interface UpdateLanguageResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+/**
+ * Response containing available languages
+ */
+export interface LanguageListResponse {
+  languages: LanguageOption[];
+  defaultLanguage: SupportedLanguage;
+}
+
+/**
+ * Invalid language code error
+ */
+export const INVALID_LANGUAGE = 'INVALID_LANGUAGE' as const;

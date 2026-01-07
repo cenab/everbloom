@@ -57,7 +57,7 @@ import type {
   DiscardDraftResponse,
   DraftRenderConfigResponse,
 } from '../types';
-import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, WEDDING_NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, NOT_FOUND, GALLERY_PHOTO_NOT_FOUND, VIDEO_URL_INVALID, VIDEO_NOT_FOUND, NO_DRAFT_EXISTS, NO_CHANGES_TO_PUBLISH } from '../types';
+import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, WEDDING_NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, NOT_FOUND, GALLERY_PHOTO_NOT_FOUND, VIDEO_URL_INVALID, VIDEO_NOT_FOUND, NO_DRAFT_EXISTS, NO_CHANGES_TO_PUBLISH, INVALID_LANGUAGE } from '../types';
 
 @Controller('weddings')
 export class WeddingController {
@@ -1259,6 +1259,66 @@ export class WeddingController {
     }
 
     const result = this.weddingService.removeSocialOgImage(id);
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
+  }
+
+// ============================================================================
+  // Language / i18n Endpoints
+  // PRD: "Admin can set site language"
+  // ============================================================================
+
+  /**
+   * Get list of supported languages
+   * Public endpoint - languages list doesn't require auth
+   */
+  @Get('languages/list')
+  async listLanguages(): Promise<ApiResponse<{ languages: { code: string; name: string; nativeName: string }[]; defaultLanguage: string }>> {
+    const languages = this.weddingService.getSupportedLanguages();
+    return {
+      ok: true,
+      data: {
+        languages,
+        defaultLanguage: 'en',
+      },
+    };
+  }
+
+  /**
+   * Update site language for a wedding
+   * PRD: "Admin can set site language"
+   */
+  @Put(':id/language')
+  async updateLanguage(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: { language: string },
+  ): Promise<ApiResponse<{ wedding: Wedding; renderConfig: RenderConfig }>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (!body.language) {
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+    }
+
+    // Validate language code
+    if (!this.weddingService.isValidLanguage(body.language)) {
+      throw new BadRequestException({ ok: false, error: INVALID_LANGUAGE });
+    }
+
+    const result = this.weddingService.updateLanguage(id, body.language);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });

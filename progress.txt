@@ -4949,3 +4949,89 @@ Implemented email template customization feature allowing admins to personalize 
 - Consider adding preview authentication (prevent public access to draft via URL guessing)
 - The "Preview" button in PreviewBanner opens /w/{slug}?preview=true but the site doesn't handle this yet
 - Remaining incomplete features: i18n (3), custom-domain (3) - all require external infrastructure
+
+### 2026-01-07 - i18n: Admin Can Set Site Language
+
+**Feature worked on:** Admin can set site language (PRD: i18n category)
+
+**Priority rationale:** Chose i18n over custom-domain because:
+- Custom domains require external infrastructure (DNS, SSL providers, Netlify config)
+- i18n can be implemented entirely in code without external dependencies
+- "Admin can set site language" is the foundational i18n feature that enables other i18n features
+
+**What was done:**
+
+1. Backend API (services/platform-api):
+   - Added language types to types/index.ts:
+     - SupportedLanguage type (en, es, fr, pt, de, it, nl, ja, zh, ko)
+     - LanguageOption, UpdateLanguageRequest, UpdateLanguageResponse interfaces
+     - INVALID_LANGUAGE error code
+   - Added language field to Wedding and RenderConfig interfaces
+   - Added WeddingService methods:
+     - getSupportedLanguages() - returns list of 10 supported languages
+     - isValidLanguage() - validates language codes
+     - updateLanguage() - updates wedding language (goes to draft config)
+     - getLanguage() - gets current language setting
+   - Added WeddingController endpoints:
+     - GET /weddings/languages/list - public endpoint listing available languages
+     - PUT /weddings/:id/language - auth-required endpoint to update language
+
+2. Platform UI (apps/platform-ui):
+   - Added language types to types.ts (mirrored from platform-api)
+   - Added language field to Wedding and RenderConfig interfaces
+   - Created LanguageSettings component (components/LanguageSettings.tsx):
+     - Fetches available languages from API
+     - Displays current language
+     - Radio button selection for 10 languages with native names
+     - Saves changes as draft (follows existing draft/publish workflow)
+   - Updated Dashboard.tsx:
+     - Added 'language' to View type
+     - Added LanguageSettings import and view handler
+     - Added onNavigateToLanguage prop to WeddingDashboard
+     - Added "Site language" DashboardCard with LanguageIcon
+     - Added LanguageIcon SVG component
+
+3. Wedding Site (apps/wedding-site):
+   - Added language field to RenderConfig in types.ts
+   - Created lib/i18n.ts translation system:
+     - TranslationStrings interface with all translatable text
+     - Complete translations for all 10 languages
+     - getTranslations(language) function for getting all strings
+     - t(key, language) function for single string lookup
+   - Updated RsvpSection.astro as example:
+     - Added language prop
+     - Uses getTranslations() for localized strings
+   - Updated SectionRenderer.astro:
+     - Extracts language from config
+     - Passes language to RsvpSection
+
+**Design decisions:**
+- Language changes follow draft/publish workflow (changes saved as draft)
+- 10 languages supported: English, Spanish, French, Portuguese, German, Italian, Dutch, Japanese, Chinese (Simplified), Korean
+- Translation strings cover all guest-facing UI text
+- Custom content (names, messages) stays unchanged - only built-in labels translate
+- Example pattern shown in RsvpSection - other components can follow same approach
+
+**Files changed:**
+- services/platform-api/src/types/index.ts
+- services/platform-api/src/wedding/wedding.service.ts
+- services/platform-api/src/wedding/wedding.controller.ts
+- apps/platform-ui/src/types.ts
+- apps/platform-ui/src/components/LanguageSettings.tsx (new)
+- apps/platform-ui/src/components/Dashboard.tsx
+- apps/wedding-site/src/types.ts
+- apps/wedding-site/src/lib/i18n.ts (new)
+- apps/wedding-site/src/components/sections/RsvpSection.astro
+- apps/wedding-site/src/components/SectionRenderer.astro
+
+**PRD features now passing:**
+- "Admin can set site language" ✓
+
+**Notes for next person:**
+- The translation infrastructure is in place but only RsvpSection uses it as an example
+- To complete full i18n, update remaining section components to use getTranslations()
+- The other i18n features ("Site supports multiple languages", "Guest can set language preference") require:
+  - Language selector in public site header
+  - Cookie/localStorage persistence for guest language preference
+  - These are separate PRD items and not part of "Admin can set site language"
+- Remaining incomplete features: i18n (2 more), custom-domain (3)

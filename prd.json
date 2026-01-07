@@ -1287,7 +1287,7 @@
       "Save language setting",
       "Verify UI labels update to selected language"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "i18n",

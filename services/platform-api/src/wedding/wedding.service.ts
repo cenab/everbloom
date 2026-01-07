@@ -1841,6 +1841,92 @@ export class WeddingService {
     return wedding.socialConfig ?? {};
   }
 
+// ============================================================================
+  // Language / i18n Methods
+  // PRD: "Admin can set site language"
+  // ============================================================================
+
+  /**
+   * Supported languages for wedding sites
+   */
+  private static readonly SUPPORTED_LANGUAGES = [
+    { code: 'en', name: 'English', nativeName: 'English' },
+    { code: 'es', name: 'Spanish', nativeName: 'Español' },
+    { code: 'fr', name: 'French', nativeName: 'Français' },
+    { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
+    { code: 'de', name: 'German', nativeName: 'Deutsch' },
+    { code: 'it', name: 'Italian', nativeName: 'Italiano' },
+    { code: 'nl', name: 'Dutch', nativeName: 'Nederlands' },
+    { code: 'ja', name: 'Japanese', nativeName: '日本語' },
+    { code: 'zh', name: 'Chinese (Simplified)', nativeName: '简体中文' },
+    { code: 'ko', name: 'Korean', nativeName: '한국어' },
+  ] as const;
+
+  /**
+   * Get list of supported languages for admin UI
+   */
+  getSupportedLanguages(): { code: string; name: string; nativeName: string }[] {
+    return [...WeddingService.SUPPORTED_LANGUAGES];
+  }
+
+  /**
+   * Check if a language code is valid/supported
+   */
+  isValidLanguage(language: string): boolean {
+    return WeddingService.SUPPORTED_LANGUAGES.some((l) => l.code === language);
+  }
+
+  /**
+   * Update site language for a wedding
+   * Updates both the wedding record and DRAFT render_config language setting
+   * PRD: "Admin can set site language"
+   */
+  updateLanguage(
+    weddingId: string,
+    language: string,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    // Validate language code
+    if (!this.isValidLanguage(language)) {
+      return null;
+    }
+
+    wedding.language = language;
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    // Get or create draft config for updates
+    const draftConfig = this.getOrCreateDraft(weddingId);
+    if (!draftConfig) {
+      return null;
+    }
+
+    // Update draft with new language
+    const updatedConfig: RenderConfig = {
+      ...draftConfig,
+      language,
+    };
+
+    // Update draft, not published
+    this.updateDraftRenderConfig(weddingId, updatedConfig);
+
+    this.logger.log(`Updated language for wedding ${weddingId} (draft): ${language}`);
+
+    return { wedding, renderConfig: updatedConfig };
+  }
+
+  /**
+   * Get current language for a wedding (defaults to 'en')
+   */
+  getLanguage(weddingId: string): string {
+    const wedding = this.weddings.get(weddingId);
+    return wedding?.language ?? 'en';
+  }
+
   /**
    * Remove the custom OG image from a wedding
    */
