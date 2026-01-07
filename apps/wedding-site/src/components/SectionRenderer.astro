@@ -4,13 +4,14 @@ import HeroSection from './sections/HeroSection.astro';
 import EventDetailsSection from './sections/EventDetailsSection.astro';
 import RsvpSection from './sections/RsvpSection.astro';
 import PhotoUploadSection from './sections/PhotoUploadSection.astro';
+import FaqSection from './sections/FaqSection.astro';
 
 interface Props {
   config: RenderConfig;
 }
 
 const { config } = Astro.props;
-const { sections, theme, wedding, features } = config;
+const { sections, theme, wedding, features, faq } = config;
 
 // Filter enabled sections and sort by order
 const enabledSections = sections
@@ -44,6 +45,11 @@ const enabledSections = sections
     case 'photo-upload':
       if (features.PHOTO_UPLOAD) {
         return <PhotoUploadSection section={section} theme={theme} slug={wedding.slug} />;
+      }
+      return null;
+    case 'faq':
+      if (features.FAQ_SECTION) {
+        return <FaqSection section={section} theme={theme} faq={faq} />;
       }
       return null;
     default:

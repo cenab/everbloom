@@ -1,0 +1,153 @@
+---
+import type { Section, Theme, FaqConfig } from '../../types';
+
+interface Props {
+  section: Section;
+  theme: Theme;
+  faq?: FaqConfig;
+}
+
+const { section, theme, faq } = Astro.props;
+const { title, description } = section.data as { title?: string; description?: string };
+
+// Sort FAQ items by order
+const faqItems = faq?.items?.slice().sort((a, b) => a.order - b.order) || [];
+---
+
+<section
+  class="faq-section"
+  style={`--primary: ${theme.primary}; --accent: ${theme.accent}; --neutral-light: ${theme.neutralLight}; --neutral-dark: ${theme.neutralDark};`}
+>
+  <div class="faq-content">
+    <h2 class="section-title">{title || 'Frequently Asked Questions'}</h2>
+    {description && <p class="section-description">{description}</p>}
+
+    {faqItems.length === 0 ? (
+      <p class="no-faqs">Questions and answers will appear here.</p>
+    ) : (
+      <div class="faq-list">
+        {faqItems.map((item) => (
+          <details class="faq-item">
+            <summary class="faq-question">{item.question}</summary>
+            <div class="faq-answer">{item.answer}</div>
+          </details>
+        ))}
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .faq-section {
+    background-color: var(--neutral-light);
+    padding: 6rem 2rem;
+  }
+
+  .faq-content {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .section-title {
+    font-family: 'Cormorant Garamond', 'Georgia', serif;
+    font-size: clamp(1.75rem, 5vw, 2.5rem);
+    font-weight: 400;
+    color: var(--neutral-dark);
+    margin: 0 0 1.5rem 0;
+    letter-spacing: 0.02em;
+    text-align: center;
+  }
+
+  .section-description {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 1.125rem;
+    color: var(--neutral-dark);
+    opacity: 0.8;
+    line-height: 1.6;
+    margin: 0 0 3rem 0;
+    text-align: center;
+  }
+
+  .no-faqs {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 1rem;
+    color: var(--neutral-dark);
+    opacity: 0.6;
+    text-align: center;
+  }
+
+  .faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .faq-item {
+    background-color: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .faq-question {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: var(--neutral-dark);
+    padding: 1.25rem 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    list-style: none;
+    transition: background-color 0.2s ease;
+  }
+
+  .faq-question::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-question::after {
+    content: '+';
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: var(--primary);
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+  }
+
+  .faq-item[open] .faq-question::after {
+    transform: rotate(45deg);
+  }
+
+  .faq-question:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+
+  .faq-answer {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 1rem;
+    color: var(--neutral-dark);
+    opacity: 0.85;
+    line-height: 1.7;
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    white-space: pre-wrap;
+  }
+
+  @media (max-width: 640px) {
+    .faq-section {
+      padding: 4rem 1.5rem;
+    }
+
+    .faq-question {
+      padding: 1rem 1.25rem;
+      font-size: 1rem;
+    }
+
+    .faq-answer {
+      padding: 0 1.25rem 1.25rem 1.25rem;
+      font-size: 0.9375rem;
+    }
+  }
+</style>

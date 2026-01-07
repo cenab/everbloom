@@ -90,6 +90,23 @@ export interface Announcement {
 }
 
 /**
+ * A single FAQ item (question and answer)
+ */
+export interface FaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  order: number;
+}
+
+/**
+ * FAQ section configuration
+ */
+export interface FaqConfig {
+  items: FaqItem[];
+}
+
+/**
  * The render_config contract - wedding site renders exclusively from this
  */
 export interface RenderConfig {
@@ -99,6 +116,7 @@ export interface RenderConfig {
   sections: Section[];
   announcement?: Announcement;
   eventDetails?: EventDetailsData;
+  faq?: FaqConfig;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -282,6 +300,7 @@ export interface Wedding {
   features: Record<FeatureFlag, boolean>;
   announcement?: Announcement;
   eventDetails?: EventDetailsData;
+  faq?: FaqConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -332,6 +351,21 @@ export interface UpdateAnnouncementRequest {
  * Response after updating announcement banner
  */
 export interface UpdateAnnouncementResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+/**
+ * Request to update FAQ items for a wedding
+ */
+export interface UpdateFaqRequest {
+  faq: FaqConfig;
+}
+
+/**
+ * Response after updating FAQ items
+ */
+export interface UpdateFaqResponse {
   wedding: Wedding;
   renderConfig: RenderConfig;
 }

@@ -437,7 +437,7 @@
       "Save FAQ item",
       "Verify item appears in FAQ list"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "faq",
@@ -449,7 +449,7 @@
       "Save changes",
       "Verify order and content persist"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "faq",
@@ -460,7 +460,7 @@
       "Navigate to public wedding site",
       "Verify FAQ section displays with correct questions and answers"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "faq",
@@ -471,7 +471,7 @@
       "Verify FAQ section is not visible",
       "Verify FAQ data is not exposed in page source"
     ],
-    "passes": false
+    "passes": true
   },
 
   {

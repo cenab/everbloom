@@ -24,6 +24,8 @@ import type {
   UpdateAnnouncementResponse,
   UpdateEventDetailsRequest,
   UpdateEventDetailsResponse,
+  UpdateFaqRequest,
+  UpdateFaqResponse,
 } from '../types';
 import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, CALENDAR_INVITE_DISABLED } from '../types';
 
@@ -193,6 +195,64 @@ export class WeddingController {
 
     if (!result) {
       throw new NotFoundException('Failed to update announcement');
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Update FAQ items for a wedding
+   */
+  @Put(':id/faq')
+  async updateFaq(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: UpdateFaqRequest,
+  ): Promise<ApiResponse<UpdateFaqResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException('Wedding not found');
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException('Wedding not found');
+    }
+
+    if (!wedding.features.FAQ_SECTION) {
+      throw new ForbiddenException({
+        ok: false,
+        error: FEATURE_DISABLED,
+      });
+    }
+
+    if (!body.faq) {
+      throw new BadRequestException('FAQ data is required');
+    }
+
+    // Validate FAQ items
+    const items = body.faq.items || [];
+    for (const item of items) {
+      if (!item.question?.trim() || !item.answer?.trim()) {
+        throw new BadRequestException('Each FAQ item must have a question and answer');
+      }
+    }
+
+    // Normalize the FAQ items (trim strings, ensure proper ordering)
+    const normalizedFaq = {
+      items: items.map((item, index) => ({
+        id: item.id || `faq-${Date.now()}-${index}`,
+        question: item.question.trim(),
+        answer: item.answer.trim(),
+        order: item.order ?? index,
+      })),
+    };
+
+    const result = this.weddingService.updateFaq(id, normalizedFaq);
+
+    if (!result) {
+      throw new NotFoundException('Failed to update FAQ');
     }
 
     return { ok: true, data: result };

@@ -6,10 +6,11 @@ import { TemplateSelector } from './TemplateSelector';
 import { FeatureSettings } from './FeatureSettings';
 import { AnnouncementSettings } from './AnnouncementSettings';
 import { EventSettings } from './EventSettings';
+import { FaqSettings } from './FaqSettings';
 import { getAuthToken } from '../lib/auth';
 import type { Wedding, ApiResponse, RenderConfig } from '../types';
 
-type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details';
+type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq';
 
 /**
  * Admin Dashboard component.
@@ -131,6 +132,18 @@ export function Dashboard() {
     );
   }
 
+  if (view === 'faq' && selectedWedding) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <FaqSettings
+          wedding={selectedWedding}
+          onBack={() => setView('dashboard')}
+          onFaqChanged={fetchWeddings}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -160,6 +173,7 @@ export function Dashboard() {
           onNavigateToFeatures={() => setView('features')}
           onNavigateToAnnouncement={() => setView('announcement')}
           onNavigateToEventDetails={() => setView('event-details')}
+          onNavigateToFaq={() => setView('faq')}
           onBack={weddings.length > 1 ? () => setSelectedWedding(null) : undefined}
         />
       )}
@@ -235,6 +249,7 @@ interface WeddingDashboardProps {
   onNavigateToFeatures: () => void;
   onNavigateToAnnouncement: () => void;
   onNavigateToEventDetails: () => void;
+  onNavigateToFaq: () => void;
   onBack?: () => void;
 }
 
@@ -250,6 +265,7 @@ function WeddingDashboard({
   onNavigateToFeatures,
   onNavigateToAnnouncement,
   onNavigateToEventDetails,
+  onNavigateToFaq,
   onBack,
 }: WeddingDashboardProps) {
   return (
@@ -308,6 +324,14 @@ function WeddingDashboard({
             description="Share an update at the top of your site"
             icon={<BellIcon className="w-6 h-6" />}
             onClick={onNavigateToAnnouncement}
+          />
+        )}
+        {wedding.features.FAQ_SECTION && (
+          <DashboardCard
+            title="FAQ"
+            description="Answer common questions for your guests"
+            icon={<QuestionMarkIcon className="w-6 h-6" />}
+            onClick={onNavigateToFaq}
           />
         )}
         <DashboardCard
@@ -522,6 +546,24 @@ function CalendarIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
+      />
+    </svg>
+  );
+}
+
+function QuestionMarkIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"
       />
     </svg>
   );

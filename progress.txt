@@ -1270,3 +1270,97 @@
 - The calendar buttons only show when both conditions are met:
   1. CALENDAR_INVITE feature flag is enabled
   2. eventDetails are configured (via admin Event details page)
+
+---
+
+### 2026-01-07 - FAQ Feature Implementation
+
+**Feature worked on:** FAQ section functionality (PRD: faq category)
+
+**Priority rationale:** This is the highest-priority remaining feature because:
+1. FAQ_SECTION is an existing feature flag with no implementation
+2. It follows the same pattern as announcement banners (admin CRUD + public display)
+3. It completes the content customization workflow for wedding sites
+4. It's a common wedding site requirement that adds real user value
+
+**What was done:**
+1. Added FAQ types to platform-api types:
+   - `FaqItem` interface with id, question, answer, order
+   - `FaqConfig` interface with items array
+   - `UpdateFaqRequest` and `UpdateFaqResponse` types
+   - Extended Wedding and RenderConfig to include faq field
+
+2. Added FAQ methods to WeddingService:
+   - Default FAQ config (empty items array)
+   - FAQ section creation in generateRenderConfig()
+   - `updateFaq()` method for updating FAQ items
+   - FAQ section enabled state updates in updateFeatures()
+
+3. Added FAQ endpoint to WeddingController:
+   - `PUT /api/weddings/:id/faq` - authenticated endpoint
+   - Feature flag validation (FAQ_SECTION must be enabled)
+   - Input validation (each item needs question and answer)
+   - Normalizes items with IDs and order
+
+4. Added FAQ types to platform-ui types:
+   - FaqItem, FaqConfig interfaces
+   - UpdateFaqResponse type
+
+5. Created FaqSettings component:
+   - Add new FAQ items with "Add your first question" / "Add another question" buttons
+   - Edit question and answer for each item
+   - Reorder items with up/down arrow buttons
+   - Delete items with trash button
+   - Disabled state when FAQ_SECTION feature is off
+   - Save/cancel with loading states and success feedback
+
+6. Updated Dashboard component:
+   - Added FAQ card (conditionally shown when FAQ_SECTION enabled)
+   - Added FAQ view handler and navigation
+   - Added QuestionMarkIcon for the dashboard card
+
+7. Added FAQ types to wedding-site:
+   - FaqItem, FaqConfig interfaces
+   - Extended RenderConfig with faq field
+
+8. Created FaqSection.astro component:
+   - Accordion-style FAQ display using HTML <details> elements
+   - Theme-aware styling with CSS variables
+   - Empty state message when no items
+   - Mobile-responsive design
+   - Serif headings, sans-serif body text
+
+9. Updated SectionRenderer.astro:
+   - Import FaqSection component
+   - Handle 'faq' section type with FAQ_SECTION feature check
+   - Pass faq config to FaqSection
+
+**API Endpoints:**
+- `PUT /api/weddings/:id/faq` - Update FAQ items (requires auth)
+  - Request: `{ faq: { items: FaqItem[] } }`
+  - Response: `{ wedding, renderConfig }`
+  - Returns FEATURE_DISABLED if FAQ_SECTION is off
+
+**Design system adherence:**
+- Accordion FAQ with + icon that rotates on open
+- Human language: "Frequently asked questions", "Answer common questions"
+- No pure black/white colors - uses theme variables
+- Serif headings (Cormorant Garamond), sans body (Inter)
+- Mobile-first responsive design
+- Calm transitions on hover and open/close
+
+**PRD features now passing:**
+- "Admin can add FAQ items" ✓
+- "Admin can edit and reorder FAQ items" ✓
+- "FAQ section renders on public site" ✓
+- "FAQ section respects feature toggle" ✓
+
+**Notes for next person:**
+- FAQ endpoint is at PUT /api/weddings/:id/faq
+- FAQ card only shows in dashboard when FAQ_SECTION feature is enabled
+- FAQ items are stored on both Wedding record and in render_config
+- FAQ section uses HTML <details> elements for native accordion behavior
+- Empty state shown when no FAQ items exist
+- FAQ section appears after photo-upload section (order 4) by default
+- Reordering works via up/down buttons; order is persisted on save
+- FAQ_SECTION is a premium-only feature (not available on starter plan)

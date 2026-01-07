@@ -13,6 +13,7 @@ import type {
   Announcement,
   Section,
   EventDetailsData,
+  FaqConfig,
 } from '../types';
 
 /**
@@ -31,7 +32,12 @@ const DEFAULT_ANNOUNCEMENT: Announcement = {
   message: '',
 };
 
+const DEFAULT_FAQ: FaqConfig = {
+  items: [],
+};
+
 const PHOTO_UPLOAD_SECTION_ID = 'photos';
+const FAQ_SECTION_ID = 'faq';
 
 const DEFAULT_PHOTO_SECTION_DATA = {
   title: 'Share Photos',
@@ -45,6 +51,19 @@ const createPhotoUploadSection = (order: number, enabled: boolean): Section => (
   enabled,
   order,
   data: { ...DEFAULT_PHOTO_SECTION_DATA },
+});
+
+const DEFAULT_FAQ_SECTION_DATA = {
+  title: 'Frequently Asked Questions',
+  description: 'Find answers to common questions about our celebration.',
+};
+
+const createFaqSection = (order: number, enabled: boolean): Section => ({
+  id: FAQ_SECTION_ID,
+  type: 'faq',
+  enabled,
+  order,
+  data: { ...DEFAULT_FAQ_SECTION_DATA },
 });
 
 /**
@@ -211,6 +230,7 @@ export class WeddingService {
       theme: DEFAULT_THEME,
       features: wedding.features,
       announcement: wedding.announcement ?? { ...DEFAULT_ANNOUNCEMENT },
+      faq: wedding.faq ?? { ...DEFAULT_FAQ },
       sections: [
         {
           id: 'hero',
@@ -242,6 +262,7 @@ export class WeddingService {
           },
         },
         createPhotoUploadSection(3, wedding.features.PHOTO_UPLOAD),
+        createFaqSection(4, wedding.features.FAQ_SECTION),
       ],
       wedding: {
         slug: wedding.slug,
@@ -313,6 +334,7 @@ export class WeddingService {
       status: 'active' as WeddingStatus,
       features: this.buildFeatureFlags(payload.planId, payload.features),
       announcement: { ...DEFAULT_ANNOUNCEMENT },
+      faq: { ...DEFAULT_FAQ },
       createdAt: now,
       updatedAt: now,
     };
@@ -416,6 +438,7 @@ export class WeddingService {
     }
 
     const hasPhotoSection = existingConfig.sections.some((section) => section.type === 'photo-upload');
+    const hasFaqSection = existingConfig.sections.some((section) => section.type === 'faq');
     const updatedConfig: RenderConfig = {
       ...existingConfig,
       features: updatedFeatures,
@@ -427,7 +450,9 @@ export class WeddingService {
         if (section.type === 'photo-upload') {
           return { ...section, enabled: updatedFeatures.PHOTO_UPLOAD };
         }
-        // Add other feature-dependent sections here as needed
+        if (section.type === 'faq') {
+          return { ...section, enabled: updatedFeatures.FAQ_SECTION };
+        }
         return section;
       }),
     };
@@ -437,6 +462,14 @@ export class WeddingService {
       updatedConfig.sections = [
         ...updatedConfig.sections,
         createPhotoUploadSection(maxOrder + 1, updatedFeatures.PHOTO_UPLOAD),
+      ];
+    }
+
+    if (!hasFaqSection) {
+      const maxOrder = updatedConfig.sections.reduce((max, section) => Math.max(max, section.order), -1);
+      updatedConfig.sections = [
+        ...updatedConfig.sections,
+        createFaqSection(maxOrder + 1, updatedFeatures.FAQ_SECTION),
       ];
     }
 
@@ -518,6 +551,40 @@ export class WeddingService {
     this.renderConfigs.set(weddingId, updatedConfig);
 
     this.logger.log(`Updated event details for wedding ${weddingId}`);
+
+    return { wedding, renderConfig: updatedConfig };
+  }
+
+  /**
+   * Update FAQ items for a wedding
+   * Updates both the wedding record and render_config FAQ content
+   */
+  updateFaq(
+    weddingId: string,
+    faq: FaqConfig,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    wedding.faq = faq;
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    const existingConfig = this.renderConfigs.get(weddingId);
+    if (!existingConfig) {
+      return null;
+    }
+
+    const updatedConfig: RenderConfig = {
+      ...existingConfig,
+      faq,
+    };
+
+    this.renderConfigs.set(weddingId, updatedConfig);
+
+    this.logger.log(`Updated FAQ for wedding ${weddingId} with ${faq.items.length} items`);
 
     return { wedding, renderConfig: updatedConfig };
   }
