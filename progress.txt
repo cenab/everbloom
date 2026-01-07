@@ -1819,3 +1819,54 @@
 - Default theme uses the same warm palette as the rest of the site
 - The RSVP page already has its own inline error handling which is appropriate for token-based errors
 - Error handling catches both missing config (null) and network/fetch errors
+
+---
+
+### 2026-01-07 - Content Changes Regenerate render_config (Verification)
+
+**Feature worked on:** Content changes regenerate render_config (PRD: content category)
+
+**Priority rationale:** This feature was already fully implemented but not marked as passing in the PRD. Verification was needed to confirm all aspects work correctly:
+1. Every content edit method regenerates render_config
+2. Wedding site fetches fresh config on each request
+3. No stale content is ever displayed
+
+**Verification performed:**
+1. Traced code in WeddingService - confirmed `generateRenderConfig()` is called and `renderConfigs.set()` is executed in all update methods:
+   - Line 383: Initial provisioning
+   - Line 516: Feature updates
+   - Line 550: Announcement updates
+   - Line 591: FAQ updates
+   - Line 625: Hero content updates
+   - Line 670: Event details updates
+   - Line 711: Template changes
+   - Line 773: Passcode settings updates
+
+2. Confirmed `wedding.updatedAt = new Date().toISOString()` is set in all update methods (timestamp tracking)
+
+3. Verified wedding site fetches config fresh on every request:
+   - `apps/wedding-site/src/pages/w/[slug]/index.astro` line 25: `config = await fetchSiteConfig(slug)`
+   - No caching layer - each request hits the API
+
+4. Verified no stale content can be displayed:
+   - SSR mode means no browser caching of rendered HTML
+   - API calls go directly to platform-api with no CDN caching configured
+
+**PRD features now passing:**
+- "Content changes regenerate render_config" ✓
+
+**Next steps:**
+- Consider implementing "Admin can edit event details" with multi-event support (ceremony + reception)
+- Continue with API structured errors feature
+- Continue with analytics dashboard features
+
+**Notes for next person:**
+- This was a verification task - no code changes were needed
+- The render_config regeneration architecture is sound and consistent
+- Every update method in WeddingService follows the same pattern:
+  1. Update wedding record
+  2. Set updatedAt timestamp
+  3. Call generateRenderConfig()
+  4. Store updated config via renderConfigs.set()
+  5. Return both wedding and renderConfig to caller
+- The wedding site is stateless and always fetches fresh from API

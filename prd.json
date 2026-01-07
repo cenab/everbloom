@@ -645,7 +645,7 @@
       "Verify wedding site fetches fresh config",
       "Verify no stale content is displayed"
     ],
-    "passes": false
+    "passes": true
   },
 
   {
