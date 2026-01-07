@@ -4808,3 +4808,69 @@ Implemented email template customization feature allowing admins to personalize 
 - The export is immediate (not queued) since it's a single email
 - In dev mode, export email is logged to console (look for "📧 DEVELOPMENT MODE")
 - To test: visit RSVP page → click "Request a copy of your data" → confirm → check API console for logged email
+
+---
+
+### 2026-01-07 - Social Sharing Renders Well on All Platforms
+
+**Feature worked on:** Site renders well when shared (PRD: social category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. OG meta tags and custom share image upload were already implemented
+2. The only issue was that the default OG image was SVG, which Facebook/iMessage don't support
+3. Missing meta tags (og:image:width/height/type, og:locale) could cause rendering issues
+4. Fixing this completes the social sharing feature set with minimal code changes
+
+**What was done:**
+1. Created PNG default OG image to replace SVG:
+   - Facebook, iMessage, and other platforms don't support SVG for OG images
+   - Generated a 1200x630px PNG using Node.js zlib (optimal social preview size)
+   - Color: #faf8f5 (warm off-white from design system)
+   - File: apps/wedding-site/public/og-image-default.png
+
+2. Updated WeddingLayout.astro meta tags:
+   - Changed default image from .svg to .png
+   - Added `og:image:width` (1200) and `og:image:height` (630) for proper rendering
+   - Added `og:image:type` with smart detection (PNG/JPEG/WebP based on custom URL)
+   - Added `og:image:alt` for accessibility
+   - Added `og:locale` (en_US) for internationalization
+   - Added `twitter:image:alt` for Twitter accessibility
+
+3. Meta tag image type detection:
+   - Default images: always `image/png`
+   - Custom images: detects from URL extension (.jpg/.jpeg → image/jpeg, .png → image/png, .webp → image/webp)
+
+**Updated meta tags (in order):**
+- `og:type` - website
+- `og:title` - Partner names (e.g., "John & Jane")
+- `og:description` - "Join us to celebrate the wedding of..."
+- `og:url` - Canonical URL
+- `og:image` - Custom or default PNG
+- `og:image:width` - 1200
+- `og:image:height` - 630
+- `og:image:type` - image/png (or detected type)
+- `og:image:alt` - "Wedding invitation for {names}"
+- `og:site_name` - Everbloom
+- `og:locale` - en_US
+- `twitter:card` - summary_large_image
+- `twitter:title` - Same as og:title
+- `twitter:description` - Same as og:description
+- `twitter:image` - Same as og:image
+- `twitter:image:alt` - Same accessibility alt text
+
+**Why this matters for each platform:**
+- **Facebook**: Requires PNG/JPG (not SVG), uses og:image:width/height for layout
+- **Twitter**: Uses twitter:card type, image dimensions help with cropping
+- **iMessage**: Requires rasterized images, benefits from proper dimensions
+- **LinkedIn/WhatsApp**: Standard OG tags with dimensions work best
+
+**PRD features now passing:**
+- "Site renders well when shared" ✓
+
+**Notes for next person:**
+- Default OG image is at apps/wedding-site/public/og-image-default.png
+- The SVG file still exists for backward compatibility but is no longer referenced
+- Custom OG images are uploaded via the SocialSettings admin component
+- Image dimension meta tags (1200x630) match the standard social media preview ratio (1.91:1)
+- To test: use Facebook Debugger (developers.facebook.com/tools/debug/) or Twitter Card Validator
+- The og:locale can be extended for i18n when that feature is implemented

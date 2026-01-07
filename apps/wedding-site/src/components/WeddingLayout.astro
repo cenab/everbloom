@@ -14,10 +14,23 @@ const description = `Join us to celebrate the wedding of ${wedding.partnerNames[
 const siteUrl = import.meta.env.PUBLIC_WEDDING_SITE_URL || import.meta.env.SITE || 'https://everbloom.wedding';
 const canonicalUrl = `${siteUrl}/w/${wedding.slug}`;
 
-// OG image: Use custom uploaded image if available, otherwise use default
+// OG image: Use custom uploaded image if available, otherwise use default PNG
 // PRD: "Admin can customize share image"
-const defaultOgImageUrl = `${siteUrl}/og-image-default.svg`;
+// Note: Default is PNG (not SVG) because Facebook/iMessage don't support SVG for OG images
+const defaultOgImageUrl = `${siteUrl}/og-image-default.png`;
 const ogImageUrl = config.ogImageUrl || defaultOgImageUrl;
+
+// Determine image type for meta tag (PNG for default, infer from URL for custom)
+const ogImageType = config.ogImageUrl
+  ? (config.ogImageUrl.includes('.jpg') || config.ogImageUrl.includes('.jpeg') ? 'image/jpeg'
+     : config.ogImageUrl.includes('.png') ? 'image/png'
+     : config.ogImageUrl.includes('.webp') ? 'image/webp'
+     : 'image/png')
+  : 'image/png';
+
+// OG image dimensions - standard social media preview size
+const ogImageWidth = '1200';
+const ogImageHeight = '630';
 ---
 
 <!DOCTYPE html>
@@ -35,13 +48,19 @@ const ogImageUrl = config.ogImageUrl || defaultOgImageUrl;
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content={ogImageWidth} />
+    <meta property="og:image:height" content={ogImageHeight} />
+    <meta property="og:image:type" content={ogImageType} />
+    <meta property="og:image:alt" content={`Wedding invitation for ${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`} />
     <meta property="og:site_name" content="Everbloom" />
+    <meta property="og:locale" content="en_US" />
 
     <!-- Twitter Card meta tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl} />
+    <meta name="twitter:image:alt" content={`Wedding invitation for ${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`} />
 
     <!-- Canonical URL -->
     <link rel="canonical" href={canonicalUrl} />

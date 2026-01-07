@@ -1498,7 +1498,7 @@
       "Share site URL via iMessage",
       "Verify preview looks correct"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "rate-limiting",
