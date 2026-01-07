@@ -22,6 +22,7 @@ import type {
   AccommodationsConfig,
   GuestbookConfig,
   SeatingConfig,
+  EmailTemplatesConfig,
 } from '../types';
 
 const scryptAsync = promisify(scrypt);
@@ -953,6 +954,37 @@ export class WeddingService {
     this.logger.log(`Updated accommodations for wedding ${weddingId} with ${accommodations.hotels.length} hotels`);
 
     return { wedding, renderConfig: updatedConfig };
+  }
+
+  /**
+   * Update email templates for a wedding
+   * PRD: "Admin can customize invitation email content"
+   * PRD: "Email templates support merge fields"
+   */
+  updateEmailTemplates(
+    weddingId: string,
+    emailTemplates: EmailTemplatesConfig,
+  ): Wedding | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    wedding.emailTemplates = emailTemplates;
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    const templateCount = [
+      emailTemplates.invitation,
+      emailTemplates.reminder,
+      emailTemplates.saveTheDate,
+      emailTemplates.thankYouAttended,
+      emailTemplates.thankYouNotAttended,
+    ].filter(Boolean).length;
+
+    this.logger.log(`Updated email templates for wedding ${weddingId}: ${templateCount} templates configured`);
+
+    return wedding;
   }
 
   /**

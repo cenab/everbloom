@@ -18,10 +18,11 @@ import { GuestbookManager } from './GuestbookManager';
 import { MusicRequests } from './MusicRequests';
 import { SeatingManager } from './SeatingManager';
 import { Communications } from './Communications';
+import { EmailTemplateSettings } from './EmailTemplateSettings';
 import { getAuthToken } from '../lib/auth';
 import type { Wedding, ApiResponse, RenderConfig } from '../types';
 
-type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'accommodations' | 'email-stats' | 'photo-stats' | 'guestbook' | 'music' | 'seating' | 'communications';
+type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'accommodations' | 'email-stats' | 'photo-stats' | 'guestbook' | 'music' | 'seating' | 'communications' | 'email-templates';
 
 /**
  * Admin Dashboard component.
@@ -282,6 +283,18 @@ export function Dashboard() {
     );
   }
 
+  if (view === 'email-templates' && selectedWedding) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <EmailTemplateSettings
+          wedding={selectedWedding}
+          onBack={() => setView('dashboard')}
+          onTemplatesChanged={fetchWeddings}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -323,6 +336,7 @@ export function Dashboard() {
           onNavigateToMusic={() => setView('music')}
           onNavigateToSeating={() => setView('seating')}
           onNavigateToCommunications={() => setView('communications')}
+          onNavigateToEmailTemplates={() => setView('email-templates')}
           onBack={weddings.length > 1 ? () => setSelectedWedding(null) : undefined}
         />
       )}
@@ -410,6 +424,7 @@ interface WeddingDashboardProps {
   onNavigateToMusic: () => void;
   onNavigateToSeating: () => void;
   onNavigateToCommunications: () => void;
+  onNavigateToEmailTemplates: () => void;
   onBack?: () => void;
 }
 
@@ -437,6 +452,7 @@ function WeddingDashboard({
   onNavigateToMusic,
   onNavigateToSeating,
   onNavigateToCommunications,
+  onNavigateToEmailTemplates,
   onBack,
 }: WeddingDashboardProps) {
   return (
@@ -556,6 +572,12 @@ function WeddingDashboard({
           description="Send save-the-dates and thank-you messages"
           icon={<PaperAirplaneIcon className="w-6 h-6" />}
           onClick={onNavigateToCommunications}
+        />
+        <DashboardCard
+          title="Email templates"
+          description="Customize invitation and reminder emails"
+          icon={<DocumentTextIcon className="w-6 h-6" />}
+          onClick={onNavigateToEmailTemplates}
         />
         {wedding.features.PHOTO_UPLOAD && (
           <DashboardCard
@@ -1022,6 +1044,24 @@ function PaperAirplaneIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+      />
+    </svg>
+  );
+}
+
+function DocumentTextIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
       />
     </svg>
   );

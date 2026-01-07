@@ -337,6 +337,7 @@ export interface Wedding {
   mealConfig?: MealConfig;
   registry?: RegistryConfig;
   accommodations?: AccommodationsConfig;
+  emailTemplates?: EmailTemplatesConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -994,4 +995,47 @@ export interface SeatingOverviewResponse {
     totalAssigned: number;
     totalUnassigned: number;
   };
+}
+
+// ============================================================================
+// Email Template Types (Customization)
+// PRD: "Admin can customize invitation email content"
+// ============================================================================
+
+/**
+ * A single email template for a specific email type
+ */
+export interface EmailTemplateContent {
+  /** Custom subject line (supports merge fields) */
+  subject: string;
+  /** Custom body text (supports merge fields, used for plain text email) */
+  bodyText: string;
+  /** Custom greeting (e.g., "Dear {{guest_name}}," or "Hi {{guest_name}},") */
+  greeting?: string;
+  /** Custom closing (e.g., "With love," or "Warmly,") */
+  closing?: string;
+}
+
+/**
+ * Email templates configuration for a wedding
+ * Each email type can have its own customized template
+ */
+export interface EmailTemplatesConfig {
+  /** Custom invitation email template */
+  invitation?: EmailTemplateContent;
+  /** Custom reminder email template */
+  reminder?: EmailTemplateContent;
+  /** Custom save-the-date email template */
+  saveTheDate?: EmailTemplateContent;
+  /** Custom thank-you email template (for attendees) */
+  thankYouAttended?: EmailTemplateContent;
+  /** Custom thank-you email template (for non-attendees) */
+  thankYouNotAttended?: EmailTemplateContent;
+}
+
+/**
+ * Response after updating email templates
+ */
+export interface UpdateEmailTemplatesResponse {
+  wedding: Wedding;
 }

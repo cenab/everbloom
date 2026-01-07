@@ -1156,7 +1156,7 @@
       "Save template",
       "Verify changes persist"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "email-templates",
@@ -1170,7 +1170,7 @@
       "Send test email",
       "Verify merge fields are replaced"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "email-templates",

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { Guest, Theme, Wedding } from '../types';
+import type { Guest, Theme, Wedding, EmailTemplateContent } from '../types';
 
 /**
  * Email content for transactional emails
@@ -45,6 +45,48 @@ export class EmailService {
   }
 
   /**
+   * Replace merge fields in a template string with actual values
+   * PRD: "Email templates support merge fields"
+   *
+   * Supported merge fields:
+   * - {{guest_name}} - Guest's name
+   * - {{partner_names}} - Partner names (e.g., "John & Jane")
+   * - {{wedding_date}} - Formatted wedding date
+   * - {{wedding_venue}} - Venue name
+   * - {{wedding_city}} - City name
+   * - {{rsvp_link}} - RSVP link with token
+   */
+  private replaceMergeFields(
+    template: string,
+    guest: Guest,
+    wedding: Wedding,
+    rsvpLink?: string,
+  ): string {
+    const partnerNames = `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`;
+
+    // Format wedding date if available
+    const weddingDate = wedding.eventDetails?.date
+      ? new Date(wedding.eventDetails.date).toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : 'Date to be announced';
+
+    const venue = wedding.eventDetails?.venue || '';
+    const city = wedding.eventDetails?.city || '';
+
+    return template
+      .replace(/\{\{guest_name\}\}/g, guest.name)
+      .replace(/\{\{partner_names\}\}/g, partnerNames)
+      .replace(/\{\{wedding_date\}\}/g, weddingDate)
+      .replace(/\{\{wedding_venue\}\}/g, venue)
+      .replace(/\{\{wedding_city\}\}/g, city)
+      .replace(/\{\{rsvp_link\}\}/g, rsvpLink || '');
+  }
+
+  /**
    * Lighten a hex color by a given factor (0-1)
    * Used to create derived colors from theme while staying accessible
    */
@@ -67,26 +109,31 @@ export class EmailService {
   }
 
   /**
-   * Build invitation email content
-   * PRD: "Email design matches wedding theme"
-   * @param guest The guest to send the invitation to
-   * @param wedding The wedding details
-   * @param rawToken The raw RSVP token for the URL (not stored, only used for email)
-   * @param theme Optional theme to use for email colors (falls back to default)
+   * Build HTML email wrapper with consistent styling
+   * Used for all email types to ensure design consistency
    */
-  buildInvitationEmail(
-    guest: Guest,
-    wedding: Wedding,
-    rawToken: string,
-    theme?: Theme,
-  ): EmailContent {
-    const rsvpUrl = this.buildRsvpUrl(rawToken);
-    const partnerNames = `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`;
-    const colors = theme || DEFAULT_THEME;
+  private buildEmailHtml(
+    headline: string,
+    greeting: string,
+    bodyParagraphs: string[],
+    ctaText: string | null,
+    ctaUrl: string | null,
+    closing: string,
+    signature: string,
+    colors: Theme,
+    linkFallback?: string,
+  ): string {
+    const ctaBlock = ctaText && ctaUrl ? `
+      <div class="cta-container">
+        <a href="${ctaUrl}" class="cta-button">${ctaText}</a>
+      </div>
+      ${linkFallback ? `<p class="link-fallback">
+        If the button doesn't work, copy and paste this link into your browser:<br>
+        ${linkFallback}
+      </p>` : ''}
+    ` : '';
 
-    const subject = `You're Invited: ${partnerNames}'s Wedding`;
-
-    const htmlBody = `
+    return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -158,40 +205,89 @@ export class EmailService {
 <body>
   <div class="container">
     <div class="card">
-      <h1>${partnerNames}</h1>
-      <p class="greeting">Dear ${guest.name},</p>
-      <p>We're overjoyed to invite you to celebrate our wedding!</p>
-      <p>Your presence would mean the world to us as we begin this new chapter together.</p>
-      <div class="cta-container">
-        <a href="${rsvpUrl}" class="cta-button">View Invitation & RSVP</a>
-      </div>
-      <p class="link-fallback">
-        If the button doesn't work, copy and paste this link into your browser:<br>
-        ${rsvpUrl}
-      </p>
+      <h1>${headline}</h1>
+      <p class="greeting">${greeting}</p>
+      ${bodyParagraphs.map(p => `<p>${p}</p>`).join('\n      ')}
+      ${ctaBlock}
       <div class="footer">
-        <p>We can't wait to see you there!</p>
-        <p>With love,<br>${partnerNames}</p>
+        <p>${closing}</p>
+        <p>${signature}</p>
       </div>
     </div>
   </div>
 </body>
 </html>
     `.trim();
+  }
+
+  /**
+   * Build invitation email content
+   * PRD: "Email design matches wedding theme"
+   * PRD: "Admin can customize invitation email content"
+   * @param guest The guest to send the invitation to
+   * @param wedding The wedding details
+   * @param rawToken The raw RSVP token for the URL (not stored, only used for email)
+   * @param theme Optional theme to use for email colors (falls back to default)
+   */
+  buildInvitationEmail(
+    guest: Guest,
+    wedding: Wedding,
+    rawToken: string,
+    theme?: Theme,
+  ): EmailContent {
+    const rsvpUrl = this.buildRsvpUrl(rawToken);
+    const partnerNames = `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`;
+    const colors = theme || DEFAULT_THEME;
+
+    // Check for custom template
+    const customTemplate = wedding.emailTemplates?.invitation;
+
+    // Use custom subject or default
+    const subject = customTemplate?.subject
+      ? this.replaceMergeFields(customTemplate.subject, guest, wedding, rsvpUrl)
+      : `You're Invited: ${partnerNames}'s Wedding`;
+
+    // Use custom greeting or default
+    const greeting = customTemplate?.greeting
+      ? this.replaceMergeFields(customTemplate.greeting, guest, wedding, rsvpUrl)
+      : `Dear ${guest.name},`;
+
+    // Use custom body text or default
+    const bodyText = customTemplate?.bodyText
+      ? this.replaceMergeFields(customTemplate.bodyText, guest, wedding, rsvpUrl)
+      : `We're overjoyed to invite you to celebrate our wedding!\n\nYour presence would mean the world to us as we begin this new chapter together.`;
+
+    // Use custom closing or default
+    const closing = customTemplate?.closing
+      ? this.replaceMergeFields(customTemplate.closing, guest, wedding, rsvpUrl)
+      : `We can't wait to see you there!`;
+
+    // Split body text into paragraphs for HTML
+    const bodyParagraphs = bodyText.split('\n').filter(p => p.trim());
+
+    const htmlBody = this.buildEmailHtml(
+      partnerNames,
+      greeting,
+      bodyParagraphs,
+      'View Invitation & RSVP',
+      rsvpUrl,
+      closing,
+      `With love,<br>${partnerNames}`,
+      colors,
+      rsvpUrl,
+    );
 
     const textBody = `
 ${partnerNames}
 
-Dear ${guest.name},
+${greeting}
 
-We're overjoyed to invite you to celebrate our wedding!
-
-Your presence would mean the world to us as we begin this new chapter together.
+${bodyText}
 
 Please RSVP by visiting:
 ${rsvpUrl}
 
-We can't wait to see you there!
+${closing}
 
 With love,
 ${partnerNames}

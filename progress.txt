@@ -3970,3 +3970,69 @@ With HTTP status 429 Too Many Requests.
 - Event order numbers are 1-indexed for human readability
 - The timeline line height automatically adjusts to content via absolute positioning
 
+
+---
+
+## 2026-01-07: Email Template Customization
+
+**Feature:** Admin can customize invitation email content (email-templates category)
+
+Implemented email template customization feature allowing admins to personalize invitation, reminder, save-the-date, and thank-you emails with merge fields.
+
+**Implementation details:**
+
+1. **Backend types (services/platform-api/src/types/index.ts):**
+   - Added EmailMergeField type for merge field placeholders
+   - Added EmailTemplateContent interface with subject, greeting, bodyText, closing
+   - Added EmailTemplatesConfig interface for all template types
+   - Added UpdateEmailTemplatesRequest/Response interfaces
+   - Extended Wedding interface with emailTemplates field
+
+2. **API endpoint (services/platform-api/src/wedding/wedding.controller.ts):**
+   - Added PUT /api/weddings/:id/email-templates endpoint
+   - Validates template content presence
+
+3. **Wedding service (services/platform-api/src/wedding/wedding.service.ts):**
+   - Added updateEmailTemplates method to persist custom templates
+
+4. **Email service (services/platform-api/src/invitation/email.service.ts):**
+   - Added replaceMergeFields() to substitute {{guest_name}}, {{partner_names}}, {{wedding_date}}, {{wedding_venue}}, {{wedding_city}}, {{rsvp_link}}
+   - Added buildEmailHtml() helper for consistent HTML email generation
+   - Updated buildInvitationEmail() to use custom templates when available
+
+5. **Frontend types (apps/platform-ui/src/types.ts):**
+   - Added matching EmailTemplateContent, EmailTemplatesConfig interfaces
+   - Added UpdateEmailTemplatesResponse interface
+   - Extended Wedding interface with emailTemplates
+
+6. **Admin UI component (apps/platform-ui/src/components/EmailTemplateSettings.tsx):**
+   - New component for email template customization
+   - Template selector sidebar with 5 template types
+   - Editor with subject, greeting, body text, closing fields
+   - Merge fields reference showing available placeholders
+   - Reset to default functionality
+   - Customized badge indicator
+
+7. **Dashboard integration (apps/platform-ui/src/components/Dashboard.tsx):**
+   - Added email-templates view
+   - Added navigation handler and dashboard card
+   - New DocumentTextIcon for the card
+
+**Supported merge fields:**
+- {{guest_name}} - Guest's name
+- {{partner_names}} - Partner names (e.g., "Emma & James")
+- {{wedding_date}} - Formatted wedding date
+- {{wedding_venue}} - Venue name
+- {{wedding_city}} - Venue city
+- {{rsvp_link}} - RSVP link (invitation email only)
+
+**PRD features now passing:**
+- "Admin can customize invitation email content" ✓
+- "Email templates support merge fields" ✓
+
+**Notes for next person:**
+- Templates default to sensible values if admin hasn't customized
+- When a template is customized, only that specific template is stored
+- Resetting a template removes it from storage (falls back to default)
+- The email service builds HTML emails with greeting/body/closing structure
+- Merge field replacement is done at send time, not preview time

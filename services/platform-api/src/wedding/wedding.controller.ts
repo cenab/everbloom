@@ -36,6 +36,8 @@ import type {
   UpdateRegistryResponse,
   UpdateAccommodationsRequest,
   UpdateAccommodationsResponse,
+  UpdateEmailTemplatesRequest,
+  UpdateEmailTemplatesResponse,
 } from '../types';
 import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, WEDDING_NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, NOT_FOUND } from '../types';
 
@@ -708,6 +710,95 @@ export class WeddingController {
     }
 
     return { ok: true, data: renderConfig };
+  }
+
+  /**
+   * Update email templates for a wedding
+   * PRD: "Admin can customize invitation email content"
+   */
+  @Put(':id/email-templates')
+  async updateEmailTemplates(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: UpdateEmailTemplatesRequest,
+  ): Promise<ApiResponse<UpdateEmailTemplatesResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    // Validate template content if provided
+    if (body.emailTemplates) {
+      const templates = body.emailTemplates;
+
+      // Validate invitation template
+      if (templates.invitation) {
+        if (!templates.invitation.subject || !templates.invitation.bodyText) {
+          throw new BadRequestException({
+            ok: false,
+            error: VALIDATION_ERROR,
+            message: 'Invitation template requires subject and bodyText'
+          });
+        }
+      }
+
+      // Validate reminder template
+      if (templates.reminder) {
+        if (!templates.reminder.subject || !templates.reminder.bodyText) {
+          throw new BadRequestException({
+            ok: false,
+            error: VALIDATION_ERROR,
+            message: 'Reminder template requires subject and bodyText'
+          });
+        }
+      }
+
+      // Validate save-the-date template
+      if (templates.saveTheDate) {
+        if (!templates.saveTheDate.subject || !templates.saveTheDate.bodyText) {
+          throw new BadRequestException({
+            ok: false,
+            error: VALIDATION_ERROR,
+            message: 'Save-the-date template requires subject and bodyText'
+          });
+        }
+      }
+
+      // Validate thank-you templates
+      if (templates.thankYouAttended) {
+        if (!templates.thankYouAttended.subject || !templates.thankYouAttended.bodyText) {
+          throw new BadRequestException({
+            ok: false,
+            error: VALIDATION_ERROR,
+            message: 'Thank-you (attended) template requires subject and bodyText'
+          });
+        }
+      }
+
+      if (templates.thankYouNotAttended) {
+        if (!templates.thankYouNotAttended.subject || !templates.thankYouNotAttended.bodyText) {
+          throw new BadRequestException({
+            ok: false,
+            error: VALIDATION_ERROR,
+            message: 'Thank-you (not attended) template requires subject and bodyText'
+          });
+        }
+      }
+    }
+
+    const updatedWedding = this.weddingService.updateEmailTemplates(id, body.emailTemplates);
+
+    if (!updatedWedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    return { ok: true, data: { wedding: updatedWedding } };
   }
 
   /**
