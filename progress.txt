@@ -4098,3 +4098,94 @@ Implemented email template customization feature allowing admins to personalize 
 - SEATING_CHART feature flag controls whether table assignment is returned in RSVP view
 - To test: create wedding → enable seating chart → assign guests to tables → view public site (no names) → view RSVP page (shows individual assignment)
 
+
+---
+
+### 2026-01-07 - Admin-Curated Photo Gallery
+
+**Feature worked on:** Gallery features (PRD: gallery category)
+- Admin can upload curated photos
+- Photo gallery displays on public site
+- Gallery supports lightbox view
+
+**Priority rationale:** High user value with low infrastructure cost. Couples want to showcase engagement photos on their wedding site. Photo upload infrastructure already exists for guest uploads, so we can reuse patterns. This is a core visual feature that makes wedding sites feel personal and complete.
+
+**What was done:**
+
+1. **Added gallery types to platform-api (services/platform-api/src/types/index.ts):**
+   - GalleryPhoto interface (id, fileName, contentType, fileSize, caption, order, url, uploadedAt)
+   - GalleryConfig interface ({ photos: GalleryPhoto[] })
+   - UpdateGalleryRequest/Response types
+   - GalleryUploadUrlRequest/Response types
+   - GALLERY_PHOTO_NOT_FOUND and GALLERY_UPLOAD_VALIDATION_ERROR error codes
+   - Added gallery?: GalleryConfig to Wedding and RenderConfig interfaces
+
+2. **Added gallery methods to WeddingService (services/platform-api/src/wedding/wedding.service.ts):**
+   - Gallery section constants (GALLERY_SECTION_ID, DEFAULT_GALLERY_SECTION_DATA)
+   - createGallerySection helper function
+   - Gallery section generation in generateRenderConfig (order 10, enabled when photos exist)
+   - updateGallery() - Replace entire gallery config
+   - addGalleryPhoto() - Add single photo
+   - removeGalleryPhoto() - Remove photo by ID
+   - updateGalleryPhoto() - Update caption/order
+   - getGallery() - Get current gallery config
+
+3. **Added gallery endpoints to WeddingController (services/platform-api/src/wedding/wedding.controller.ts):**
+   - GET :id/gallery - Get gallery configuration
+   - PUT :id/gallery - Update entire gallery
+   - POST :id/gallery/photos - Add single photo
+   - PUT :id/gallery/photos/:photoId - Update photo caption/order
+   - DELETE :id/gallery/photos/:photoId - Remove photo
+
+4. **Added gallery types to platform-ui (apps/platform-ui/src/types.ts):**
+   - GalleryPhoto, GalleryConfig, UpdateGalleryResponse types
+   - Added gallery?: GalleryConfig to Wedding and RenderConfig interfaces
+
+5. **Created GallerySettings component (apps/platform-ui/src/components/GallerySettings.tsx):**
+   - Photo upload via file input (supports multiple files)
+   - File validation (image types only, max 10MB)
+   - Photo preview with thumbnails
+   - Caption editing per photo
+   - Drag-to-reorder via up/down buttons
+   - Delete photos
+   - Save/cancel flow with change detection
+
+6. **Updated Dashboard (apps/platform-ui/src/components/Dashboard.tsx):**
+   - Added 'gallery' to View type
+   - Added GallerySettings import and view handler
+   - Added onNavigateToGallery to WeddingDashboard props
+   - Added "Photo gallery" dashboard card with ImageIcon
+
+7. **Added gallery types to wedding-site (apps/wedding-site/src/types.ts):**
+   - GalleryPhoto, GalleryConfig types
+   - Added gallery?: GalleryConfig to RenderConfig
+
+8. **Created GallerySection.astro (apps/wedding-site/src/components/sections/GallerySection.astro):**
+   - Photo grid layout (responsive, auto-fill)
+   - Photo thumbnails with captions
+   - Lightbox modal with navigation (prev/next, keyboard support)
+   - Close on backdrop click or Escape key
+   - Mobile-responsive design
+
+9. **Updated SectionRenderer.astro:**
+   - Added GallerySection import
+   - Added gallery to destructured config
+   - Added 'gallery' case to switch (not feature-gated, renders when photos exist)
+
+**Design decisions:**
+- Gallery is NOT feature-gated (unlike PHOTO_UPLOAD for guests) since engagement photos are core to wedding sites
+- Gallery section enabled state tied to whether photos exist (not a feature flag toggle)
+- Lightbox supports keyboard navigation (arrow keys, Escape)
+- Photos sorted by order field for consistent display
+
+**PRD features now passing:**
+- "Admin can upload curated photos" ✓
+- "Photo gallery displays on public site" ✓
+- "Gallery supports lightbox view" ✓
+
+**Notes for next person:**
+- Photo upload in admin currently creates object URLs for previews (local demo)
+- In production, integrate with storage service for permanent URLs
+- Consider adding drag-and-drop reordering for better UX
+- Lightbox could be enhanced with zoom, pinch-to-zoom on mobile
+- Gallery section appears after other sections (order 10), admin could configure order in future

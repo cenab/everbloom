@@ -1193,7 +1193,7 @@
       "Reorder photos",
       "Save gallery"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "gallery",
@@ -1205,7 +1205,7 @@
       "Verify gallery section is visible",
       "Verify photos display with captions"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "gallery",
@@ -1217,7 +1217,7 @@
       "Navigate between photos in lightbox",
       "Close lightbox"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "video",

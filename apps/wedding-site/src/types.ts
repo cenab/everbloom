@@ -179,6 +179,8 @@ export interface RenderConfig {
   guestbook?: GuestbookConfig;
   /** Seating chart configuration */
   seating?: SeatingConfig;
+  /** Admin-curated photo gallery */
+  gallery?: GalleryConfig;
   /** Whether passcode protection is enabled (hash is never exposed) */
   passcodeProtected?: boolean;
   wedding: {
@@ -389,6 +391,31 @@ export interface SubmitSongRequestRequest {
 export interface SubmitSongRequestResponse {
   ok: true;
   message: string;
+}
+
+// ============================================================================
+// Gallery Types (Admin-curated photos)
+// ============================================================================
+
+/**
+ * A single curated photo in the gallery
+ */
+export interface GalleryPhoto {
+  id: string;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  caption?: string;
+  order: number;
+  url?: string;
+  uploadedAt: string;
+}
+
+/**
+ * Gallery configuration for a wedding
+ */
+export interface GalleryConfig {
+  photos: GalleryPhoto[];
 }
 
 // ============================================================================

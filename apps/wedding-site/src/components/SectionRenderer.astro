@@ -10,13 +10,14 @@ import AccommodationsSection from './sections/AccommodationsSection.astro';
 import GuestbookSection from './sections/GuestbookSection.astro';
 import MusicRequestSection from './sections/MusicRequestSection.astro';
 import SeatingSection from './sections/SeatingSection.astro';
+import GallerySection from './sections/GallerySection.astro';
 
 interface Props {
   config: RenderConfig;
 }
 
 const { config } = Astro.props;
-const { sections, theme, wedding, features, faq, registry, accommodations, guestbook, seating } = config;
+const { sections, theme, wedding, features, faq, registry, accommodations, guestbook, seating, gallery } = config;
 
 // Filter enabled sections and sort by order
 const enabledSections = sections
@@ -82,6 +83,9 @@ const enabledSections = sections
         return <SeatingSection section={section} theme={theme} seating={seating} />;
       }
       return null;
+    case 'gallery':
+      // Gallery is always rendered if photos exist (not feature-gated)
+      return <GallerySection section={section} theme={theme} gallery={gallery} />;
     default:
       return null;
   }

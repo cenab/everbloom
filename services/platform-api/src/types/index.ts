@@ -112,6 +112,89 @@ export interface FaqConfig {
 }
 
 // ============================================================================
+// Gallery Types (Admin Curated Photos)
+// ============================================================================
+
+/**
+ * A single curated photo in the gallery (admin-uploaded engagement/couple photos)
+ */
+export interface GalleryPhoto {
+  id: string;
+  /** Original filename of the uploaded photo */
+  fileName: string;
+  /** MIME type (image/jpeg, image/png, etc.) */
+  contentType: string;
+  /** File size in bytes */
+  fileSize: number;
+  /** Optional caption for the photo */
+  caption?: string;
+  /** Display order in the gallery (lower = first) */
+  order: number;
+  /** URL to access the photo (relative or signed URL) */
+  url?: string;
+  /** Upload timestamp */
+  uploadedAt: string;
+}
+
+/**
+ * Gallery configuration for the wedding
+ */
+export interface GalleryConfig {
+  /** Array of curated photos for the gallery */
+  photos: GalleryPhoto[];
+}
+
+/**
+ * Request to update gallery (add/remove/reorder photos)
+ */
+export interface UpdateGalleryRequest {
+  gallery: GalleryConfig;
+}
+
+/**
+ * Response after updating gallery
+ */
+export interface UpdateGalleryResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+/**
+ * Request for creating a signed upload URL for gallery photo
+ */
+export interface GalleryUploadUrlRequest {
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+}
+
+/**
+ * Response containing a signed upload URL for gallery photo
+ */
+export interface GalleryUploadUrlResponse {
+  uploadId: string;
+  uploadUrl: string;
+  expiresAt: string;
+}
+
+/**
+ * Response after uploading a gallery photo
+ */
+export interface GalleryUploadResponse {
+  photo: GalleryPhoto;
+}
+
+/**
+ * Gallery photo not found error code
+ */
+export const GALLERY_PHOTO_NOT_FOUND = 'GALLERY_PHOTO_NOT_FOUND' as const;
+
+/**
+ * Gallery upload validation error code
+ */
+export const GALLERY_UPLOAD_VALIDATION_ERROR = 'GALLERY_UPLOAD_VALIDATION_ERROR' as const;
+
+// ============================================================================
 // Registry Types
 // ============================================================================
 
@@ -293,6 +376,8 @@ export interface RenderConfig {
   guestbook?: GuestbookConfig;
   /** Seating chart configuration (tables with assigned guests) */
   seating?: SeatingConfig;
+  /** Admin curated photo gallery */
+  gallery?: GalleryConfig;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -585,6 +670,8 @@ export interface Wedding {
   accommodations?: AccommodationsConfig;
   /** Custom email templates for invitations, reminders, etc. */
   emailTemplates?: EmailTemplatesConfig;
+  /** Admin curated photo gallery */
+  gallery?: GalleryConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -1920,4 +2007,6 @@ export type ErrorCode =
   | typeof GUEST_ALREADY_ASSIGNED
   | typeof SEATING_CHART_DISABLED
   | typeof GUEST_NOT_INVITED_TO_EVENT
-  | typeof EVENT_NOT_FOUND;
+  | typeof EVENT_NOT_FOUND
+  | typeof GALLERY_PHOTO_NOT_FOUND
+  | typeof GALLERY_UPLOAD_VALIDATION_ERROR;

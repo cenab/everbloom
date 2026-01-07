@@ -207,6 +207,7 @@ export interface RenderConfig {
   mealConfig?: MealConfig;
   registry?: RegistryConfig;
   accommodations?: AccommodationsConfig;
+  gallery?: GalleryConfig;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -338,6 +339,7 @@ export interface Wedding {
   registry?: RegistryConfig;
   accommodations?: AccommodationsConfig;
   emailTemplates?: EmailTemplatesConfig;
+  gallery?: GalleryConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -995,6 +997,40 @@ export interface SeatingOverviewResponse {
     totalAssigned: number;
     totalUnassigned: number;
   };
+}
+
+// ============================================================================
+// Gallery Types (Admin-curated photos)
+// PRD: "Admin can upload curated photos"
+// ============================================================================
+
+/**
+ * A single curated photo in the gallery
+ */
+export interface GalleryPhoto {
+  id: string;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  caption?: string;
+  order: number;
+  url?: string;
+  uploadedAt: string;
+}
+
+/**
+ * Gallery configuration for a wedding
+ */
+export interface GalleryConfig {
+  photos: GalleryPhoto[];
+}
+
+/**
+ * Response after updating gallery
+ */
+export interface UpdateGalleryResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
 }
 
 // ============================================================================

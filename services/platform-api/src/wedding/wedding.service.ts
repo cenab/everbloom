@@ -23,6 +23,8 @@ import type {
   GuestbookConfig,
   SeatingConfig,
   EmailTemplatesConfig,
+  GalleryConfig,
+  GalleryPhoto,
 } from '../types';
 
 const scryptAsync = promisify(scrypt);
@@ -187,6 +189,25 @@ const createSeatingSection = (order: number, enabled: boolean): Section => ({
   enabled,
   order,
   data: { ...DEFAULT_SEATING_SECTION_DATA },
+});
+
+const GALLERY_SECTION_ID = 'gallery';
+
+const DEFAULT_GALLERY_SECTION_DATA = {
+  title: 'Our Story',
+  description: 'Moments we cherish from our journey together.',
+};
+
+const DEFAULT_GALLERY: GalleryConfig = {
+  photos: [],
+};
+
+const createGallerySection = (order: number, enabled: boolean): Section => ({
+  id: GALLERY_SECTION_ID,
+  type: 'gallery',
+  enabled,
+  order,
+  data: { ...DEFAULT_GALLERY_SECTION_DATA },
 });
 
 /**
@@ -401,6 +422,8 @@ export class WeddingService {
         createGuestbookSection(7, wedding.features.GUESTBOOK),
         createMusicRequestSection(8, wedding.features.MUSIC_REQUESTS),
         createSeatingSection(9, wedding.features.SEATING_CHART),
+        // Gallery section - enabled when there are curated photos (admin-controlled, not feature-gated)
+        createGallerySection(10, (wedding.gallery?.photos.length ?? 0) > 0),
       ],
       wedding: {
         slug: wedding.slug,
@@ -439,6 +462,11 @@ export class WeddingService {
         wedding.accommodations.travelInfo?.parkingInfo ||
         wedding.accommodations.travelInfo?.mapUrl)) {
       config.accommodations = wedding.accommodations;
+    }
+
+    // Add gallery configuration if present (admin curated photos)
+    if (wedding.gallery && wedding.gallery.photos.length > 0) {
+      config.gallery = wedding.gallery;
     }
 
     return config;
@@ -499,6 +527,7 @@ export class WeddingService {
       announcement: { ...DEFAULT_ANNOUNCEMENT },
       faq: { ...DEFAULT_FAQ },
       registry: { ...DEFAULT_REGISTRY },
+      gallery: { ...DEFAULT_GALLERY },
       createdAt: now,
       updatedAt: now,
     };
@@ -1233,5 +1262,160 @@ export class WeddingService {
     );
 
     return { wedding, renderConfig: updatedConfig };
+  }
+
+  /**
+   * Update gallery configuration for a wedding (admin curated photos)
+   * Updates both the wedding record and regenerates render_config
+   * PRD: "Admin can upload curated photos"
+   */
+  updateGallery(
+    weddingId: string,
+    gallery: GalleryConfig,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    wedding.gallery = gallery;
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    const existingConfig = this.renderConfigs.get(weddingId);
+    if (!existingConfig) {
+      return null;
+    }
+
+    // Update gallery in render_config
+    const hasPhotos = gallery.photos.length > 0;
+
+    // Update the gallery section enabled state
+    const updatedSections = existingConfig.sections.map((section) => {
+      if (section.type === 'gallery') {
+        return { ...section, enabled: hasPhotos };
+      }
+      return section;
+    });
+
+    // Ensure gallery section exists
+    const hasGallerySection = updatedSections.some((s) => s.type === 'gallery');
+    if (!hasGallerySection) {
+      const maxOrder = updatedSections.reduce((max, s) => Math.max(max, s.order), -1);
+      updatedSections.push(createGallerySection(maxOrder + 1, hasPhotos));
+    }
+
+    const updatedConfig: RenderConfig = {
+      ...existingConfig,
+      sections: updatedSections,
+      gallery: hasPhotos ? gallery : undefined,
+    };
+
+    this.renderConfigs.set(weddingId, updatedConfig);
+
+    this.logger.log(
+      `Updated gallery for wedding ${weddingId}: ${gallery.photos.length} photos`,
+    );
+
+    return { wedding, renderConfig: updatedConfig };
+  }
+
+  /**
+   * Add a single photo to the gallery
+   * Returns the updated gallery configuration
+   */
+  addGalleryPhoto(
+    weddingId: string,
+    photo: GalleryPhoto,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    const gallery = wedding.gallery ?? { ...DEFAULT_GALLERY };
+
+    // Set order to be last if not specified
+    const photoWithOrder: GalleryPhoto = {
+      ...photo,
+      order: photo.order ?? gallery.photos.length,
+    };
+
+    gallery.photos.push(photoWithOrder);
+
+    return this.updateGallery(weddingId, gallery);
+  }
+
+  /**
+   * Remove a photo from the gallery by ID
+   */
+  removeGalleryPhoto(
+    weddingId: string,
+    photoId: string,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    if (!wedding.gallery) {
+      return null;
+    }
+
+    const updatedPhotos = wedding.gallery.photos.filter((p) => p.id !== photoId);
+
+    // Re-order remaining photos
+    const reorderedPhotos = updatedPhotos.map((p, index) => ({
+      ...p,
+      order: index,
+    }));
+
+    return this.updateGallery(weddingId, { photos: reorderedPhotos });
+  }
+
+  /**
+   * Update a photo's caption or order
+   */
+  updateGalleryPhoto(
+    weddingId: string,
+    photoId: string,
+    updates: { caption?: string; order?: number },
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding || !wedding.gallery) {
+      return null;
+    }
+
+    const photoIndex = wedding.gallery.photos.findIndex((p) => p.id === photoId);
+    if (photoIndex === -1) {
+      return null;
+    }
+
+    const updatedPhotos = [...wedding.gallery.photos];
+    updatedPhotos[photoIndex] = {
+      ...updatedPhotos[photoIndex],
+      ...updates,
+    };
+
+    // If order changed, re-sort and re-number
+    if (updates.order !== undefined) {
+      updatedPhotos.sort((a, b) => a.order - b.order);
+      updatedPhotos.forEach((p, index) => {
+        p.order = index;
+      });
+    }
+
+    return this.updateGallery(weddingId, { photos: updatedPhotos });
+  }
+
+  /**
+   * Get the gallery configuration for a wedding
+   */
+  getGallery(weddingId: string): GalleryConfig | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+    return wedding.gallery ?? { ...DEFAULT_GALLERY };
   }
 }

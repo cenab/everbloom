@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Put,
+  Post,
+  Delete,
   Param,
   Body,
   Headers,
@@ -38,8 +40,12 @@ import type {
   UpdateAccommodationsResponse,
   UpdateEmailTemplatesRequest,
   UpdateEmailTemplatesResponse,
+  UpdateGalleryRequest,
+  UpdateGalleryResponse,
+  GalleryConfig,
+  GalleryPhoto,
 } from '../types';
-import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, WEDDING_NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, NOT_FOUND } from '../types';
+import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, WEDDING_NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, NOT_FOUND, GALLERY_PHOTO_NOT_FOUND } from '../types';
 
 @Controller('weddings')
 export class WeddingController {
@@ -663,6 +669,201 @@ export class WeddingController {
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Get gallery configuration for a wedding
+   * PRD: "Admin can upload curated photos"
+   */
+  @Get(':id/gallery')
+  async getGallery(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+  ): Promise<ApiResponse<GalleryConfig>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    const gallery = this.weddingService.getGallery(id);
+
+    if (!gallery) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return { ok: true, data: gallery };
+  }
+
+  /**
+   * Update gallery configuration for a wedding
+   * Allows admin to add/remove/reorder photos and update captions
+   * PRD: "Admin can upload curated photos"
+   */
+  @Put(':id/gallery')
+  async updateGallery(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: UpdateGalleryRequest,
+  ): Promise<ApiResponse<UpdateGalleryResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    // Gallery is not feature-gated; it's available to all plans
+    // (engagement photos are a core wedding site feature)
+
+    if (!body.gallery) {
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+    }
+
+    // Validate photo entries
+    const photos = body.gallery.photos || [];
+    for (const photo of photos) {
+      if (!photo.id?.trim() || !photo.fileName?.trim()) {
+        throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+      }
+    }
+
+    // Normalize the gallery photos
+    const normalizedGallery: GalleryConfig = {
+      photos: photos.map((photo, index) => ({
+        id: photo.id,
+        fileName: photo.fileName.trim(),
+        contentType: photo.contentType || 'image/jpeg',
+        fileSize: photo.fileSize || 0,
+        caption: photo.caption?.trim() || undefined,
+        order: photo.order ?? index,
+        url: photo.url,
+        uploadedAt: photo.uploadedAt || new Date().toISOString(),
+      })),
+    };
+
+    const result = this.weddingService.updateGallery(id, normalizedGallery);
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Add a single photo to the gallery
+   * PRD: "Admin can upload curated photos"
+   */
+  @Post(':id/gallery/photos')
+  async addGalleryPhoto(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: GalleryPhoto,
+  ): Promise<ApiResponse<UpdateGalleryResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (!body.id || !body.fileName) {
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+    }
+
+    const photo: GalleryPhoto = {
+      id: body.id,
+      fileName: body.fileName,
+      contentType: body.contentType || 'image/jpeg',
+      fileSize: body.fileSize || 0,
+      caption: body.caption?.trim() || undefined,
+      order: body.order ?? 0,
+      url: body.url,
+      uploadedAt: body.uploadedAt || new Date().toISOString(),
+    };
+
+    const result = this.weddingService.addGalleryPhoto(id, photo);
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Update a specific photo in the gallery (caption, order)
+   * PRD: "Add captions to photos", "Reorder photos"
+   */
+  @Put(':id/gallery/photos/:photoId')
+  async updateGalleryPhoto(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Param('photoId') photoId: string,
+    @Body() body: { caption?: string; order?: number },
+  ): Promise<ApiResponse<UpdateGalleryResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    const result = this.weddingService.updateGalleryPhoto(id, photoId, body);
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: GALLERY_PHOTO_NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Remove a photo from the gallery
+   * PRD: "Admin can upload curated photos" (implies ability to remove)
+   */
+  @Delete(':id/gallery/photos/:photoId')
+  async removeGalleryPhoto(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Param('photoId') photoId: string,
+  ): Promise<ApiResponse<UpdateGalleryResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    const result = this.weddingService.removeGalleryPhoto(id, photoId);
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: GALLERY_PHOTO_NOT_FOUND });
     }
 
     return { ok: true, data: result };
