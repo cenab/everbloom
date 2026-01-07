@@ -8,6 +8,8 @@ import type {
   FeatureFlag,
   PlanTier,
   Theme,
+  Template,
+  TemplateCategory,
 } from '@wedding-bestie/shared';
 
 /**
@@ -45,6 +47,72 @@ const ALL_FEATURES: FeatureFlag[] = [
   'ANNOUNCEMENT_BANNER',
   'FAQ_SECTION',
   'PASSCODE_SITE',
+];
+
+/**
+ * Available templates - curated set matching design system
+ */
+const TEMPLATES: Template[] = [
+  {
+    id: 'minimal-001',
+    name: 'Serene',
+    category: 'minimal' as TemplateCategory,
+    description: 'Clean lines and generous whitespace for a modern, understated elegance.',
+    defaultTheme: {
+      primary: '#c9826b',
+      accent: '#8fac8b',
+      neutralLight: '#faf8f5',
+      neutralDark: '#2d2d2d',
+    },
+  },
+  {
+    id: 'minimal-002',
+    name: 'Whisper',
+    category: 'minimal' as TemplateCategory,
+    description: 'Soft tones and delicate typography for an intimate, romantic feel.',
+    defaultTheme: {
+      primary: '#b8a090',
+      accent: '#c9b8a8',
+      neutralLight: '#fdfcfb',
+      neutralDark: '#3d3d3d',
+    },
+  },
+  {
+    id: 'classic-001',
+    name: 'Heritage',
+    category: 'classic' as TemplateCategory,
+    description: 'Timeless design with traditional flourishes and refined details.',
+    defaultTheme: {
+      primary: '#8b7355',
+      accent: '#a89078',
+      neutralLight: '#f9f7f4',
+      neutralDark: '#2f2f2f',
+    },
+  },
+  {
+    id: 'modern-001',
+    name: 'Edge',
+    category: 'modern' as TemplateCategory,
+    description: 'Bold typography and contemporary layouts for the style-forward couple.',
+    defaultTheme: {
+      primary: '#4a5568',
+      accent: '#718096',
+      neutralLight: '#f7fafc',
+      neutralDark: '#1a202c',
+    },
+  },
+  {
+    id: 'destination-001',
+    name: 'Wanderlust',
+    category: 'destination' as TemplateCategory,
+    description: 'Inspired by travel and adventure, perfect for destination celebrations.',
+    defaultTheme: {
+      primary: '#5f8a8b',
+      accent: '#9bbec8',
+      neutralLight: '#f8fafa',
+      neutralDark: '#2c3e3f',
+    },
+  },
 ];
 
 @Injectable()
@@ -235,5 +303,60 @@ export class WeddingService {
    */
   getRenderConfig(weddingId: string): RenderConfig | null {
     return this.renderConfigs.get(weddingId) || null;
+  }
+
+  /**
+   * Get all available templates
+   */
+  getTemplates(): Template[] {
+    return TEMPLATES;
+  }
+
+  /**
+   * Get a template by ID
+   */
+  getTemplate(templateId: string): Template | null {
+    return TEMPLATES.find((t) => t.id === templateId) || null;
+  }
+
+  /**
+   * Change a wedding's template while preserving content
+   * This updates the render_config with the new template and its theme,
+   * but keeps the existing sections data (content) intact.
+   */
+  changeTemplate(weddingId: string, templateId: string): RenderConfig | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    const template = this.getTemplate(templateId);
+    if (!template) {
+      return null;
+    }
+
+    const existingConfig = this.renderConfigs.get(weddingId);
+    if (!existingConfig) {
+      return null;
+    }
+
+    // Update render_config with new template while preserving content
+    const updatedConfig: RenderConfig = {
+      ...existingConfig,
+      templateId: template.id,
+      theme: template.defaultTheme,
+      // Sections (content) are preserved - only visual presentation changes
+    };
+
+    // Store updated config
+    this.renderConfigs.set(weddingId, updatedConfig);
+
+    // Update wedding timestamp
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    this.logger.log(`Changed template for wedding ${weddingId} to ${templateId}`);
+
+    return updatedConfig;
   }
 }

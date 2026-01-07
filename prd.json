@@ -201,7 +201,7 @@
       "Reload public wedding site",
       "Verify content remains intact with new template"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "features",

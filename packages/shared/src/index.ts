@@ -22,6 +22,44 @@ export type TemplateCategory =
   | 'cultural';
 
 /**
+ * Template definition for wedding site rendering
+ */
+export interface Template {
+  id: string;
+  name: string;
+  category: TemplateCategory;
+  description: string;
+  previewImageUrl?: string;
+  defaultTheme: Theme;
+}
+
+/**
+ * Request to change a wedding's template
+ */
+export interface ChangeTemplateRequest {
+  templateId: string;
+}
+
+/**
+ * Response after changing template
+ */
+export interface ChangeTemplateResponse {
+  renderConfig: RenderConfig;
+}
+
+/**
+ * Response for listing available templates
+ */
+export interface TemplatesListResponse {
+  templates: Template[];
+}
+
+/**
+ * Template not found error code
+ */
+export const TEMPLATE_NOT_FOUND = 'TEMPLATE_NOT_FOUND' as const;
+
+/**
  * Theme configuration for wedding sites
  */
 export interface Theme {

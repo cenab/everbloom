@@ -751,3 +751,85 @@
 - Email outbox tracks all sends with status (pending/sent/failed)
 - The invitation email includes a personalized RSVP link with the guest's token
 - To test: add guests → select them → click "Send invites" → check API console for logged emails
+
+---
+
+### 2026-01-06 - Template Switching Without Content Loss
+
+**Feature worked on:** Template can be switched without losing content (PRD: site category)
+
+**Priority rationale:** This is a high-priority feature because:
+1. Template switching is core to the product value proposition
+2. The render_config architecture already supports it conceptually
+3. It completes the wedding site customization workflow
+4. It allows couples to explore different visual styles before their wedding
+
+**What was done:**
+1. Added template types to shared package:
+   - `Template` interface with id, name, category, description, defaultTheme
+   - `ChangeTemplateRequest` and `ChangeTemplateResponse` types
+   - `TemplatesListResponse` for listing available templates
+   - `TEMPLATE_NOT_FOUND` error code
+
+2. Added template definitions in WeddingService:
+   - 5 curated templates across categories (Minimal, Classic, Modern, Destination)
+   - Serene (minimal-001): Clean lines and generous whitespace
+   - Whisper (minimal-002): Soft tones and delicate typography
+   - Heritage (classic-001): Timeless design with traditional flourishes
+   - Edge (modern-001): Bold typography and contemporary layouts
+   - Wanderlust (destination-001): Travel-inspired design
+
+3. Added template methods to WeddingService:
+   - `getTemplates()` - returns all available templates
+   - `getTemplate(id)` - returns a single template by ID
+   - `changeTemplate(weddingId, templateId)` - changes template while preserving content
+   - Content preservation: sections data remains intact, only templateId and theme change
+
+4. Added API endpoints to WeddingController:
+   - `GET /api/weddings/templates/list` - List all available templates (public)
+   - `PUT /api/weddings/:id/template` - Change wedding template (requires auth)
+
+5. Created TemplateSelector component (apps/platform-ui/src/components/TemplateSelector.tsx):
+   - Template grid with visual previews using theme colors
+   - Shows current template with "Current" badge
+   - Color swatch preview for selected template
+   - Save/Cancel buttons with loading states
+   - Success message on template change
+
+6. Updated Dashboard component:
+   - Added "Site template" card with palette icon
+   - Added template view navigation
+   - Created TemplateSelectorWrapper to fetch current template
+   - PaletteIcon component for the dashboard card
+
+**API Endpoints:**
+- `GET /api/weddings/templates/list` - Get all available templates (public)
+  - Returns: `{ templates: Template[] }`
+- `PUT /api/weddings/:id/template` - Change wedding template (requires auth)
+  - Request: `{ templateId: string }`
+  - Response: `{ renderConfig: RenderConfig }`
+  - Content (sections) is preserved, only visual style changes
+
+**Design system adherence:**
+- Curated palette of 5 templates across categories (not arbitrary selection)
+- Template previews show actual theme colors
+- No pure black/white in any template theme
+- Human language: "Choose your visual style", "Your content will be preserved"
+- Calm, minimal UI with clear selection states
+
+**PRD features now passing:**
+- "Template can be switched without losing content" ✓
+
+**Next steps:**
+- Implement feature selection step during wedding setup
+- Implement feature toggle UI in admin dashboard
+- Implement photo upload feature
+- Implement announcement banner feature
+
+**Notes for next person:**
+- Templates are defined in WeddingService as TEMPLATES constant
+- Each template has a defaultTheme that is applied when switching
+- Content (sections array) is preserved during template switch
+- Template list endpoint is public, change endpoint requires auth
+- The wedding site renders from render_config which includes templateId
+- To test: create wedding → go to dashboard → click "Site template" → select new template → save → view site

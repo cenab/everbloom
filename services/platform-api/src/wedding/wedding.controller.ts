@@ -1,10 +1,13 @@
 import {
   Controller,
   Get,
+  Put,
   Param,
+  Body,
   Headers,
   UnauthorizedException,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { WeddingService } from './wedding.service';
 import { AuthService } from '../auth/auth.service';
@@ -12,7 +15,10 @@ import type {
   ApiResponse,
   Wedding,
   RenderConfig,
+  Template,
+  ChangeTemplateRequest,
 } from '@wedding-bestie/shared';
+import { TEMPLATE_NOT_FOUND } from '@wedding-bestie/shared';
 
 @Controller('weddings')
 export class WeddingController {
@@ -81,6 +87,60 @@ export class WeddingController {
 
     if (!renderConfig) {
       throw new NotFoundException('Render config not found');
+    }
+
+    return { ok: true, data: renderConfig };
+  }
+
+  /**
+   * Get available templates
+   * Public endpoint - templates don't require auth
+   */
+  @Get('templates/list')
+  async listTemplates(): Promise<ApiResponse<Template[]>> {
+    const templates = this.weddingService.getTemplates();
+    return { ok: true, data: templates };
+  }
+
+  /**
+   * Change a wedding's template
+   * Preserves all content (sections data) while updating visual presentation
+   */
+  @Put(':id/template')
+  async changeTemplate(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: ChangeTemplateRequest,
+  ): Promise<ApiResponse<RenderConfig>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException('Wedding not found');
+    }
+
+    // Ensure user owns this wedding
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException('Wedding not found');
+    }
+
+    if (!body.templateId) {
+      throw new BadRequestException('Template ID is required');
+    }
+
+    // Check if template exists
+    const template = this.weddingService.getTemplate(body.templateId);
+    if (!template) {
+      throw new BadRequestException({
+        ok: false,
+        error: TEMPLATE_NOT_FOUND,
+      });
+    }
+
+    const renderConfig = this.weddingService.changeTemplate(id, body.templateId);
+
+    if (!renderConfig) {
+      throw new NotFoundException('Failed to update template');
     }
 
     return { ok: true, data: renderConfig };
