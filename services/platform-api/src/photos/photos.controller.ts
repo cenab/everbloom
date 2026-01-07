@@ -11,6 +11,7 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 import type {
@@ -18,13 +19,13 @@ import type {
   PhotoUploadUrlRequest,
   PhotoUploadUrlResponse,
   PhotoUploadResponse,
-} from '@wedding-bestie/shared';
+} from '../types';
 import {
   FEATURE_DISABLED,
   WEDDING_NOT_FOUND,
   PHOTO_UPLOAD_INVALID,
   PHOTO_UPLOAD_VALIDATION_ERROR,
-} from '@wedding-bestie/shared';
+} from '../types';
 import { WeddingService } from '../wedding/wedding.service';
 import { PhotosService } from './photos.service';
 import { MAX_PHOTO_SIZE_BYTES } from './photos.constants';
@@ -32,6 +33,8 @@ import { MAX_PHOTO_SIZE_BYTES } from './photos.constants';
 /**
  * Public controller for guest photo uploads
  * Uses signed URLs to allow direct uploads
+ *
+ * PRD: "Rate limits prevent abuse" - Upload endpoints have strict limits
  */
 @Controller('photos')
 export class PhotosController {
@@ -43,7 +46,10 @@ export class PhotosController {
   /**
    * Create a signed URL for photo upload
    * POST /api/photos/upload-url
+   *
+   * PRD: "Rate limits prevent abuse" - Strict limit: 30 requests per minute (batch uploads)
    */
+  @Throttle({ strict: { ttl: 60000, limit: 30 } })
   @Post('upload-url')
   async createUploadUrl(
     @Body() body: PhotoUploadUrlRequest,
@@ -113,7 +119,10 @@ export class PhotosController {
   /**
    * Upload a photo using a signed URL
    * POST /api/photos/upload/:uploadId?signature=...&expires=...
+   *
+   * PRD: "Rate limits prevent abuse" - Strict limit: 30 requests per minute (batch uploads)
    */
+  @Throttle({ strict: { ttl: 60000, limit: 30 } })
   @Post('upload/:uploadId')
   @UseInterceptors(
     FileInterceptor('file', {

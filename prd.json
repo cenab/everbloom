@@ -1510,7 +1510,7 @@
       "Wait for rate limit reset",
       "Verify requests succeed again"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "rate-limiting",
@@ -1521,7 +1521,7 @@
       "Attempt to upload many photos rapidly",
       "Verify rate limiting kicks in"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "export",

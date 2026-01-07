@@ -9,6 +9,7 @@ import {
   UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import type {
   ApiResponse,
@@ -20,13 +21,19 @@ import type {
 } from '../types';
 import { MAGIC_LINK_INVALID, VALIDATION_ERROR, UNAUTHORIZED } from '../types';
 
+/**
+ * Authentication controller with strict rate limiting
+ * PRD: "API endpoints are rate limited"
+ */
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   /**
    * Request a magic link to be sent to the given email
+   * Strict rate limit to prevent email enumeration/spam
    */
+  @Throttle({ strict: { ttl: 60000, limit: 5 } })
   @Post('request-link')
   @HttpCode(HttpStatus.OK)
   async requestLink(
@@ -48,7 +55,9 @@ export class AuthController {
 
   /**
    * Verify a magic link token and create a session
+   * Strict rate limit to prevent brute force attacks
    */
+  @Throttle({ strict: { ttl: 60000, limit: 10 } })
   @Post('verify-link')
   @HttpCode(HttpStatus.OK)
   async verifyLink(

@@ -1249,6 +1249,12 @@ export const NOT_FOUND = 'NOT_FOUND' as const;
  */
 export const INTERNAL_ERROR = 'INTERNAL_ERROR' as const;
 
+/**
+ * Rate limit exceeded error code
+ * PRD: "API endpoints are rate limited"
+ */
+export const RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED' as const;
+
 // ============================================================================
 // Meal Options Types
 // ============================================================================
@@ -1356,5 +1362,6 @@ export type ErrorCode =
   | typeof FORBIDDEN
   | typeof NOT_FOUND
   | typeof INTERNAL_ERROR
+  | typeof RATE_LIMIT_EXCEEDED
   | typeof INVALID_MEAL_OPTION
   | typeof MEAL_OPTIONS_NOT_CONFIGURED;

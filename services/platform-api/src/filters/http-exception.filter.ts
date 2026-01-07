@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { ThrottlerException } from '@nestjs/throttler';
 import { Response } from 'express';
 import {
   ApiError,
@@ -14,6 +15,7 @@ import {
   FORBIDDEN,
   NOT_FOUND,
   INTERNAL_ERROR,
+  RATE_LIMIT_EXCEEDED,
 } from '../types';
 
 /**
@@ -36,6 +38,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     let status: number;
     let errorResponse: ApiError;
+
+    // Handle rate limiting exceptions specially
+    // PRD: "API endpoints are rate limited" - return 429 with structured error
+    if (exception instanceof ThrottlerException) {
+      status = HttpStatus.TOO_MANY_REQUESTS;
+      errorResponse = { ok: false, error: RATE_LIMIT_EXCEEDED };
+
+      response.status(status).json(errorResponse);
+      return;
+    }
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -117,6 +129,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
         return VALIDATION_ERROR;
       case HttpStatus.UNPROCESSABLE_ENTITY:
         return VALIDATION_ERROR;
+      case HttpStatus.TOO_MANY_REQUESTS:
+        return RATE_LIMIT_EXCEEDED;
       default:
         return INTERNAL_ERROR;
     }

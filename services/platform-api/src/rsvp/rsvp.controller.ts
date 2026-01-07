@@ -8,6 +8,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { GuestService } from '../guest/guest.service';
 import { WeddingService } from '../wedding/wedding.service';
 import type {
@@ -28,6 +29,8 @@ import {
 /**
  * Public controller for guest RSVP operations
  * No authentication required - RSVP token provides access
+ *
+ * PRD: "Rate limits prevent abuse" - RSVP endpoints have strict limits
  */
 @Controller('rsvp')
 export class RsvpController {
@@ -128,7 +131,10 @@ export class RsvpController {
    * Submit RSVP response
    * POST /api/rsvp/submit
    * Allows guest to submit or update their RSVP, including plus-one details and meal selection
+   *
+   * PRD: "Rate limits prevent abuse" - Strict limit: 10 requests per minute
    */
+  @Throttle({ strict: { ttl: 60000, limit: 10 } })
   @Post('submit')
   async submitRsvp(
     @Body() body: RsvpSubmitRequest,

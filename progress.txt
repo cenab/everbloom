@@ -3313,3 +3313,72 @@ No stack traces, internal messages, or technical details are ever exposed.
 - Empty state shows "Accommodation details will appear here" message
 - To test: create premium wedding → dashboard → "Accommodations" → add hotel → save → view wedding site
 
+---
+
+### 2026-01-07 - API Rate Limiting
+
+**Feature worked on:** API endpoints are rate limited + Rate limits prevent abuse (PRD: rate-limiting category)
+
+**Priority rationale:** This is a high-priority security feature because:
+1. Rate limiting is essential for production security and preventing abuse
+2. It protects sensitive endpoints (auth, RSVP, photo upload) from brute force attacks
+3. NestJS has excellent throttler support making implementation straightforward
+4. It's a prerequisite for production deployment
+
+**What was done:**
+1. Added @nestjs/throttler package to platform-api
+
+2. Configured ThrottlerModule in AppModule with three tiers:
+   - Default: 100 requests per minute (general API usage)
+   - Strict: 10 requests per minute (sensitive operations)
+   - Relaxed: 300 requests per minute (read-heavy endpoints)
+
+3. Applied global ThrottlerGuard to all endpoints via APP_GUARD provider
+
+4. Applied strict rate limits to sensitive endpoints:
+   - auth.controller.ts: request-link (5/min), verify-link (10/min)
+   - rsvp.controller.ts: submit (10/min)
+   - photos.controller.ts: upload-url (30/min), upload (30/min)
+
+5. Added RATE_LIMIT_EXCEEDED error code:
+   - Added to types/index.ts with export constant
+   - Added to ErrorCode union type
+
+6. Updated HttpExceptionFilter to handle rate limiting:
+   - Special handling for ThrottlerException
+   - Returns 429 status with structured { ok: false, error: 'RATE_LIMIT_EXCEEDED' }
+   - Added 429 to status code mapping
+
+**Rate limit tiers:**
+| Endpoint Type | Limit | TTL | Use Case |
+|--------------|-------|-----|----------|
+| Default | 100 | 60s | General API usage |
+| Auth request-link | 5 | 60s | Prevent email spam |
+| Auth verify-link | 10 | 60s | Prevent brute force |
+| RSVP submit | 10 | 60s | Prevent RSVP abuse |
+| Photo upload-url | 30 | 60s | Allow batch uploads |
+| Photo upload | 30 | 60s | Allow batch uploads |
+
+**Error response format:**
+When rate limit is exceeded, API returns:
+```json
+{
+  "ok": false,
+  "error": "RATE_LIMIT_EXCEEDED"
+}
+```
+With HTTP status 429 Too Many Requests.
+
+**PRD features now passing:**
+- "API endpoints are rate limited" ✓
+- "Rate limits prevent abuse" ✓
+
+**Notes for next person:**
+- ThrottlerModule is configured in app.module.ts
+- Use @Throttle({ strict: { ttl: 60000, limit: N } }) decorator to override default limits
+- Use @SkipThrottle() to exempt an endpoint from rate limiting
+- Rate limits are per-IP by default (configurable via custom storage)
+- For production, consider using Redis storage for distributed rate limiting
+- The ThrottlerException is caught by HttpExceptionFilter and converted to structured error
+- Test rate limiting: make >100 requests in 60 seconds to see 429 response
+
