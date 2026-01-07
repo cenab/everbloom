@@ -9,8 +9,8 @@ import type {
   Wedding,
   SendInvitationResult,
   SendRemindersResponse,
-} from '@wedding-bestie/shared';
-import { REMINDER_QUEUE_FAILED } from '@wedding-bestie/shared';
+} from '../types';
+import { REMINDER_QUEUE_FAILED } from '../types';
 import { EmailService } from './email.service';
 import { ReminderQueueService } from './reminder-queue.service';
 import { GuestService } from '../guest/guest.service';
@@ -166,12 +166,31 @@ export class InvitationService {
         continue;
       }
 
-      // Build and send the invitation email
-      const emailContent = this.emailService.buildInvitationEmail(guest, wedding);
+      // Regenerate RSVP token for security - old links are invalidated
+      // The raw token is only available during this request cycle
+      const tokenResult = this.guestService.regenerateRsvpToken(guestId);
+      if (!tokenResult) {
+        results.push({
+          guestId,
+          guestName: guest.name,
+          email: guest.email,
+          success: false,
+          error: 'Failed to generate RSVP token',
+        });
+        failed++;
+        continue;
+      }
+
+      // Build invitation email with the new raw token
+      const emailContent = this.emailService.buildInvitationEmail(
+        tokenResult.guest,
+        wedding,
+        tokenResult.rawToken,
+      );
 
       // Create outbox record (tracks email)
       const outboxRecord = this.createOutboxRecord(
-        guest,
+        tokenResult.guest,
         wedding,
         emailContent.subject,
         'invitation',
@@ -251,16 +270,29 @@ export class InvitationService {
       return { queued: 0, total: 0, guestIds: [], jobIds: [] };
     }
 
-    const jobs: ReminderJobData[] = guests.map((guest) => {
-      const emailContent = this.emailService.buildReminderEmail(guest, wedding);
+    const jobs: ReminderJobData[] = [];
+
+    for (const guest of guests) {
+      // Regenerate RSVP token for security - old links are invalidated
+      const tokenResult = this.guestService.regenerateRsvpToken(guest.id);
+      if (!tokenResult) {
+        this.logger.warn(`Failed to regenerate token for guest ${guest.id}`);
+        continue;
+      }
+
+      const emailContent = this.emailService.buildReminderEmail(
+        tokenResult.guest,
+        wedding,
+        tokenResult.rawToken,
+      );
       const outboxRecord = this.createOutboxRecord(
-        guest,
+        tokenResult.guest,
         wedding,
         emailContent.subject,
         'reminder',
       );
 
-      return {
+      jobs.push({
         outboxId: outboxRecord.id,
         weddingId: wedding.id,
         guestId: guest.id,
@@ -269,8 +301,8 @@ export class InvitationService {
         subject: emailContent.subject,
         htmlBody: emailContent.htmlBody,
         textBody: emailContent.textBody,
-      };
-    });
+      });
+    }
 
     try {
       const jobIds = await this.reminderQueueService.enqueueReminders(jobs);

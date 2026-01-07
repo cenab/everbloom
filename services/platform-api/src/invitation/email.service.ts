@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { Guest, Wedding } from '@wedding-bestie/shared';
+import type { Guest, Wedding } from '../types';
 
 /**
  * Email content for transactional emails
@@ -27,17 +27,21 @@ export class EmailService {
 
   /**
    * Build the RSVP URL for a guest
+   * Takes the raw token as a parameter - tokens are never stored in plaintext
    */
-  private buildRsvpUrl(guest: Guest): string {
+  private buildRsvpUrl(rawToken: string): string {
     const baseUrl = process.env.WEDDING_SITE_URL || 'http://localhost:4321';
-    return `${baseUrl}/rsvp?token=${guest.rsvpToken}`;
+    return `${baseUrl}/rsvp?token=${rawToken}`;
   }
 
   /**
    * Build invitation email content
+   * @param guest The guest to send the invitation to
+   * @param wedding The wedding details
+   * @param rawToken The raw RSVP token for the URL (not stored, only used for email)
    */
-  buildInvitationEmail(guest: Guest, wedding: Wedding): EmailContent {
-    const rsvpUrl = this.buildRsvpUrl(guest);
+  buildInvitationEmail(guest: Guest, wedding: Wedding, rawToken: string): EmailContent {
+    const rsvpUrl = this.buildRsvpUrl(rawToken);
     const partnerNames = `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`;
 
     const subject = `You're Invited: ${partnerNames}'s Wedding`;
@@ -164,9 +168,12 @@ ${partnerNames}
 
   /**
    * Build reminder email content
+   * @param guest The guest to send the reminder to
+   * @param wedding The wedding details
+   * @param rawToken The raw RSVP token for the URL (not stored, only used for email)
    */
-  buildReminderEmail(guest: Guest, wedding: Wedding): EmailContent {
-    const rsvpUrl = this.buildRsvpUrl(guest);
+  buildReminderEmail(guest: Guest, wedding: Wedding, rawToken: string): EmailContent {
+    const rsvpUrl = this.buildRsvpUrl(rawToken);
     const partnerNames = `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`;
 
     const subject = `A gentle reminder: RSVP for ${partnerNames}'s wedding`;

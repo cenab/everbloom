@@ -23,8 +23,8 @@ import type {
   RsvpSummaryResponse,
   CsvImportRequest,
   CsvImportResponse,
-} from '@wedding-bestie/shared';
-import { GUEST_NOT_FOUND, GUEST_ALREADY_EXISTS, CSV_IMPORT_VALIDATION_ERROR } from '@wedding-bestie/shared';
+} from '../types';
+import { GUEST_NOT_FOUND, GUEST_ALREADY_EXISTS, CSV_IMPORT_VALIDATION_ERROR } from '../types';
 
 @Controller('weddings/:weddingId/guests')
 export class GuestController {
@@ -129,6 +129,8 @@ export class GuestController {
 
   /**
    * Create a new guest
+   * Note: The raw RSVP token is discarded after creation.
+   * It will be regenerated when sending invitations.
    */
   @Post()
   async createGuest(
@@ -139,7 +141,9 @@ export class GuestController {
     await this.requireWeddingOwner(authHeader, weddingId);
 
     try {
-      const guest = await this.guestService.createGuest(weddingId, body);
+      // createGuest returns { guest, rawToken }
+      // We discard rawToken here - it will be regenerated when sending invitations
+      const { guest } = await this.guestService.createGuest(weddingId, body);
       return { ok: true, data: guest };
     } catch (error) {
       if (error instanceof Error && error.message === 'GUEST_ALREADY_EXISTS') {

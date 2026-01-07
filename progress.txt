@@ -1132,3 +1132,57 @@
 - RSVP page now defines theme-derived surface and border variables (`--neutral-surface`, `--neutral-border`).
 - Email templates use off-white card and button text colors (no pure white).
 - Created `plans/features.json` by mirroring `prd.json` for ongoing pass tracking.
+
+---
+
+### 2026-01-07 - Secure RSVP Token Implementation
+
+**Feature worked on:** RSVP tokens are cryptographically secure (PRD: security category)
+
+**Priority rationale:** This is a critical security feature because:
+1. The existing implementation stored RSVP tokens in plaintext
+2. Token comparison used direct string equality (timing attack vulnerability)
+3. Per CLAUDE.md: "Tokens are random (32+ bytes), stored hashed in DB; compare hashed only"
+4. Security issues could expose guest data in a database breach
+
+**What was done:**
+1. Updated Guest type to use `rsvpTokenHash` instead of `rsvpToken`:
+   - `services/platform-api/src/types/index.ts`: Guest interface now stores SHA-256 hash
+   - `apps/platform-ui/src/types.ts`: Removed token field entirely (never exposed to UI)
+
+2. Updated GuestService with secure token handling:
+   - Added `hashToken(token)`: SHA-256 hash function
+   - Added `verifyToken(candidate, storedHash)`: timing-safe comparison using `crypto.timingSafeEqual`
+   - Updated `createGuest()`: Returns `{ guest, rawToken }` - hash stored, raw returned for email
+   - Updated `getGuestByRsvpToken()`: Uses timing-safe hash comparison
+   - Added `regenerateRsvpToken()`: Generates new token for sending invitations/reminders
+
+3. Updated EmailService to accept raw token as parameter:
+   - `buildInvitationEmail(guest, wedding, rawToken)`: Token passed explicitly
+   - `buildReminderEmail(guest, wedding, rawToken)`: Token passed explicitly
+
+4. Updated InvitationService to regenerate tokens on each email send:
+   - `sendInvitations()`: Regenerates token before sending, invalidates old links
+   - `enqueueReminders()`: Regenerates token before queuing reminder emails
+
+5. Updated GuestController and CSV import to handle new return types.
+
+**Security architecture:**
+- Tokens are 32 bytes random (64-char hex string) - cryptographically secure
+- Only SHA-256 hash is stored (`rsvpTokenHash`) - database breach doesn't expose raw tokens
+- Timing-safe comparison via `crypto.timingSafeEqual` - prevents timing attacks
+- Raw tokens only exist in memory during email sending - never persisted
+- Token regeneration on each email send - old RSVP links are invalidated
+- Invalid/malformed tokens return same `INVALID_TOKEN` error - no information leakage
+
+**PRD features now passing:**
+- "RSVP tokens are cryptographically secure" ✓
+- "Token validation uses constant-time comparison" ✓
+- "Invalid tokens return deterministic error" ✓
+
+**Notes for next person:**
+- Raw token is only available at guest creation and during `regenerateRsvpToken()`
+- When sending invitations/reminders, token is regenerated (old links stop working)
+- Guest records returned to UI no longer include token (hash or raw)
+- Token flow: generate → hash for storage → return raw for email → discard raw
+- The `rsvpTokenHash` field replaces the old `rsvpToken` field throughout the codebase

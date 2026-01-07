@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { randomBytes } from 'crypto';
+import { randomBytes, createHash, timingSafeEqual } from 'crypto';
 import type {
   Guest,
   RsvpStatus,
@@ -7,7 +7,7 @@ import type {
   UpdateGuestRequest,
   CsvGuestRow,
   CsvImportRowResult,
-} from '@wedding-bestie/shared';
+} from '../types';
 
 @Injectable()
 export class GuestService {
@@ -18,18 +18,43 @@ export class GuestService {
 
   /**
    * Generate a secure RSVP token for a guest
+   * Returns 32 bytes of random data as hex (64 character string)
    */
   private generateRsvpToken(): string {
     return randomBytes(32).toString('hex');
   }
 
   /**
+   * Hash an RSVP token using SHA-256
+   * Only the hash is stored - the raw token is never persisted
+   */
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  /**
+   * Verify a token against a stored hash using timing-safe comparison
+   * This prevents timing attacks that could leak information about token structure
+   */
+  private verifyToken(candidateToken: string, storedHash: string): boolean {
+    const candidateHash = this.hashToken(candidateToken);
+    // Both hashes are 64 character hex strings (SHA-256)
+    const candidateBuffer = Buffer.from(candidateHash, 'hex');
+    const storedBuffer = Buffer.from(storedHash, 'hex');
+
+    // Timing-safe comparison prevents timing attacks
+    return timingSafeEqual(candidateBuffer, storedBuffer);
+  }
+
+  /**
    * Create a new guest for a wedding
+   * Returns both the guest and the raw RSVP token for email sending
+   * The raw token is NOT stored - only its hash is persisted
    */
   async createGuest(
     weddingId: string,
     request: CreateGuestRequest,
-  ): Promise<Guest> {
+  ): Promise<{ guest: Guest; rawToken: string }> {
     // Check for duplicate email in same wedding
     const existing = this.findByEmail(weddingId, request.email);
     if (existing) {
@@ -39,6 +64,10 @@ export class GuestService {
     const now = new Date().toISOString();
     const guestId = randomBytes(16).toString('hex');
 
+    // Generate raw token and hash it for storage
+    const rawToken = this.generateRsvpToken();
+    const tokenHash = this.hashToken(rawToken);
+
     const guest: Guest = {
       id: guestId,
       weddingId,
@@ -46,7 +75,7 @@ export class GuestService {
       email: request.email,
       partySize: request.partySize ?? 1,
       rsvpStatus: 'pending' as RsvpStatus,
-      rsvpToken: this.generateRsvpToken(),
+      rsvpTokenHash: tokenHash, // Store hash, not raw token
       createdAt: now,
       updatedAt: now,
     };
@@ -54,7 +83,8 @@ export class GuestService {
     this.guests.set(guestId, guest);
     this.logger.log(`Created guest ${guestId} for wedding ${weddingId}`);
 
-    return guest;
+    // Return both guest and raw token (for immediate email sending)
+    return { guest, rawToken };
   }
 
   /**
@@ -201,7 +231,9 @@ export class GuestService {
 
       // Create the guest
       try {
-        const guest = await this.createGuest(weddingId, {
+        // createGuest returns { guest, rawToken }
+        // We discard rawToken - it will be regenerated when sending invitations
+        const { guest } = await this.createGuest(weddingId, {
           name: row.name.trim(),
           email: row.email.trim(),
           partySize: row.partySize ?? 1,
@@ -235,15 +267,44 @@ export class GuestService {
   }
 
   /**
-   * Find a guest by RSVP token
+   * Find a guest by RSVP token using timing-safe comparison
+   * The token is hashed and compared against the stored hash
    */
   getGuestByRsvpToken(token: string): Guest | null {
     for (const guest of this.guests.values()) {
-      if (guest.rsvpToken === token) {
+      if (guest.rsvpTokenHash && this.verifyToken(token, guest.rsvpTokenHash)) {
         return guest;
       }
     }
     return null;
+  }
+
+  /**
+   * Regenerate RSVP token for a guest
+   * Used when sending invitation/reminder emails
+   * Returns the new raw token for email URL - the hash is stored
+   * This invalidates any previous RSVP links for security
+   */
+  regenerateRsvpToken(guestId: string): { guest: Guest; rawToken: string } | null {
+    const guest = this.guests.get(guestId);
+    if (!guest) {
+      return null;
+    }
+
+    // Generate new raw token and hash for storage
+    const rawToken = this.generateRsvpToken();
+    const tokenHash = this.hashToken(rawToken);
+
+    const updated: Guest = {
+      ...guest,
+      rsvpTokenHash: tokenHash,
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.guests.set(guestId, updated);
+    this.logger.log(`Regenerated RSVP token for guest ${guestId}`);
+
+    return { guest: updated, rawToken };
   }
 
   /**

@@ -22,7 +22,7 @@
       "Verify no neon saturated colors are available",
       "Verify text contrast is readable on all primary surfaces"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "design",
@@ -122,7 +122,7 @@
       "Verify each category contains at least one template option",
       "Verify templates can be previewed before selection"
     ],
-    "passes": true
+    "passes": false
   },
 
   {
@@ -135,7 +135,7 @@
       "Click magic link",
       "Verify access to admin dashboard"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "platform",
@@ -145,7 +145,7 @@
       "Verify dashboard loads",
       "Verify empty state prompts to create or select a wedding"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "billing",
@@ -156,7 +156,7 @@
       "Redirect to Stripe Checkout",
       "Verify checkout session is created successfully"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "billing",
@@ -168,7 +168,7 @@
       "Verify wedding status is active",
       "Verify slug is generated"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "provisioning",
@@ -180,7 +180,7 @@
       "Verify render_config contains sections array",
       "Verify render_config contains enabled feature flags"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "site",
@@ -190,7 +190,7 @@
       "Verify page loads using render_config only",
       "Verify no direct database joins are used in site rendering"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "site",
@@ -201,7 +201,7 @@
       "Reload public wedding site",
       "Verify content remains intact with new template"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "features",
@@ -213,7 +213,7 @@
       "Verify Photo Upload toggle exists",
       "Verify Announcement toggle exists"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "features",
@@ -225,7 +225,7 @@
       "Navigate to RSVP URL",
       "Verify friendly 'RSVP disabled' message is shown"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "features",
@@ -235,7 +235,7 @@
       "Attempt POST /rsvp-submit",
       "Verify response indicates FEATURE_DISABLED"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "guests",
@@ -247,7 +247,7 @@
       "Save invitee",
       "Verify invitee appears in list"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "guests",
@@ -259,7 +259,7 @@
       "Confirm import",
       "Verify invitees appear in list"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "invites",
@@ -270,7 +270,7 @@
       "Verify emails are enqueued",
       "Verify email_outbox records are created"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "rsvp",
@@ -280,7 +280,7 @@
       "Verify RSVP form loads",
       "Verify guest name is prefilled"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "rsvp",
@@ -292,7 +292,7 @@
       "Submit RSVP",
       "Verify confirmation message is shown"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "rsvp",
@@ -304,7 +304,7 @@
       "Submit again",
       "Verify changes are saved"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "dashboard",
@@ -314,7 +314,7 @@
       "Verify counts for attending, not attending, no response",
       "Verify list reflects latest responses"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "photos",
@@ -324,7 +324,7 @@
       "Verify photo upload CTA appears on site",
       "Verify photo upload page is accessible"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "photos",
@@ -335,7 +335,7 @@
       "Upload photos",
       "Verify upload completes successfully"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "photos",
@@ -345,7 +345,7 @@
       "Verify metadata record exists in database",
       "Verify admin can see uploaded photo list"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "announcements",
@@ -356,7 +356,7 @@
       "Enable announcement",
       "Save changes"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "announcements",
@@ -367,7 +367,7 @@
       "Verify banner appears at top of page",
       "Verify title and message match admin input"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "email",
@@ -378,6 +378,1230 @@
       "Verify worker processes emails",
       "Verify email_outbox updated"
     ],
+    "passes": false
+  },
+
+  {
+    "category": "calendar",
+    "description": "Admin can configure event details for calendar invites",
+    "steps": [
+      "Navigate to event details settings",
+      "Enter event date, time, and location",
+      "Save event details",
+      "Verify event details are stored in render_config"
+    ],
+    "passes": false
+  },
+  {
+    "category": "calendar",
+    "description": "Guest can download ICS calendar file",
+    "steps": [
+      "Enable Calendar Invite feature",
+      "Navigate to public wedding site",
+      "Click 'Add to Calendar' button",
+      "Verify ICS file downloads with correct event details"
+    ],
+    "passes": false
+  },
+  {
+    "category": "calendar",
+    "description": "Guest can add event to Google Calendar",
+    "steps": [
+      "Enable Calendar Invite feature",
+      "Navigate to public wedding site",
+      "Click 'Add to Google Calendar' link",
+      "Verify redirect to Google Calendar with prefilled event details"
+    ],
+    "passes": false
+  },
+  {
+    "category": "calendar",
+    "description": "Calendar invite respects feature toggle",
+    "steps": [
+      "Disable Calendar Invite feature",
+      "Navigate to public wedding site",
+      "Verify 'Add to Calendar' button is not visible",
+      "Attempt to access calendar endpoint directly",
+      "Verify response indicates FEATURE_DISABLED"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "faq",
+    "description": "Admin can add FAQ items",
+    "steps": [
+      "Navigate to FAQ settings",
+      "Click add FAQ item",
+      "Enter question and answer",
+      "Save FAQ item",
+      "Verify item appears in FAQ list"
+    ],
+    "passes": false
+  },
+  {
+    "category": "faq",
+    "description": "Admin can edit and reorder FAQ items",
+    "steps": [
+      "Navigate to FAQ settings with existing items",
+      "Edit an existing FAQ item",
+      "Reorder FAQ items",
+      "Save changes",
+      "Verify order and content persist"
+    ],
+    "passes": false
+  },
+  {
+    "category": "faq",
+    "description": "FAQ section renders on public site",
+    "steps": [
+      "Enable FAQ feature",
+      "Add at least one FAQ item",
+      "Navigate to public wedding site",
+      "Verify FAQ section displays with correct questions and answers"
+    ],
+    "passes": false
+  },
+  {
+    "category": "faq",
+    "description": "FAQ section respects feature toggle",
+    "steps": [
+      "Disable FAQ feature",
+      "Navigate to public wedding site",
+      "Verify FAQ section is not visible",
+      "Verify FAQ data is not exposed in page source"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "passcode",
+    "description": "Admin can set site passcode",
+    "steps": [
+      "Navigate to site security settings",
+      "Enable passcode protection",
+      "Enter passcode",
+      "Save changes",
+      "Verify passcode is stored (hashed)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "passcode",
+    "description": "Guests must enter passcode to view protected site",
+    "steps": [
+      "Enable passcode protection for a wedding",
+      "Navigate to public wedding site (new session)",
+      "Verify passcode gate appears before any content",
+      "Enter incorrect passcode",
+      "Verify access is denied with friendly message",
+      "Enter correct passcode",
+      "Verify full site content is accessible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "passcode",
+    "description": "Passcode session persists for returning visitors",
+    "steps": [
+      "Enter correct passcode on protected site",
+      "Navigate away and return to site",
+      "Verify passcode gate is not shown again",
+      "Clear browser storage",
+      "Return to site",
+      "Verify passcode gate appears again"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "security",
+    "description": "RSVP tokens are cryptographically secure",
+    "steps": [
+      "Create a new guest invitation",
+      "Verify token is at least 32 bytes random",
+      "Verify token is stored hashed in database",
+      "Verify raw token is only sent via email, never stored"
+    ],
     "passes": true
+  },
+  {
+    "category": "security",
+    "description": "Token validation uses constant-time comparison",
+    "steps": [
+      "Review token validation code",
+      "Verify comparison uses timing-safe equality check",
+      "Verify no early returns that leak token length"
+    ],
+    "passes": true
+  },
+  {
+    "category": "security",
+    "description": "Invalid tokens return deterministic error",
+    "steps": [
+      "Attempt RSVP with invalid token",
+      "Verify response is exactly { ok: false, error: 'INVALID_TOKEN' }",
+      "Attempt RSVP with malformed token",
+      "Verify same error response (no information leakage)"
+    ],
+    "passes": true
+  },
+
+  {
+    "category": "guests",
+    "description": "Admin can create guest tags for segmentation",
+    "steps": [
+      "Navigate to Guests page",
+      "Create a new tag (e.g., 'Bride's side', 'Groom's side')",
+      "Assign tag to multiple guests",
+      "Verify tags appear on guest list"
+    ],
+    "passes": false
+  },
+  {
+    "category": "guests",
+    "description": "Admin can filter guests by tag",
+    "steps": [
+      "Navigate to Guests page with tagged guests",
+      "Select tag filter",
+      "Verify only guests with selected tag are shown",
+      "Clear filter",
+      "Verify all guests are shown again"
+    ],
+    "passes": false
+  },
+  {
+    "category": "guests",
+    "description": "Admin can send invites to specific segments",
+    "steps": [
+      "Filter guests by tag",
+      "Select all filtered guests",
+      "Click send invites",
+      "Verify only filtered guests receive invites",
+      "Verify email_outbox records match filtered list"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "guests",
+    "description": "Admin can see invite delivery status",
+    "steps": [
+      "Send invites to guests",
+      "Navigate to Guests page",
+      "Verify delivery status column shows sent/delivered/opened",
+      "Verify failed deliveries are highlighted"
+    ],
+    "passes": false
+  },
+  {
+    "category": "guests",
+    "description": "Admin can see bounce and failure status",
+    "steps": [
+      "Send invite to invalid email address",
+      "Wait for bounce webhook",
+      "Navigate to Guests page",
+      "Verify bounced status is shown",
+      "Verify admin can update email and resend"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "content",
+    "description": "Admin can edit hero section content",
+    "steps": [
+      "Navigate to site editor",
+      "Edit hero section",
+      "Change couple names",
+      "Change wedding date",
+      "Change venue name",
+      "Save changes",
+      "Verify render_config is regenerated",
+      "Verify public site reflects changes"
+    ],
+    "passes": false
+  },
+  {
+    "category": "content",
+    "description": "Admin can edit event details",
+    "steps": [
+      "Navigate to site editor",
+      "Edit event details section",
+      "Add ceremony time and location",
+      "Add reception time and location",
+      "Save changes",
+      "Verify public site shows updated event details"
+    ],
+    "passes": false
+  },
+  {
+    "category": "content",
+    "description": "Content changes regenerate render_config",
+    "steps": [
+      "Make any content edit in admin",
+      "Save changes",
+      "Verify render_config timestamp is updated",
+      "Verify wedding site fetches fresh config",
+      "Verify no stale content is displayed"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "errors",
+    "description": "Site shows friendly message if render_config is missing",
+    "steps": [
+      "Navigate to wedding site with missing render_config",
+      "Verify friendly error page is shown",
+      "Verify no technical error details are exposed",
+      "Verify message suggests contacting couple or trying later"
+    ],
+    "passes": false
+  },
+  {
+    "category": "errors",
+    "description": "API returns structured errors for all failure modes",
+    "steps": [
+      "Trigger various API errors (invalid input, not found, unauthorized)",
+      "Verify all responses follow { ok: false, error: 'ERROR_CODE' } format",
+      "Verify no stack traces or internal details are exposed",
+      "Verify error codes are documented and consistent"
+    ],
+    "passes": false
+  },
+  {
+    "category": "errors",
+    "description": "Network errors show retry option",
+    "steps": [
+      "Simulate network failure during RSVP submission",
+      "Verify friendly error message is shown",
+      "Verify retry button is available",
+      "Click retry",
+      "Verify submission succeeds when network recovers"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "analytics",
+    "description": "Dashboard shows email delivery statistics",
+    "steps": [
+      "Send invites to multiple guests",
+      "Navigate to dashboard",
+      "Verify total sent count is displayed",
+      "Verify delivered count is displayed",
+      "Verify open rate is displayed (if tracking enabled)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "analytics",
+    "description": "Dashboard shows RSVP response rate",
+    "steps": [
+      "Have guests submit RSVPs",
+      "Navigate to dashboard",
+      "Verify response rate percentage is shown",
+      "Verify attending vs not attending breakdown",
+      "Verify total expected guest count"
+    ],
+    "passes": false
+  },
+  {
+    "category": "analytics",
+    "description": "Dashboard shows photo upload count",
+    "steps": [
+      "Have guests upload photos",
+      "Navigate to dashboard",
+      "Verify total photo count is displayed",
+      "Verify recent uploads are shown"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "plus-ones",
+    "description": "Admin can configure plus-one allowance per guest",
+    "steps": [
+      "Navigate to Guests page",
+      "Edit a guest",
+      "Set plus-one allowance (0, 1, or custom number)",
+      "Save changes",
+      "Verify allowance is stored"
+    ],
+    "passes": false
+  },
+  {
+    "category": "plus-ones",
+    "description": "Guest can indicate plus-one details during RSVP",
+    "steps": [
+      "Open RSVP form for guest with plus-one allowance",
+      "Verify plus-one section is visible",
+      "Enter plus-one name",
+      "Submit RSVP",
+      "Verify plus-one details are stored"
+    ],
+    "passes": false
+  },
+  {
+    "category": "plus-ones",
+    "description": "Plus-one limits are enforced",
+    "steps": [
+      "Set plus-one allowance to 1",
+      "Open RSVP form",
+      "Attempt to add more than allowed plus-ones",
+      "Verify form prevents exceeding limit",
+      "Verify friendly message explains the limit"
+    ],
+    "passes": false
+  },
+  {
+    "category": "plus-ones",
+    "description": "Admin can view plus-one summary",
+    "steps": [
+      "Navigate to RSVP dashboard",
+      "Verify plus-one count is included in totals",
+      "Verify plus-one names are visible in guest details"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "meals",
+    "description": "Admin can configure meal options",
+    "steps": [
+      "Navigate to RSVP settings",
+      "Enable meal selection",
+      "Add meal options (e.g., Chicken, Fish, Vegetarian)",
+      "Save meal options",
+      "Verify options are stored in render_config"
+    ],
+    "passes": false
+  },
+  {
+    "category": "meals",
+    "description": "Guest can select meal preference during RSVP",
+    "steps": [
+      "Open RSVP form with meal options enabled",
+      "Verify meal selection appears after attendance confirmation",
+      "Select meal preference",
+      "Submit RSVP",
+      "Verify meal choice is stored"
+    ],
+    "passes": false
+  },
+  {
+    "category": "meals",
+    "description": "Guest can specify dietary restrictions",
+    "steps": [
+      "Open RSVP form",
+      "Verify dietary restrictions field is available",
+      "Enter dietary notes (e.g., 'nut allergy')",
+      "Submit RSVP",
+      "Verify dietary info is stored"
+    ],
+    "passes": false
+  },
+  {
+    "category": "meals",
+    "description": "Admin can export meal counts",
+    "steps": [
+      "Navigate to RSVP dashboard",
+      "Verify meal count breakdown is displayed",
+      "Export meal counts",
+      "Verify export includes per-meal totals and dietary notes"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "seating",
+    "description": "Admin can create table assignments",
+    "steps": [
+      "Navigate to seating management",
+      "Create tables with names/numbers",
+      "Set table capacity",
+      "Save table configuration"
+    ],
+    "passes": false
+  },
+  {
+    "category": "seating",
+    "description": "Admin can assign guests to tables",
+    "steps": [
+      "Navigate to seating management",
+      "Drag guest to table or use dropdown",
+      "Verify table capacity is enforced",
+      "Save assignments",
+      "Verify assignments persist"
+    ],
+    "passes": false
+  },
+  {
+    "category": "seating",
+    "description": "Guest can view their table assignment",
+    "steps": [
+      "Submit RSVP as attending",
+      "Return to RSVP confirmation page",
+      "Verify table assignment is displayed (if assigned)",
+      "Verify friendly message if not yet assigned"
+    ],
+    "passes": false
+  },
+  {
+    "category": "seating",
+    "description": "Seating chart can be displayed on public site",
+    "steps": [
+      "Enable seating chart feature",
+      "Navigate to public wedding site",
+      "Verify seating chart section is visible",
+      "Verify chart shows table layout with guest names"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "registry",
+    "description": "Admin can add gift registry links",
+    "steps": [
+      "Navigate to registry settings",
+      "Add registry link (name and URL)",
+      "Add multiple registries (Amazon, Zola, etc.)",
+      "Save registry links",
+      "Verify links are stored"
+    ],
+    "passes": false
+  },
+  {
+    "category": "registry",
+    "description": "Registry section displays on public site",
+    "steps": [
+      "Enable registry feature",
+      "Add at least one registry link",
+      "Navigate to public wedding site",
+      "Verify registry section is visible",
+      "Verify registry links open in new tab"
+    ],
+    "passes": false
+  },
+  {
+    "category": "registry",
+    "description": "Registry respects feature toggle",
+    "steps": [
+      "Disable registry feature",
+      "Navigate to public wedding site",
+      "Verify registry section is not visible"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "accommodations",
+    "description": "Admin can add hotel recommendations",
+    "steps": [
+      "Navigate to accommodations settings",
+      "Add hotel with name, address, and booking link",
+      "Add room block code (optional)",
+      "Add multiple hotels",
+      "Save accommodations"
+    ],
+    "passes": false
+  },
+  {
+    "category": "accommodations",
+    "description": "Admin can add travel directions",
+    "steps": [
+      "Navigate to travel info settings",
+      "Add directions from airport",
+      "Add parking information",
+      "Add map embed or link",
+      "Save travel info"
+    ],
+    "passes": false
+  },
+  {
+    "category": "accommodations",
+    "description": "Accommodations section displays on public site",
+    "steps": [
+      "Enable accommodations feature",
+      "Add at least one hotel",
+      "Navigate to public wedding site",
+      "Verify accommodations section is visible",
+      "Verify hotel details and booking links work"
+    ],
+    "passes": false
+  },
+  {
+    "category": "accommodations",
+    "description": "Travel info section displays on public site",
+    "steps": [
+      "Enable travel info feature",
+      "Add travel directions",
+      "Navigate to public wedding site",
+      "Verify travel section is visible",
+      "Verify map embed or link works"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "guestbook",
+    "description": "Guest can leave a message for the couple",
+    "steps": [
+      "Navigate to guestbook page on public site",
+      "Enter name and message",
+      "Submit message",
+      "Verify confirmation is shown"
+    ],
+    "passes": false
+  },
+  {
+    "category": "guestbook",
+    "description": "Admin can moderate guestbook messages",
+    "steps": [
+      "Navigate to guestbook management",
+      "View pending messages",
+      "Approve or reject messages",
+      "Verify approved messages appear on site",
+      "Verify rejected messages are hidden"
+    ],
+    "passes": false
+  },
+  {
+    "category": "guestbook",
+    "description": "Guestbook messages display on public site",
+    "steps": [
+      "Enable guestbook feature",
+      "Approve at least one message",
+      "Navigate to public wedding site",
+      "Verify guestbook section shows approved messages"
+    ],
+    "passes": false
+  },
+  {
+    "category": "guestbook",
+    "description": "Guestbook respects feature toggle",
+    "steps": [
+      "Disable guestbook feature",
+      "Navigate to public wedding site",
+      "Verify guestbook section is not visible",
+      "Verify guestbook submission endpoint returns FEATURE_DISABLED"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "music",
+    "description": "Guest can suggest songs",
+    "steps": [
+      "Navigate to music request page",
+      "Enter song name and artist",
+      "Submit request",
+      "Verify confirmation is shown"
+    ],
+    "passes": false
+  },
+  {
+    "category": "music",
+    "description": "Admin can view song requests",
+    "steps": [
+      "Navigate to music requests management",
+      "View list of requested songs",
+      "Verify song and requester info is shown"
+    ],
+    "passes": false
+  },
+  {
+    "category": "music",
+    "description": "Admin can export playlist for DJ",
+    "steps": [
+      "Navigate to music requests",
+      "Export song list",
+      "Verify export includes song names and artists",
+      "Verify export format is usable (CSV or text)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "music",
+    "description": "Music requests respect feature toggle",
+    "steps": [
+      "Disable music requests feature",
+      "Navigate to public wedding site",
+      "Verify music request form is not visible"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "events",
+    "description": "Admin can create multiple events",
+    "steps": [
+      "Navigate to events management",
+      "Add event (e.g., Rehearsal Dinner)",
+      "Set event date, time, and location",
+      "Add event description",
+      "Save event"
+    ],
+    "passes": false
+  },
+  {
+    "category": "events",
+    "description": "Admin can configure event-specific guest lists",
+    "steps": [
+      "Create an event",
+      "Select which guests are invited to event",
+      "Save event guest list",
+      "Verify only selected guests can RSVP for event"
+    ],
+    "passes": false
+  },
+  {
+    "category": "events",
+    "description": "Guest can RSVP to specific events",
+    "steps": [
+      "Open RSVP form for guest invited to multiple events",
+      "Verify each event shows with RSVP options",
+      "RSVP to each event separately",
+      "Submit RSVPs",
+      "Verify per-event responses are stored"
+    ],
+    "passes": false
+  },
+  {
+    "category": "events",
+    "description": "Timeline/schedule displays on public site",
+    "steps": [
+      "Add multiple events",
+      "Enable timeline feature",
+      "Navigate to public wedding site",
+      "Verify schedule/timeline section shows all events",
+      "Verify events are in chronological order"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "save-the-date",
+    "description": "Admin can send save-the-date emails",
+    "steps": [
+      "Navigate to communications",
+      "Select save-the-date option",
+      "Preview email template",
+      "Select guests to send to",
+      "Send save-the-dates",
+      "Verify emails are enqueued"
+    ],
+    "passes": false
+  },
+  {
+    "category": "save-the-date",
+    "description": "Save-the-date uses different template than invitation",
+    "steps": [
+      "View save-the-date email preview",
+      "Verify template focuses on date announcement",
+      "Verify no RSVP link is included",
+      "Verify design matches wedding theme"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "thank-you",
+    "description": "Admin can send thank-you emails",
+    "steps": [
+      "Navigate to communications",
+      "Select thank-you option",
+      "Preview email template",
+      "Select guests to send to",
+      "Send thank-you emails",
+      "Verify emails are enqueued"
+    ],
+    "passes": false
+  },
+  {
+    "category": "thank-you",
+    "description": "Thank-you can be personalized by attendance",
+    "steps": [
+      "Configure thank-you message for attendees",
+      "Configure different message for non-attendees",
+      "Send thank-you emails",
+      "Verify correct message variant is sent to each group"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "email-scheduling",
+    "description": "Admin can schedule emails for future send",
+    "steps": [
+      "Navigate to email compose",
+      "Select recipients",
+      "Choose 'Schedule for later'",
+      "Set send date and time",
+      "Confirm scheduling",
+      "Verify scheduled job is created"
+    ],
+    "passes": false
+  },
+  {
+    "category": "email-scheduling",
+    "description": "Admin can view and cancel scheduled emails",
+    "steps": [
+      "Navigate to scheduled emails",
+      "View list of pending sends",
+      "Cancel a scheduled send",
+      "Verify email is removed from queue"
+    ],
+    "passes": false
+  },
+  {
+    "category": "email-scheduling",
+    "description": "Scheduled emails send at correct time",
+    "steps": [
+      "Schedule an email for specific time",
+      "Wait for scheduled time",
+      "Verify emails are sent",
+      "Verify email_outbox records are created"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "email-templates",
+    "description": "Admin can customize invitation email content",
+    "steps": [
+      "Navigate to email template settings",
+      "Edit invitation email template",
+      "Customize subject line",
+      "Customize body text",
+      "Save template",
+      "Verify changes persist"
+    ],
+    "passes": false
+  },
+  {
+    "category": "email-templates",
+    "description": "Email templates support merge fields",
+    "steps": [
+      "Edit email template",
+      "Insert guest name merge field",
+      "Insert wedding date merge field",
+      "Preview email",
+      "Verify merge fields show sample data",
+      "Send test email",
+      "Verify merge fields are replaced"
+    ],
+    "passes": false
+  },
+  {
+    "category": "email-templates",
+    "description": "Email design matches wedding theme",
+    "steps": [
+      "Select wedding template/palette",
+      "Preview invitation email",
+      "Verify email colors match wedding palette",
+      "Verify email fonts match wedding theme"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "gallery",
+    "description": "Admin can upload curated photos",
+    "steps": [
+      "Navigate to gallery management",
+      "Upload engagement photos",
+      "Add captions to photos",
+      "Reorder photos",
+      "Save gallery"
+    ],
+    "passes": false
+  },
+  {
+    "category": "gallery",
+    "description": "Photo gallery displays on public site",
+    "steps": [
+      "Enable gallery feature",
+      "Upload at least one photo",
+      "Navigate to public wedding site",
+      "Verify gallery section is visible",
+      "Verify photos display with captions"
+    ],
+    "passes": false
+  },
+  {
+    "category": "gallery",
+    "description": "Gallery supports lightbox view",
+    "steps": [
+      "Navigate to gallery on public site",
+      "Click on a photo",
+      "Verify lightbox opens with larger image",
+      "Navigate between photos in lightbox",
+      "Close lightbox"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "video",
+    "description": "Admin can embed videos",
+    "steps": [
+      "Navigate to video settings",
+      "Paste YouTube or Vimeo URL",
+      "Set video title",
+      "Save video embed",
+      "Verify embed is stored"
+    ],
+    "passes": false
+  },
+  {
+    "category": "video",
+    "description": "Video section displays on public site",
+    "steps": [
+      "Enable video feature",
+      "Add video embed",
+      "Navigate to public wedding site",
+      "Verify video section is visible",
+      "Verify video plays correctly"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "photo-moderation",
+    "description": "Admin can enable photo moderation",
+    "steps": [
+      "Navigate to photo settings",
+      "Enable moderation requirement",
+      "Save settings",
+      "Verify new uploads go to pending state"
+    ],
+    "passes": false
+  },
+  {
+    "category": "photo-moderation",
+    "description": "Admin can approve or reject guest photos",
+    "steps": [
+      "Navigate to photo moderation queue",
+      "View pending photos",
+      "Approve appropriate photos",
+      "Reject inappropriate photos",
+      "Verify approved photos appear in gallery",
+      "Verify rejected photos are hidden"
+    ],
+    "passes": false
+  },
+  {
+    "category": "photo-moderation",
+    "description": "Admin can remove previously approved photos",
+    "steps": [
+      "Navigate to approved photos",
+      "Select photo to remove",
+      "Confirm removal",
+      "Verify photo is hidden from public gallery"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "i18n",
+    "description": "Admin can set site language",
+    "steps": [
+      "Navigate to site settings",
+      "Select site language from available options",
+      "Save language setting",
+      "Verify UI labels update to selected language"
+    ],
+    "passes": false
+  },
+  {
+    "category": "i18n",
+    "description": "Site supports multiple languages",
+    "steps": [
+      "Enable multi-language support",
+      "Add translations for site content",
+      "Navigate to public site",
+      "Verify language selector is available",
+      "Switch languages",
+      "Verify content updates"
+    ],
+    "passes": false
+  },
+  {
+    "category": "i18n",
+    "description": "Guest can set language preference",
+    "steps": [
+      "Navigate to public wedding site",
+      "Select preferred language",
+      "Verify site content updates",
+      "Return to site later",
+      "Verify language preference persists"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "accessibility",
+    "description": "Site meets WCAG 2.1 AA standards",
+    "steps": [
+      "Run automated accessibility audit",
+      "Verify no critical violations",
+      "Test with screen reader",
+      "Verify all content is accessible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "accessibility",
+    "description": "Site is keyboard navigable",
+    "steps": [
+      "Navigate entire site using only keyboard",
+      "Verify all interactive elements are reachable",
+      "Verify focus indicators are visible",
+      "Verify no keyboard traps exist"
+    ],
+    "passes": false
+  },
+  {
+    "category": "accessibility",
+    "description": "Images have appropriate alt text",
+    "steps": [
+      "Review all images on site",
+      "Verify decorative images have empty alt",
+      "Verify informative images have descriptive alt",
+      "Test with images disabled"
+    ],
+    "passes": false
+  },
+  {
+    "category": "accessibility",
+    "description": "Forms have proper labels and error messages",
+    "steps": [
+      "Navigate to RSVP form",
+      "Verify all inputs have visible labels",
+      "Submit form with errors",
+      "Verify error messages are clear and associated with fields",
+      "Verify screen reader announces errors"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "privacy",
+    "description": "Guest can request their data",
+    "steps": [
+      "Navigate to privacy options",
+      "Request data export",
+      "Verify email with data is sent",
+      "Verify export contains all guest data"
+    ],
+    "passes": false
+  },
+  {
+    "category": "privacy",
+    "description": "Admin can export all guest data",
+    "steps": [
+      "Navigate to data management",
+      "Request full data export",
+      "Verify export contains all guests",
+      "Verify export is in usable format (CSV/JSON)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "privacy",
+    "description": "Guest list is hidden from other guests",
+    "steps": [
+      "Navigate to public wedding site as guest",
+      "Verify no guest list is visible",
+      "Verify API does not expose guest data",
+      "Verify seating chart only shows assigned table (if enabled)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "privacy",
+    "description": "Guest can opt out of photo display",
+    "steps": [
+      "Submit RSVP",
+      "Check photo opt-out option",
+      "Verify preference is stored",
+      "Verify admin sees opt-out status"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "custom-domain",
+    "description": "Admin can connect custom domain",
+    "steps": [
+      "Navigate to domain settings",
+      "Enter custom domain",
+      "Receive DNS configuration instructions",
+      "Configure DNS records",
+      "Verify domain connection"
+    ],
+    "passes": false
+  },
+  {
+    "category": "custom-domain",
+    "description": "SSL certificate is provisioned for custom domain",
+    "steps": [
+      "Connect custom domain",
+      "Wait for SSL provisioning",
+      "Navigate to custom domain via HTTPS",
+      "Verify SSL certificate is valid"
+    ],
+    "passes": false
+  },
+  {
+    "category": "custom-domain",
+    "description": "Site works on both default and custom domain",
+    "steps": [
+      "Connect custom domain",
+      "Navigate to default domain URL",
+      "Verify site loads",
+      "Navigate to custom domain URL",
+      "Verify site loads"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "preview",
+    "description": "Admin can preview site before publishing",
+    "steps": [
+      "Make changes to site content",
+      "Click preview button",
+      "Verify preview shows pending changes",
+      "Verify public site still shows old content"
+    ],
+    "passes": false
+  },
+  {
+    "category": "preview",
+    "description": "Admin can publish or discard changes",
+    "steps": [
+      "Make changes to site content",
+      "Preview changes",
+      "Click publish",
+      "Verify public site reflects changes",
+      "Make more changes",
+      "Click discard",
+      "Verify changes are reverted"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "social",
+    "description": "Site has proper OG meta tags for sharing",
+    "steps": [
+      "Navigate to public wedding site",
+      "View page source",
+      "Verify og:title is set",
+      "Verify og:description is set",
+      "Verify og:image is set"
+    ],
+    "passes": false
+  },
+  {
+    "category": "social",
+    "description": "Admin can customize share image",
+    "steps": [
+      "Navigate to social settings",
+      "Upload custom share image",
+      "Save settings",
+      "Share site link on social media",
+      "Verify custom image appears in preview"
+    ],
+    "passes": false
+  },
+  {
+    "category": "social",
+    "description": "Site renders well when shared",
+    "steps": [
+      "Share site URL on Facebook",
+      "Verify preview looks correct",
+      "Share site URL on Twitter",
+      "Verify preview looks correct",
+      "Share site URL via iMessage",
+      "Verify preview looks correct"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "rate-limiting",
+    "description": "API endpoints are rate limited",
+    "steps": [
+      "Make rapid requests to API endpoint",
+      "Verify rate limit is enforced",
+      "Verify 429 response after limit exceeded",
+      "Wait for rate limit reset",
+      "Verify requests succeed again"
+    ],
+    "passes": false
+  },
+  {
+    "category": "rate-limiting",
+    "description": "Rate limits prevent abuse",
+    "steps": [
+      "Attempt to submit many RSVPs rapidly",
+      "Verify rate limiting kicks in",
+      "Attempt to upload many photos rapidly",
+      "Verify rate limiting kicks in"
+    ],
+    "passes": false
+  },
+
+  {
+    "category": "export",
+    "description": "Admin can export guest list to CSV",
+    "steps": [
+      "Navigate to Guests page",
+      "Click export button",
+      "Select CSV format",
+      "Verify download starts",
+      "Open CSV file",
+      "Verify all guest data is included"
+    ],
+    "passes": false
+  },
+  {
+    "category": "export",
+    "description": "Admin can export RSVPs for caterer",
+    "steps": [
+      "Navigate to RSVP dashboard",
+      "Click export for caterer",
+      "Verify export includes attending guests",
+      "Verify export includes meal selections",
+      "Verify export includes dietary restrictions",
+      "Verify export includes headcount"
+    ],
+    "passes": false
+  },
+  {
+    "category": "export",
+    "description": "Admin can export email addresses for mailing",
+    "steps": [
+      "Navigate to Guests page",
+      "Filter to desired segment",
+      "Export email addresses only",
+      "Verify export is in usable format for mail merge"
+    ],
+    "passes": false
+  },
+  {
+    "category": "export",
+    "description": "Admin can print guest list",
+    "steps": [
+      "Navigate to Guests page",
+      "Click print button",
+      "Verify print preview shows formatted list",
+      "Verify print layout is optimized for paper"
+    ],
+    "passes": false
   }
 ]
