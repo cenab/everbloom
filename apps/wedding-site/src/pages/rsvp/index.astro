@@ -289,6 +289,120 @@ const title = wedding
         border-color: var(--primary);
       }
 
+      /* Plus-one section styles */
+      .plus-one-section {
+        margin-bottom: 2rem;
+        display: none;
+      }
+
+      .plus-one-section.visible {
+        display: block;
+      }
+
+      .plus-one-intro {
+        font-size: 0.95rem;
+        color: var(--neutral-dark);
+        opacity: 0.8;
+        margin-bottom: 1rem;
+        line-height: 1.5;
+      }
+
+      .plus-one-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .plus-one-card {
+        background: var(--neutral-light);
+        border: 1px solid var(--neutral-border);
+        border-radius: 8px;
+        padding: 1rem;
+      }
+
+      .plus-one-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+      }
+
+      .plus-one-card-label {
+        font-weight: 500;
+        font-size: 0.95rem;
+        color: var(--primary);
+      }
+
+      .plus-one-remove-btn {
+        background: none;
+        border: none;
+        font-size: 1.25rem;
+        cursor: pointer;
+        color: var(--neutral-dark);
+        opacity: 0.5;
+        padding: 0.25rem;
+        line-height: 1;
+      }
+
+      .plus-one-remove-btn:hover {
+        opacity: 1;
+        color: var(--primary);
+      }
+
+      .plus-one-input {
+        width: 100%;
+        padding: 0.875rem;
+        border: 2px solid var(--neutral-border);
+        border-radius: 6px;
+        font-size: 1rem;
+        font-family: inherit;
+        margin-bottom: 0.75rem;
+      }
+
+      .plus-one-input:focus {
+        outline: none;
+        border-color: var(--primary);
+      }
+
+      .plus-one-input:last-child {
+        margin-bottom: 0;
+      }
+
+      .plus-one-dietary {
+        font-size: 0.95rem;
+      }
+
+      .add-plus-one-btn {
+        width: 100%;
+        padding: 0.875rem;
+        background: transparent;
+        color: var(--primary);
+        border: 2px dashed var(--primary);
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-top: 0.5rem;
+      }
+
+      .add-plus-one-btn:hover:not(:disabled) {
+        background: rgba(201, 130, 107, 0.08);
+      }
+
+      .add-plus-one-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .plus-one-limit-hint {
+        font-size: 0.8rem;
+        color: var(--neutral-dark);
+        opacity: 0.6;
+        text-align: center;
+        margin-top: 0.5rem;
+      }
+
       .submit-btn {
         width: 100%;
         padding: 1.25rem;
@@ -514,6 +628,44 @@ const title = wedding
                 </div>
               </div>
 
+              {/* Plus-one section - only shown if guest has plus-one allowance */}
+              <div class="plus-one-section" id="plus-one-section" data-allowance={guest.plusOneAllowance || 0}>
+                <span class="section-label">Who will be joining you?</span>
+                <p class="plus-one-intro">
+                  Please provide the names of your additional guests so we can prepare their place cards.
+                </p>
+                <div class="plus-one-cards" id="plus-one-cards">
+                  {/* Plus-one cards will be dynamically added here */}
+                  {(guest.plusOneGuests || []).map((plusOne, index) => (
+                    <div class="plus-one-card" data-index={index}>
+                      <div class="plus-one-card-header">
+                        <span class="plus-one-card-label">Guest {index + 1}</span>
+                        <button type="button" class="plus-one-remove-btn" aria-label="Remove guest">×</button>
+                      </div>
+                      <input
+                        type="text"
+                        class="plus-one-input plus-one-name"
+                        placeholder="Full name"
+                        value={plusOne.name}
+                        required
+                      />
+                      <input
+                        type="text"
+                        class="plus-one-input plus-one-dietary"
+                        placeholder="Dietary restrictions (optional)"
+                        value={plusOne.dietaryNotes || ''}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <button type="button" class="add-plus-one-btn" id="add-plus-one-btn">
+                  + Add a guest
+                </button>
+                <p class="plus-one-limit-hint" id="plus-one-limit-hint">
+                  You can bring up to {guest.plusOneAllowance || 0} additional guest{(guest.plusOneAllowance || 0) !== 1 ? 's' : ''}
+                </p>
+              </div>
+
               <div class="dietary-section" id="dietary-section">
                 <label class="section-label" for="dietary-notes">Any dietary restrictions? (optional)</label>
                 <textarea
@@ -549,6 +701,13 @@ const title = wedding
           const decreaseBtn = document.getElementById('decrease-btn');
           const increaseBtn = document.getElementById('increase-btn');
 
+          // Plus-one elements
+          const plusOneSection = document.getElementById('plus-one-section');
+          const plusOneCards = document.getElementById('plus-one-cards');
+          const addPlusOneBtn = document.getElementById('add-plus-one-btn');
+          const plusOneLimitHint = document.getElementById('plus-one-limit-hint');
+          const plusOneAllowance = parseInt(plusOneSection?.dataset.allowance) || 0;
+
           // Error display elements
           const submissionError = document.getElementById('submission-error');
           const submissionErrorMessage = document.getElementById('submission-error-message');
@@ -557,6 +716,135 @@ const title = wedding
 
           // Error type tracking
           let lastErrorType = null; // 'network' or 'api'
+
+          // Get current plus-one count
+          function getPlusOneCount() {
+            return plusOneCards?.querySelectorAll('.plus-one-card').length || 0;
+          }
+
+          // Update plus-one UI state
+          function updatePlusOneUI() {
+            const count = getPlusOneCount();
+            const canAddMore = count < plusOneAllowance;
+
+            if (addPlusOneBtn) {
+              addPlusOneBtn.disabled = !canAddMore;
+              addPlusOneBtn.textContent = canAddMore ? '+ Add a guest' : 'Maximum guests added';
+            }
+
+            if (plusOneLimitHint) {
+              const remaining = plusOneAllowance - count;
+              if (count === 0) {
+                plusOneLimitHint.textContent = `You can bring up to ${plusOneAllowance} additional guest${plusOneAllowance !== 1 ? 's' : ''}`;
+              } else if (remaining > 0) {
+                plusOneLimitHint.textContent = `${remaining} more guest${remaining !== 1 ? 's' : ''} available`;
+              } else {
+                plusOneLimitHint.textContent = 'All guest spots filled';
+              }
+            }
+
+            // Update party size to reflect plus-ones + 1 (the guest)
+            updatePartySizeFromPlusOnes();
+
+            // Re-number card labels
+            const cards = plusOneCards?.querySelectorAll('.plus-one-card') || [];
+            cards.forEach((card, index) => {
+              const label = card.querySelector('.plus-one-card-label');
+              if (label) {
+                label.textContent = `Guest ${index + 1}`;
+              }
+            });
+          }
+
+          // Update party size based on plus-one count
+          function updatePartySizeFromPlusOnes() {
+            const plusOneCount = getPlusOneCount();
+            const minPartySize = 1 + plusOneCount; // Guest + plus-ones
+
+            if (partySize < minPartySize) {
+              partySize = minPartySize;
+              updatePartySize();
+            }
+
+            // Update minimum for stepper
+            if (decreaseBtn) {
+              decreaseBtn.disabled = partySize <= minPartySize;
+            }
+          }
+
+          // Create a plus-one card element
+          function createPlusOneCard(index, name = '', dietary = '') {
+            const card = document.createElement('div');
+            card.className = 'plus-one-card';
+            card.dataset.index = index;
+            card.innerHTML = `
+              <div class="plus-one-card-header">
+                <span class="plus-one-card-label">Guest ${index + 1}</span>
+                <button type="button" class="plus-one-remove-btn" aria-label="Remove guest">×</button>
+              </div>
+              <input
+                type="text"
+                class="plus-one-input plus-one-name"
+                placeholder="Full name"
+                value="${name}"
+                required
+              />
+              <input
+                type="text"
+                class="plus-one-input plus-one-dietary"
+                placeholder="Dietary restrictions (optional)"
+                value="${dietary}"
+              />
+            `;
+
+            // Add remove handler
+            const removeBtn = card.querySelector('.plus-one-remove-btn');
+            removeBtn.addEventListener('click', () => {
+              card.remove();
+              updatePlusOneUI();
+            });
+
+            return card;
+          }
+
+          // Add plus-one button handler
+          if (addPlusOneBtn && plusOneAllowance > 0) {
+            addPlusOneBtn.addEventListener('click', () => {
+              const count = getPlusOneCount();
+              if (count < plusOneAllowance) {
+                const card = createPlusOneCard(count);
+                plusOneCards.appendChild(card);
+                updatePlusOneUI();
+                // Focus the name input
+                card.querySelector('.plus-one-name')?.focus();
+              }
+            });
+          }
+
+          // Initialize remove button handlers for existing cards
+          plusOneCards?.querySelectorAll('.plus-one-remove-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              e.target.closest('.plus-one-card')?.remove();
+              updatePlusOneUI();
+            });
+          });
+
+          // Get plus-one guests data
+          function getPlusOneGuests() {
+            const cards = plusOneCards?.querySelectorAll('.plus-one-card') || [];
+            const guests = [];
+            cards.forEach(card => {
+              const name = card.querySelector('.plus-one-name')?.value?.trim();
+              const dietary = card.querySelector('.plus-one-dietary')?.value?.trim();
+              if (name) {
+                guests.push({
+                  name,
+                  dietaryNotes: dietary || undefined,
+                });
+              }
+            });
+            return guests;
+          }
 
           // Update UI based on current selection
           function updateUI() {
@@ -570,10 +858,16 @@ const title = wedding
 
             partySizeSection.classList.toggle('visible', isAttending);
             dietarySection.classList.toggle('visible', isAttending);
+
+            // Show plus-one section if attending and has allowance
+            if (plusOneSection && plusOneAllowance > 0) {
+              plusOneSection.classList.toggle('visible', isAttending);
+            }
           }
 
           // Initialize UI
           updateUI();
+          updatePlusOneUI();
 
           // Handle option selection
           options.forEach(option => {
@@ -590,12 +884,15 @@ const title = wedding
           function updatePartySize() {
             partySizeValue.textContent = partySize;
             partySizeInput.value = partySize;
-            decreaseBtn.disabled = partySize <= 1;
+
+            const minPartySize = 1 + getPlusOneCount();
+            decreaseBtn.disabled = partySize <= minPartySize;
             increaseBtn.disabled = partySize >= 20;
           }
 
           decreaseBtn.addEventListener('click', () => {
-            if (partySize > 1) {
+            const minPartySize = 1 + getPlusOneCount();
+            if (partySize > minPartySize) {
               partySize--;
               updatePartySize();
             }
@@ -611,12 +908,15 @@ const title = wedding
           updatePartySize();
 
           // Show inline error with appropriate message
-          function showError(type) {
+          function showError(type, message) {
             lastErrorType = type;
 
             if (type === 'network') {
               submissionErrorMessage.textContent = "We couldn't send your response. Please check your connection and try again.";
               submissionErrorHint.textContent = "Your selections have been saved. Click retry when you're ready.";
+            } else if (type === 'plus_one_limit') {
+              submissionErrorMessage.textContent = message || "You've exceeded the number of allowed additional guests.";
+              submissionErrorHint.textContent = "Please remove some guests and try again.";
             } else {
               // API error (server returned an error)
               submissionErrorMessage.textContent = "Something went wrong while saving your response.";
@@ -642,11 +942,21 @@ const title = wedding
             retryBtn.disabled = true;
 
             const formData = new FormData(form);
+            const plusOneGuests = getPlusOneGuests();
+
+            // Validate plus-one limit client-side
+            if (plusOneGuests.length > plusOneAllowance) {
+              showError('plus_one_limit', `You can only bring up to ${plusOneAllowance} additional guest${plusOneAllowance !== 1 ? 's' : ''}.`);
+              retryBtn.disabled = false;
+              return;
+            }
+
             const data = {
               token: formData.get('token'),
               rsvpStatus: formData.get('rsvpStatus'),
               partySize: parseInt(formData.get('partySize')) || 1,
               dietaryNotes: formData.get('dietaryNotes') || undefined,
+              plusOneGuests: plusOneGuests.length > 0 ? plusOneGuests : undefined,
             };
 
             try {
@@ -665,8 +975,12 @@ const title = wedding
                 successContainer.classList.add('visible');
                 successMessage.textContent = result.data.message;
               } else {
-                // API returned an error response
-                showError('api');
+                // Check for specific error codes
+                if (result.error === 'PLUS_ONE_LIMIT_EXCEEDED') {
+                  showError('plus_one_limit');
+                } else {
+                  showError('api');
+                }
               }
             } catch (error) {
               // Network error (fetch failed, timeout, no connection, etc.)

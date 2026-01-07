@@ -305,38 +305,70 @@ interface GuestRowProps {
 }
 
 function GuestRow({ guest }: GuestRowProps) {
+  const hasPlusOnes = guest.plusOneGuests && guest.plusOneGuests.length > 0;
+
   return (
-    <li className="px-4 py-4 flex items-center justify-between bg-neutral-50">
-      <div className="flex items-center gap-4">
-        <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-          <span className="text-primary-700 font-medium">
-            {guest.name.charAt(0).toUpperCase()}
-          </span>
-        </div>
-        <div>
-          <p className="text-neutral-800 font-medium">{guest.name}</p>
-          <p className="text-sm text-neutral-500">{guest.email}</p>
-        </div>
-      </div>
-      <div className="flex items-center gap-4 text-right">
-        {guest.rsvpStatus === 'attending' && (
-          <div>
-            <p className="text-sm font-medium text-accent-700">
-              Party of {guest.partySize}
-            </p>
-            {guest.dietaryNotes && (
-              <p className="text-xs text-neutral-500 max-w-[200px] truncate">
-                {guest.dietaryNotes}
-              </p>
-            )}
+    <li className="px-4 py-4 bg-neutral-50">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+            <span className="text-primary-700 font-medium">
+              {guest.name.charAt(0).toUpperCase()}
+            </span>
           </div>
-        )}
-        {guest.rsvpSubmittedAt && (
-          <p className="text-xs text-neutral-400">
-            {formatDate(guest.rsvpSubmittedAt)}
-          </p>
-        )}
+          <div>
+            <p className="text-neutral-800 font-medium">{guest.name}</p>
+            <p className="text-sm text-neutral-500">{guest.email}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 text-right">
+          {guest.rsvpStatus === 'attending' && (
+            <div>
+              <p className="text-sm font-medium text-accent-700">
+                Party of {guest.partySize}
+              </p>
+              {guest.dietaryNotes && (
+                <p className="text-xs text-neutral-500 max-w-[200px] truncate">
+                  {guest.dietaryNotes}
+                </p>
+              )}
+            </div>
+          )}
+          {guest.rsvpSubmittedAt && (
+            <p className="text-xs text-neutral-400">
+              {formatDate(guest.rsvpSubmittedAt)}
+            </p>
+          )}
+        </div>
       </div>
+
+      {/* Plus-one guests display */}
+      {hasPlusOnes && guest.rsvpStatus === 'attending' && (
+        <div className="mt-3 ml-14 pl-4 border-l-2 border-accent-200">
+          <p className="text-xs text-neutral-500 mb-2 font-medium uppercase tracking-wide">
+            Additional guests
+          </p>
+          <ul className="space-y-2">
+            {guest.plusOneGuests!.map((plusOne, index) => (
+              <li key={index} className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-accent-50 flex items-center justify-center">
+                  <span className="text-accent-700 text-xs font-medium">
+                    {plusOne.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sm text-neutral-700">{plusOne.name}</span>
+                  {plusOne.dietaryNotes && (
+                    <span className="text-xs text-neutral-400 ml-2">
+                      ({plusOne.dietaryNotes})
+                    </span>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </li>
   );
 }

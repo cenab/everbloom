@@ -416,6 +416,14 @@ export interface UpdateFaqResponse {
 export type RsvpStatus = 'pending' | 'attending' | 'not_attending';
 
 /**
+ * Plus-one guest details submitted during RSVP
+ */
+export interface PlusOneGuest {
+  name: string;
+  dietaryNotes?: string;
+}
+
+/**
  * Guest/invitee record in the platform system
  *
  * Security: rsvpTokenHash stores the SHA-256 hash of the RSVP token.
@@ -436,6 +444,8 @@ export interface Guest {
   tagIds?: string[];
   /** Plus-one allowance: 0 = no plus-ones, positive number = allowed plus-ones */
   plusOneAllowance?: number;
+  /** Plus-one guest details submitted during RSVP */
+  plusOneGuests?: PlusOneGuest[];
   inviteSentAt?: string;
   rsvpSubmittedAt?: string;
   createdAt: string;
@@ -486,6 +496,11 @@ export const GUEST_ALREADY_EXISTS = 'GUEST_ALREADY_EXISTS' as const;
  */
 export const WEDDING_NOT_FOUND = 'WEDDING_NOT_FOUND' as const;
 
+/**
+ * Plus-one limit exceeded error code
+ */
+export const PLUS_ONE_LIMIT_EXCEEDED = 'PLUS_ONE_LIMIT_EXCEEDED' as const;
+
 // ============================================================================
 // RSVP View Types (Guest-Facing)
 // ============================================================================
@@ -500,6 +515,10 @@ export interface RsvpGuestView {
   partySize: number;
   rsvpStatus: RsvpStatus;
   dietaryNotes?: string;
+  /** Plus-one allowance for this guest (0 = no plus-ones allowed) */
+  plusOneAllowance?: number;
+  /** Plus-one guest details (if previously submitted) */
+  plusOneGuests?: PlusOneGuest[];
 }
 
 /**
@@ -530,6 +549,8 @@ export interface RsvpSubmitRequest {
   rsvpStatus: RsvpStatus;
   partySize: number;
   dietaryNotes?: string;
+  /** Plus-one guest details (names and optional dietary notes) */
+  plusOneGuests?: PlusOneGuest[];
 }
 
 /**
@@ -1128,6 +1149,7 @@ export type ErrorCode =
   | typeof GUEST_NOT_FOUND
   | typeof GUEST_ALREADY_EXISTS
   | typeof WEDDING_NOT_FOUND
+  | typeof PLUS_ONE_LIMIT_EXCEEDED
   | typeof PHOTO_UPLOAD_VALIDATION_ERROR
   | typeof PHOTO_UPLOAD_INVALID
   | typeof CSV_IMPORT_VALIDATION_ERROR

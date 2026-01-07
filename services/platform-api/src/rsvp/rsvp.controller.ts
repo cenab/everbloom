@@ -21,6 +21,7 @@ import {
   INVALID_TOKEN,
   FEATURE_DISABLED,
   WEDDING_NOT_FOUND,
+  PLUS_ONE_LIMIT_EXCEEDED,
 } from '../types';
 
 /**
@@ -97,6 +98,8 @@ export class RsvpController {
       partySize: guest.partySize,
       rsvpStatus: guest.rsvpStatus,
       dietaryNotes: guest.dietaryNotes,
+      plusOneAllowance: guest.plusOneAllowance,
+      plusOneGuests: guest.plusOneGuests,
     };
 
     const rsvpViewData: RsvpViewData = {
@@ -120,13 +123,13 @@ export class RsvpController {
   /**
    * Submit RSVP response
    * POST /api/rsvp/submit
-   * Allows guest to submit or update their RSVP
+   * Allows guest to submit or update their RSVP, including plus-one details
    */
   @Post('submit')
   async submitRsvp(
     @Body() body: RsvpSubmitRequest,
   ): Promise<ApiResponse<RsvpSubmitResponse>> {
-    const { token, rsvpStatus, partySize, dietaryNotes } = body;
+    const { token, rsvpStatus, partySize, dietaryNotes, plusOneGuests } = body;
 
     if (!token) {
       throw new BadRequestException({
@@ -171,13 +174,25 @@ export class RsvpController {
       });
     }
 
-    // Update guest RSVP
-    const updatedGuest = await this.guestService.updateRsvpStatus(
-      guest.id,
-      rsvpStatus,
-      partySize,
-      dietaryNotes,
-    );
+    // Update guest RSVP with plus-one guests
+    let updatedGuest;
+    try {
+      updatedGuest = await this.guestService.updateRsvpStatus(
+        guest.id,
+        rsvpStatus,
+        partySize,
+        dietaryNotes,
+        plusOneGuests,
+      );
+    } catch (error) {
+      if (error instanceof Error && error.message === 'PLUS_ONE_LIMIT_EXCEEDED') {
+        throw new BadRequestException({
+          ok: false,
+          error: PLUS_ONE_LIMIT_EXCEEDED,
+        });
+      }
+      throw error;
+    }
 
     if (!updatedGuest) {
       throw new NotFoundException({
@@ -194,6 +209,8 @@ export class RsvpController {
       partySize: updatedGuest.partySize,
       rsvpStatus: updatedGuest.rsvpStatus,
       dietaryNotes: updatedGuest.dietaryNotes,
+      plusOneAllowance: updatedGuest.plusOneAllowance,
+      plusOneGuests: updatedGuest.plusOneGuests,
     };
 
     const message =

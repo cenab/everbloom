@@ -315,6 +315,14 @@ export interface UpdateHeroContentResponse {
 export type RsvpStatus = 'pending' | 'attending' | 'not_attending';
 
 /**
+ * Plus-one guest details submitted during RSVP
+ */
+export interface PlusOneGuest {
+  name: string;
+  dietaryNotes?: string;
+}
+
+/**
  * Guest/invitee record in the platform system
  * Note: The RSVP token hash is never exposed to the UI for security reasons.
  * Raw tokens are only available ephemerally when sending emails.
@@ -331,6 +339,8 @@ export interface Guest {
   tagIds?: string[];
   /** Plus-one allowance: 0 = no plus-ones, positive number = allowed plus-ones */
   plusOneAllowance?: number;
+  /** Plus-one guest details submitted during RSVP */
+  plusOneGuests?: PlusOneGuest[];
   inviteSentAt?: string;
   rsvpSubmittedAt?: string;
   createdAt: string;

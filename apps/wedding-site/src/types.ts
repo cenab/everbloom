@@ -145,6 +145,14 @@ export type ApiResponse<T = unknown> = ApiSuccess<T> | ApiError;
 export type RsvpStatus = 'pending' | 'attending' | 'not_attending';
 
 /**
+ * Plus-one guest details submitted during RSVP
+ */
+export interface PlusOneGuest {
+  name: string;
+  dietaryNotes?: string;
+}
+
+/**
  * Guest data for RSVP view (subset of full Guest, excludes sensitive fields)
  */
 export interface RsvpGuestView {
@@ -154,6 +162,10 @@ export interface RsvpGuestView {
   partySize: number;
   rsvpStatus: RsvpStatus;
   dietaryNotes?: string;
+  /** Plus-one allowance for this guest (0 = no plus-ones allowed) */
+  plusOneAllowance?: number;
+  /** Plus-one guest details (if previously submitted) */
+  plusOneGuests?: PlusOneGuest[];
 }
 
 /**
@@ -184,6 +196,8 @@ export interface RsvpSubmitRequest {
   rsvpStatus: RsvpStatus;
   partySize: number;
   dietaryNotes?: string;
+  /** Plus-one guest details (names and optional dietary notes) */
+  plusOneGuests?: PlusOneGuest[];
 }
 
 /**

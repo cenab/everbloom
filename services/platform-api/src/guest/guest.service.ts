@@ -7,6 +7,7 @@ import type {
   UpdateGuestRequest,
   CsvGuestRow,
   CsvImportRowResult,
+  PlusOneGuest,
 } from '../types';
 
 @Injectable()
@@ -310,30 +311,57 @@ export class GuestService {
   }
 
   /**
-   * Update guest RSVP status
+   * Update guest RSVP status with optional plus-one guests
+   * @param guestId - The guest ID
+   * @param rsvpStatus - The RSVP status
+   * @param partySize - Total party size (including the guest)
+   * @param dietaryNotes - Dietary notes for the primary guest
+   * @param plusOneGuests - Plus-one guest details (names and dietary notes)
+   * @returns Updated guest or null if not found
+   * @throws Error with 'PLUS_ONE_LIMIT_EXCEEDED' if too many plus-ones provided
    */
   async updateRsvpStatus(
     guestId: string,
     rsvpStatus: RsvpStatus,
     partySize: number,
     dietaryNotes?: string,
+    plusOneGuests?: PlusOneGuest[],
   ): Promise<Guest | null> {
     const guest = this.guests.get(guestId);
     if (!guest) {
       return null;
     }
 
+    // Validate plus-one limit
+    const allowance = guest.plusOneAllowance ?? 0;
+    const plusOnesCount = plusOneGuests?.length ?? 0;
+
+    if (plusOnesCount > allowance) {
+      this.logger.warn(
+        `Guest ${guestId} tried to add ${plusOnesCount} plus-ones but allowance is ${allowance}`,
+      );
+      throw new Error('PLUS_ONE_LIMIT_EXCEEDED');
+    }
+
+    // Validate party size matches plus-ones + 1 (the guest themselves)
+    // Party size should be 1 (guest) + number of plus-ones
+    const expectedPartySize = 1 + plusOnesCount;
+    const actualPartySize = rsvpStatus === 'attending' ? Math.max(partySize, expectedPartySize) : partySize;
+
     const updated: Guest = {
       ...guest,
       rsvpStatus,
-      partySize,
+      partySize: actualPartySize,
       dietaryNotes: dietaryNotes ?? guest.dietaryNotes,
+      plusOneGuests: rsvpStatus === 'attending' ? plusOneGuests : undefined,
       rsvpSubmittedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     this.guests.set(guestId, updated);
-    this.logger.log(`Updated RSVP for guest ${guestId}: ${rsvpStatus}`);
+    this.logger.log(
+      `Updated RSVP for guest ${guestId}: ${rsvpStatus}${plusOnesCount > 0 ? ` with ${plusOnesCount} plus-one(s)` : ''}`,
+    );
 
     return updated;
   }

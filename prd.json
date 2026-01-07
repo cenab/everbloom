@@ -741,7 +741,7 @@
       "Submit RSVP",
       "Verify plus-one details are stored"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "plus-ones",
@@ -753,7 +753,7 @@
       "Verify form prevents exceeding limit",
       "Verify friendly message explains the limit"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "plus-ones",
@@ -763,7 +763,7 @@
       "Verify plus-one count is included in totals",
       "Verify plus-one names are visible in guest details"
     ],
-    "passes": false
+    "passes": true
   },
 
   {

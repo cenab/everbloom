@@ -2508,3 +2508,102 @@ No stack traces, internal messages, or technical details are ever exposed.
 - The RSVP form will need to be updated to respect plusOneAllowance (separate PRD feature: "Guest can indicate plus-one details during RSVP")
 - Party size in RSVP should be bounded by: 1 + plusOneAllowance
 - The summary calculation should eventually factor in plus-ones for accurate headcount
+
+### 2026-01-07 - Plus-one Guest Names in RSVP Flow
+
+**Feature worked on:** 
+- Guest can indicate plus-one details during RSVP (PRD: plus-ones category)
+- Plus-one limits are enforced (PRD: plus-ones category)
+- Admin can view plus-one summary (PRD: plus-ones category)
+
+**Priority rationale:** With plus-one allowance already configurable per guest, the next logical step is enabling guests to actually submit plus-one details during RSVP. This completes the plus-one workflow: admin configures allowance → guest submits names → admin views details. Accurate headcount with names is essential for place cards, seating charts, and catering.
+
+**What was done:**
+1. Added PlusOneGuest type to all type files:
+   - services/platform-api/src/types/index.ts
+   - apps/platform-ui/src/types.ts
+   - apps/wedding-site/src/types.ts
+   Structure: { name: string; dietaryNotes?: string }
+
+2. Updated Guest interface with plusOneGuests field (array of PlusOneGuest)
+
+3. Updated RsvpGuestView to include plusOneAllowance and plusOneGuests
+
+4. Updated RsvpSubmitRequest to include plusOneGuests array
+
+5. Added PLUS_ONE_LIMIT_EXCEEDED error code to platform-api types
+
+6. Updated GuestService.updateRsvpStatus:
+   - Now accepts optional plusOneGuests parameter
+   - Validates that plus-one count doesn't exceed plusOneAllowance
+   - Throws Error('PLUS_ONE_LIMIT_EXCEEDED') if limit exceeded
+   - Auto-adjusts party size to include plus-ones (1 + plusOneGuests.length)
+   - Stores plusOneGuests on guest record
+
+7. Updated RsvpController:
+   - viewRsvp now returns plusOneAllowance and plusOneGuests in response
+   - submitRsvp extracts and passes plusOneGuests to service
+   - Catches PLUS_ONE_LIMIT_EXCEEDED error and returns proper API error response
+   - Fixed TypeScript error: added `error instanceof Error` check
+
+8. Updated RSVP form UI (apps/wedding-site/src/pages/rsvp/index.astro):
+   - Added CSS styles for plus-one section (.plus-one-section, .plus-one-card, etc.)
+   - Added HTML section that only shows when plusOneAllowance > 0 and attending
+   - Dynamically pre-populates existing plus-one cards if guest has previously submitted
+   - "Add a guest" button creates new plus-one card with name input and dietary notes
+   - Each plus-one card has a remove button
+   - Client-side validation prevents adding more than allowed plus-ones
+   - Party size auto-updates based on plus-ones (1 + count)
+   - Collects plus-one data in getPlusOneGuests() function
+   - Sends plusOneGuests array in RSVP submission
+   - Handles PLUS_ONE_LIMIT_EXCEEDED error with friendly message
+
+9. Updated RsvpDashboard in platform-ui:
+   - GuestRow now displays plus-one guests below primary guest
+   - Shows plus-one names with their dietary notes in parentheses
+   - Visual styling: indented, smaller text, accent-colored badges
+   - Only displays when guest is attending and has plus-ones
+
+**Design system adherence:**
+- Plus-one section uses neutral-50 background with neutral-200 border
+- Cards have subtle rounded corners and proper spacing
+- "Add a guest" button uses outline style (neutral border, primary hover)
+- Remove buttons are small, neutral-colored with hover state
+- Input fields match existing RSVP form styling
+- Dashboard plus-one display uses accent colors to differentiate from primary guest
+
+**PRD features now passing:**
+- "Guest can indicate plus-one details during RSVP" ✓
+  - ✓ Plus-one section visible for guests with allowance > 0
+  - ✓ Can enter plus-one name
+  - ✓ Can enter optional dietary notes
+  - ✓ Submit saves plus-one details
+  
+- "Plus-one limits are enforced" ✓
+  - ✓ Client-side: "Add a guest" button disabled when limit reached
+  - ✓ Server-side: returns PLUS_ONE_LIMIT_EXCEEDED error
+  - ✓ Friendly message explains the limit
+  
+- "Admin can view plus-one summary" ✓
+  - ✓ Plus-one count included in party size totals
+  - ✓ Plus-one names visible in guest details on RSVP dashboard
+
+**Files modified:**
+- services/platform-api/src/types/index.ts
+- services/platform-api/src/guest/guest.service.ts
+- services/platform-api/src/rsvp/rsvp.controller.ts
+- apps/wedding-site/src/types.ts
+- apps/wedding-site/src/pages/rsvp/index.astro
+- apps/platform-ui/src/types.ts
+- apps/platform-ui/src/components/RsvpDashboard.tsx
+- prd.json (updated 3 plus-ones features to passes: true)
+
+**Notes for next person:**
+- Plus-one guest management is in the RSVP form JS starting around line 750
+- getPlusOneGuests() collects the plus-one data before submission
+- updatePlusOneUI() handles showing/hiding the add button based on limit
+- The party size stepper is now auto-calculated and read-only when plus-ones exist
+- If a guest reduces their plus-ones, party size updates automatically
+- The RSVP dashboard GuestRow component shows plus-ones in an indented list (lines 346-371)
+- Dietary notes for plus-ones are optional and displayed in parentheses
+- The next logical features to work on would be meal options or seating assignments
