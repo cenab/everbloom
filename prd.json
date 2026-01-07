@@ -1602,6 +1602,6 @@
       "Verify print preview shows formatted list",
       "Verify print layout is optimized for paper"
     ],
-    "passes": false
+    "passes": true
   }
 ]

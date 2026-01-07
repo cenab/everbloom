@@ -294,6 +294,249 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
     window.URL.revokeObjectURL(url);
   };
 
+  /**
+   * Print guest list
+   * PRD: "Admin can print guest list"
+   * Opens browser print dialog with a print-optimized layout
+   */
+  const handlePrint = () => {
+    // Use filtered guests if filtering, otherwise use all guests
+    const guestsToPrint = filterTagIds.length > 0 ? filteredGuests : guests;
+
+    if (guestsToPrint.length === 0) return;
+
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) {
+      alert('Please allow popups to print the guest list');
+      return;
+    }
+
+    // Format RSVP status for display
+    const formatStatus = (status: string) => {
+      switch (status) {
+        case 'attending':
+          return 'Attending';
+        case 'not_attending':
+          return 'Not attending';
+        default:
+          return 'No response';
+      }
+    };
+
+    // Build print-optimized HTML
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Guest List</title>
+  <style>
+    @page {
+      margin: 0.75in;
+      size: letter;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      color: #2d2d2d;
+      line-height: 1.4;
+      margin: 0;
+      padding: 0;
+      background: #fff;
+    }
+    .header {
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #e5e5e5;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+      color: #2d2d2d;
+    }
+    .header .meta {
+      font-size: 14px;
+      color: #6b6b6b;
+    }
+    .summary {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    .summary-item {
+      display: flex;
+      gap: 6px;
+    }
+    .summary-label {
+      color: #6b6b6b;
+    }
+    .summary-value {
+      font-weight: 600;
+      color: #2d2d2d;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 2px solid #e5e5e5;
+      font-weight: 600;
+      color: #2d2d2d;
+      background: #f9f9f9;
+    }
+    td {
+      padding: 8px;
+      border-bottom: 1px solid #e5e5e5;
+      vertical-align: top;
+    }
+    tr:nth-child(even) {
+      background: #fafafa;
+    }
+    .name {
+      font-weight: 500;
+    }
+    .email {
+      color: #6b6b6b;
+    }
+    .status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .status-attending {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .status-not_attending {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .status-pending {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+    .tags {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 500;
+      color: #fff;
+    }
+    .footer {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e5e5;
+      font-size: 11px;
+      color: #9b9b9b;
+      text-align: center;
+    }
+    @media print {
+      body {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Guest List</h1>
+    <div class="meta">
+      Printed on ${new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })}
+      ${filterTagIds.length > 0 ? ` • Filtered by: ${tags.filter((t) => filterTagIds.includes(t.id)).map((t) => t.name).join(', ')}` : ''}
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-item">
+      <span class="summary-label">Total guests:</span>
+      <span class="summary-value">${guestsToPrint.length}</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">Attending:</span>
+      <span class="summary-value">${guestsToPrint.filter((g) => g.rsvpStatus === 'attending').length}</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">Not attending:</span>
+      <span class="summary-value">${guestsToPrint.filter((g) => g.rsvpStatus === 'not_attending').length}</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">No response:</span>
+      <span class="summary-value">${guestsToPrint.filter((g) => g.rsvpStatus === 'pending').length}</span>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 30%">Name</th>
+        <th style="width: 30%">Email</th>
+        <th style="width: 20%">RSVP Status</th>
+        <th style="width: 20%">Tags</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${guestsToPrint
+        .map((guest) => {
+          const guestTags = tags.filter((t) => guest.tagIds?.includes(t.id));
+          return `
+        <tr>
+          <td class="name">${guest.name}</td>
+          <td class="email">${guest.email}</td>
+          <td>
+            <span class="status status-${guest.rsvpStatus}">${formatStatus(guest.rsvpStatus)}</span>
+          </td>
+          <td>
+            <div class="tags">
+              ${guestTags.map((tag) => `<span class="tag" style="background-color: ${tag.color}">${tag.name}</span>`).join('')}
+            </div>
+          </td>
+        </tr>
+        `;
+        })
+        .join('')}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    Generated by Everbloom Wedding Platform
+  </div>
+
+  <script>
+    window.onload = function() {
+      window.print();
+      window.onafterprint = function() {
+        window.close();
+      };
+    };
+  </script>
+</body>
+</html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
   // Filter guests by selected tags
   const filteredGuests = filterTagIds.length > 0
     ? guests.filter((g) => g.tagIds?.some((tid) => filterTagIds.includes(tid)))
@@ -358,6 +601,15 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
             >
               <MailIcon className="w-4 h-4" />
               Emails
+            </button>
+            <button
+              onClick={handlePrint}
+              className="btn-secondary flex items-center gap-2 print:hidden"
+              disabled={filteredGuests.length === 0}
+              title="Print guest list"
+            >
+              <PrinterIcon className="w-4 h-4" />
+              Print
             </button>
             <button
               onClick={() => setShowCsvImport(true)}
@@ -2293,6 +2545,28 @@ function MailIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V17.25z"
+      />
+    </svg>
+  );
+}
+
+/**
+ * Printer icon for print button
+ * PRD: "Admin can print guest list"
+ */
+function PrinterIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z"
       />
     </svg>
   );
