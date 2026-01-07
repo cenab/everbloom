@@ -140,12 +140,26 @@ export class WeddingService {
   /**
    * Build feature flags record based on plan tier
    */
-  private buildFeatureFlags(planId: PlanTier): Record<FeatureFlag, boolean> {
-    const enabledFeatures = PLAN_FEATURES[planId];
+  private buildFeatureFlags(
+    planId: PlanTier,
+    selectedFeatures?: Partial<Record<FeatureFlag, boolean>>,
+  ): Record<FeatureFlag, boolean> {
+    const allowedFeatures = PLAN_FEATURES[planId] || [];
+    const allowedSet = new Set(allowedFeatures);
     const features: Record<FeatureFlag, boolean> = {} as Record<FeatureFlag, boolean>;
+    const selection = selectedFeatures ?? {};
 
     for (const flag of ALL_FEATURES) {
-      features[flag] = enabledFeatures.includes(flag);
+      if (!allowedSet.has(flag)) {
+        features[flag] = false;
+        continue;
+      }
+
+      if (typeof selection[flag] === 'boolean') {
+        features[flag] = selection[flag] as boolean;
+      } else {
+        features[flag] = true;
+      }
     }
 
     return features;
@@ -248,7 +262,7 @@ export class WeddingService {
       partnerNames: payload.partnerNames,
       planId: payload.planId,
       status: 'active' as WeddingStatus,
-      features: this.buildFeatureFlags(payload.planId),
+      features: this.buildFeatureFlags(payload.planId, payload.features),
       createdAt: now,
       updatedAt: now,
     };

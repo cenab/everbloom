@@ -213,7 +213,7 @@
       "Verify Photo Upload toggle exists",
       "Verify Announcement toggle exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "features",

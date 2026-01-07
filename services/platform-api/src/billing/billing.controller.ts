@@ -19,6 +19,7 @@ import type {
   ApiResponse,
   CreateCheckoutSessionRequest,
   CreateCheckoutSessionResponse,
+  FeatureFlag,
   Plan,
   WeddingProvisionResponse,
 } from '@wedding-bestie/shared';
@@ -125,12 +126,31 @@ export class BillingController {
         return { ok: true, data: { received: true } };
       }
 
+      let selectedFeatures: Partial<Record<FeatureFlag, boolean>> | undefined;
+      if (metadata.features) {
+        try {
+          const parsed = JSON.parse(metadata.features);
+          if (parsed && typeof parsed === 'object') {
+            const normalized: Partial<Record<FeatureFlag, boolean>> = {};
+            for (const [key, value] of Object.entries(parsed)) {
+              if (typeof value === 'boolean') {
+                normalized[key as FeatureFlag] = value;
+              }
+            }
+            selectedFeatures = normalized;
+          }
+        } catch {
+          selectedFeatures = undefined;
+        }
+      }
+
       const result = await this.weddingService.provisionWedding({
         userId: metadata.userId,
         planId: metadata.planId as 'starter' | 'premium',
         weddingName: metadata.weddingName,
         partnerNames: [metadata.partner1 || '', metadata.partner2 || ''],
         stripeSessionId: session.id,
+        features: selectedFeatures,
       });
 
       return {

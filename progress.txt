@@ -907,3 +907,26 @@
 - When RSVP is disabled, the render_config is updated with features.RSVP=false AND sections[rsvp].enabled=false
 - The wedding site reads features from render_config, so changes are immediate
 - To test: create wedding → dashboard → "Site features" → toggle RSVP off → save → visit wedding site → RSVP section should be gone
+
+### 2026-01-07 - Feature Selection Applied During Wedding Setup
+
+**Feature worked on:** Feature selection step available during wedding setup (PRD: features category)
+
+**Priority rationale:** This ensures the feature selection step during wedding creation is not just cosmetic by persisting the chosen toggles into provisioning. It aligns the setup flow with the per-wedding feature flag architecture and keeps the initial render_config accurate.
+
+**What was done:**
+1. Applied feature selections during provisioning:
+   - WeddingService now accepts an optional feature selection payload
+   - Features are filtered by plan tier and default to enabled when not explicitly set
+
+2. Wired Stripe webhook metadata into provisioning:
+   - Parsed feature selections from checkout session metadata
+   - Passed normalized flags into wedding provisioning
+
+**PRD features now passing:**
+- "Feature selection step available during wedding setup" ✓
+
+**Notes for next person:**
+- Feature selection is stored in Stripe checkout metadata as JSON
+- Provisioning now respects selected toggles while still enforcing plan eligibility
+- If no feature selection is provided, plan defaults still enable all allowed features
