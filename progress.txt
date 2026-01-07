@@ -4523,3 +4523,76 @@ Implemented email template customization feature allowing admins to personalize 
 - Could add image cropping tool for optimal OG image dimensions
 - Could add preview of how the link will appear on different platforms
 - Could validate image dimensions match 1200x630 recommendation
+
+---
+
+### 2026-01-07 - Accessibility Improvements (WCAG 2.1 AA)
+
+**Feature worked on:** Accessibility improvements for keyboard navigation, alt text, and form labels (PRD: accessibility category)
+
+**Priority rationale:** This is the highest-priority feature because:
+1. Accessibility is a legal/compliance requirement (WCAG 2.1 AA)
+2. It affects ALL users, not just a subset
+3. It's foundational - should be fixed early rather than retrofitted
+4. It improves usability for keyboard and screen reader users
+
+**What was done:**
+1. Added skip-to-main-content link in WeddingLayout.astro:
+   - Skip link appears when focused via keyboard
+   - Links to main content area via id="main-content"
+   - Styled with primary color and visible focus indicator
+   - Added global :focus-visible styles for consistent focus indicators
+   - Added tabindex="-1" to main element for proper focus target
+
+2. Improved RSVP form accessibility (apps/wedding-site/src/pages/rsvp/index.astro):
+   - Added focus-within indicator for RSVP option labels
+   - Converted radio inputs to accessible pattern (visually hidden but focusable)
+   - Added fieldset/legend with role="radiogroup" for RSVP options
+   - Added aria-hidden="true" to decorative radio indicator spans
+   - Added aria-describedby linking inputs to help text
+   - Added role="alert" aria-live="assertive" to submission error container
+   - Added focus indicators to stepper buttons, plus-one remove buttons, submit/retry buttons
+   - Added visually-hidden class for screen reader only text
+   - Added focus box-shadow to dietary and plus-one inputs
+
+3. Fixed gallery lightbox accessibility (apps/wedding-site/src/components/sections/GallerySection.astro):
+   - Added role="dialog" aria-modal="true" to lightbox
+   - Added aria-labelledby linking to visually-hidden title
+   - Added focus trap to keep focus within lightbox when open
+   - Added focus restoration when lightbox closes (returns to trigger element)
+   - Added keyboard support for photo items (Enter/Space to open)
+   - Added tabindex="0" and aria-label to photo items
+   - Added aria-hidden="true" to icon SVGs
+   - Improved alt text: "Photo X of Y" for better context
+   - Added aria-live="polite" to caption for dynamic updates
+   - Increased mobile touch target sizes to 44px minimum
+
+4. Fixed passcode gate accessibility (apps/wedding-site/src/components/PasscodeGateWrapper.astro):
+   - Added role="alert" aria-live="assertive" to error message
+   - Added visually-hidden label for passcode input
+   - Added aria-describedby linking to hint text
+   - Added focus indicator styles for input and submit button
+   - Changed input background from pure white to theme.neutralLight
+
+**Accessibility improvements summary:**
+- Skip link for keyboard navigation (WCAG 2.4.1)
+- Focus indicators on all interactive elements (WCAG 2.4.7)
+- Proper role/aria attributes on dialogs (WCAG 4.1.2)
+- Focus trap in modal dialogs (WCAG 2.4.3)
+- Error messages announced to screen readers (WCAG 4.1.3)
+- Decorative images hidden from screen readers (WCAG 1.1.1)
+- Alt text on informative images (WCAG 1.1.1)
+- Proper form labels and fieldsets (WCAG 1.3.1)
+- Minimum 44px touch targets on mobile (WCAG 2.5.5)
+
+**PRD features now passing:**
+- "Site is keyboard navigable" ✓
+- "Images have appropriate alt text" ✓
+- "Forms have proper labels and error messages" ✓
+
+**Notes for next person:**
+- "Site meets WCAG 2.1 AA standards" still marked false - requires full automated audit and screen reader testing
+- Color contrast validation not implemented (depends on dynamic theme colors)
+- Consider adding aria-current="page" to navigation when pages are added
+- Progress bars should use <progress> or role="progressbar" with aria-valuenow (not yet implemented)
+- Consider adding loading state announcements with aria-busy

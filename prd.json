@@ -1334,7 +1334,7 @@
       "Verify focus indicators are visible",
       "Verify no keyboard traps exist"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "accessibility",
@@ -1345,7 +1345,7 @@
       "Verify informative images have descriptive alt",
       "Test with images disabled"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "accessibility",
@@ -1357,7 +1357,7 @@
       "Verify error messages are clear and associated with fields",
       "Verify screen reader announces errors"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "privacy",

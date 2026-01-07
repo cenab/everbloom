@@ -173,13 +173,23 @@ const title = wedding
         border-color: var(--primary);
       }
 
+      .rsvp-option:focus-within {
+        border-color: var(--primary);
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
       .rsvp-option.selected {
         border-color: var(--primary);
         background-color: rgba(201, 130, 107, 0.08);
       }
 
       .rsvp-option input {
-        display: none;
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
       }
 
       .rsvp-option-radio {
@@ -255,6 +265,11 @@ const title = wedding
       .stepper-btn:disabled {
         opacity: 0.4;
         cursor: not-allowed;
+      }
+
+      .stepper-btn:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
       }
 
       .stepper-value {
@@ -349,6 +364,12 @@ const title = wedding
         color: var(--primary);
       }
 
+      .plus-one-remove-btn:focus-visible {
+        opacity: 1;
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
       .plus-one-input {
         width: 100%;
         padding: 0.875rem;
@@ -362,6 +383,7 @@ const title = wedding
       .plus-one-input:focus {
         outline: none;
         border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(201, 130, 107, 0.2);
       }
 
       .plus-one-input:last-child {
@@ -395,6 +417,11 @@ const title = wedding
         cursor: not-allowed;
       }
 
+      .add-plus-one-btn:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
       .plus-one-limit-hint {
         font-size: 0.8rem;
         color: var(--neutral-dark);
@@ -423,6 +450,11 @@ const title = wedding
       .submit-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+      }
+
+      .submit-btn:focus-visible {
+        outline: 2px solid var(--neutral-dark);
+        outline-offset: 2px;
       }
 
       .error-container {
@@ -555,6 +587,41 @@ const title = wedding
         opacity: 0.5;
         cursor: not-allowed;
       }
+
+      .retry-btn:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      .back-link:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      .dietary-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(201, 130, 107, 0.2);
+      }
+
+      /* Visually hidden but accessible to screen readers */
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      /* Reset fieldset styles */
+      fieldset.rsvp-options {
+        border: none;
+        padding: 0;
+        margin: 0;
+      }
     </style>
   </head>
   <body>
@@ -592,7 +659,7 @@ const title = wedding
               </div>
             )}
 
-            <div class="submission-error" id="submission-error">
+            <div class="submission-error" id="submission-error" role="alert" aria-live="assertive">
               <p class="submission-error-message" id="submission-error-message">
                 We couldn't send your response. Please check your connection and try again.
               </p>
@@ -602,21 +669,23 @@ const title = wedding
               <button type="button" class="retry-btn" id="retry-btn">Try again</button>
             </div>
 
-            <form id="rsvp-form">
+            <form id="rsvp-form" aria-label="RSVP form">
               <input type="hidden" name="token" value={token} />
 
-              <div class="rsvp-options">
+              <fieldset class="rsvp-options" role="radiogroup" aria-label="Will you be attending?">
+                <legend class="visually-hidden">Will you be attending?</legend>
                 <label class="rsvp-option" data-value="attending">
-                  <input type="radio" name="rsvpStatus" value="attending" checked={guest.rsvpStatus === 'attending'} />
-                  <span class="rsvp-option-radio"></span>
+                  <input type="radio" name="rsvpStatus" value="attending" checked={guest.rsvpStatus === 'attending'} aria-describedby="rsvp-help" />
+                  <span class="rsvp-option-radio" aria-hidden="true"></span>
                   <span>Joyfully accept</span>
                 </label>
                 <label class="rsvp-option" data-value="not_attending">
-                  <input type="radio" name="rsvpStatus" value="not_attending" checked={guest.rsvpStatus === 'not_attending'} />
-                  <span class="rsvp-option-radio"></span>
+                  <input type="radio" name="rsvpStatus" value="not_attending" checked={guest.rsvpStatus === 'not_attending'} aria-describedby="rsvp-help" />
+                  <span class="rsvp-option-radio" aria-hidden="true"></span>
                   <span>Regretfully decline</span>
                 </label>
-              </div>
+              </fieldset>
+              <p id="rsvp-help" class="visually-hidden">Select your attendance response</p>
 
               <div class="party-size-section" id="party-size-section">
                 <span class="section-label">Number of guests in your party</span>

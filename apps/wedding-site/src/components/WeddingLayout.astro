@@ -26,6 +26,7 @@ const ogImageUrl = config.ogImageUrl || defaultOgImageUrl;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
+    <meta name="theme-color" content={theme.primary} />
     <title>{title}</title>
 
     <!-- Open Graph meta tags for social sharing -->
@@ -84,10 +85,44 @@ const ogImageUrl = config.ogImageUrl || defaultOgImageUrl;
       main {
         min-height: 100vh;
       }
+
+      /* Skip link for keyboard accessibility */
+      .skip-link {
+        position: absolute;
+        top: -40px;
+        left: 0;
+        background: var(--primary);
+        color: var(--neutral-light);
+        padding: 0.75rem 1rem;
+        z-index: 9999;
+        text-decoration: none;
+        font-weight: 500;
+        border-radius: 0 0 4px 0;
+        transition: top 0.2s ease;
+      }
+
+      .skip-link:focus {
+        top: 0;
+        outline: 2px solid var(--neutral-dark);
+        outline-offset: 2px;
+      }
+
+      /* Global focus indicator for accessibility */
+      *:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      /* Remove outline for mouse users but keep for keyboard */
+      *:focus:not(:focus-visible) {
+        outline: none;
+      }
     </style>
   </head>
   <body>
-    <main>
+    <!-- Skip to main content link for keyboard navigation -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <main id="main-content" tabindex="-1">
       <slot />
     </main>
   </body>

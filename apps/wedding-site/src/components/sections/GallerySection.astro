@@ -25,9 +25,15 @@ const photos = gallery?.photos?.slice().sort((a, b) => a.order - b.order) || [];
     {photos.length === 0 ? (
       <p class="no-photos">Photos will appear here.</p>
     ) : (
-      <div class="photo-grid">
+      <div class="photo-grid" role="list">
         {photos.map((photo, index) => (
-          <div class="photo-item" data-index={index}>
+          <div
+            class="photo-item"
+            data-index={index}
+            role="listitem"
+            tabindex="0"
+            aria-label={`View ${photo.caption || `photo ${index + 1}`} in full size`}
+          >
             {photo.url ? (
               <img
                 src={photo.url}
@@ -36,7 +42,7 @@ const photos = gallery?.photos?.slice().sort((a, b) => a.order - b.order) || [];
                 loading="lazy"
               />
             ) : (
-              <div class="photo-placeholder">
+              <div class="photo-placeholder" aria-hidden="true">
                 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
                   <circle cx="9" cy="9" r="2"/>
@@ -54,27 +60,35 @@ const photos = gallery?.photos?.slice().sort((a, b) => a.order - b.order) || [];
   </div>
 </section>
 
-<!-- Lightbox modal -->
-<div id="lightbox" class="lightbox" style="display: none;">
-  <button class="lightbox-close" aria-label="Close">
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<!-- Lightbox modal - Accessible dialog -->
+<div
+  id="lightbox"
+  class="lightbox"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="lightbox-title"
+  style="display: none;"
+>
+  <h2 id="lightbox-title" class="visually-hidden">Photo gallery viewer</h2>
+  <button class="lightbox-close" aria-label="Close photo viewer">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M18 6 6 18"/>
       <path d="m6 6 12 12"/>
     </svg>
   </button>
-  <button class="lightbox-prev" aria-label="Previous">
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <button class="lightbox-prev" aria-label="View previous photo">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="m15 18-6-6 6-6"/>
     </svg>
   </button>
-  <button class="lightbox-next" aria-label="Next">
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <button class="lightbox-next" aria-label="View next photo">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="m9 18 6-6-6-6"/>
     </svg>
   </button>
   <div class="lightbox-content">
-    <img id="lightbox-image" src="" alt="" />
-    <p id="lightbox-caption" class="lightbox-caption"></p>
+    <img id="lightbox-image" src="" alt="Gallery photo" />
+    <p id="lightbox-caption" class="lightbox-caption" aria-live="polite"></p>
   </div>
 </div>
 
@@ -245,13 +259,41 @@ const photos = gallery?.photos?.slice().sort((a, b) => a.order - b.order) || [];
 
     .lightbox-prev,
     .lightbox-next {
-      padding: 0.5rem;
+      padding: 0.75rem;
+      min-width: 44px;
+      min-height: 44px;
     }
+  }
+
+  /* Visually hidden but accessible to screen readers */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Focus styles for accessibility */
+  .lightbox-close:focus-visible,
+  .lightbox-prev:focus-visible,
+  .lightbox-next:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+  }
+
+  .photo-item:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
   }
 </style>
 
 <script define:vars={{ photos }}>
-  // Lightbox functionality
+  // Lightbox functionality with accessibility
   const lightbox = document.getElementById('lightbox');
   const lightboxImage = document.getElementById('lightbox-image');
   const lightboxCaption = document.getElementById('lightbox-caption');
@@ -261,6 +303,14 @@ const photos = gallery?.photos?.slice().sort((a, b) => a.order - b.order) || [];
   const photoItems = document.querySelectorAll('.photo-item');
 
   let currentIndex = 0;
+  let lastFocusedElement = null;
+
+  // Get focusable elements within lightbox for focus trap
+  function getFocusableElements() {
+    return lightbox?.querySelectorAll(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+  }
 
   function showPhoto(index) {
     if (photos.length === 0) return;
@@ -268,7 +318,7 @@ const photos = gallery?.photos?.slice().sort((a, b) => a.order - b.order) || [];
     const photo = photos[currentIndex];
     if (lightboxImage && photo.url) {
       lightboxImage.src = photo.url;
-      lightboxImage.alt = photo.caption || `Photo ${currentIndex + 1}`;
+      lightboxImage.alt = photo.caption || `Photo ${currentIndex + 1} of ${photos.length}`;
     }
     if (lightboxCaption) {
       lightboxCaption.textContent = photo.caption || '';
@@ -276,11 +326,14 @@ const photos = gallery?.photos?.slice().sort((a, b) => a.order - b.order) || [];
     }
   }
 
-  function openLightbox(index) {
+  function openLightbox(index, triggerElement) {
+    lastFocusedElement = triggerElement || document.activeElement;
     showPhoto(index);
     if (lightbox) {
       lightbox.style.display = 'flex';
       document.body.style.overflow = 'hidden';
+      // Focus the close button when lightbox opens
+      closeBtn?.focus();
     }
   }
 
@@ -288,14 +341,52 @@ const photos = gallery?.photos?.slice().sort((a, b) => a.order - b.order) || [];
     if (lightbox) {
       lightbox.style.display = 'none';
       document.body.style.overflow = '';
+      // Restore focus to the element that opened the lightbox
+      lastFocusedElement?.focus();
     }
   }
 
-  // Event listeners
+  // Focus trap for lightbox
+  function handleFocusTrap(e) {
+    if (lightbox?.style.display !== 'flex') return;
+
+    const focusableElements = getFocusableElements();
+    if (!focusableElements || focusableElements.length === 0) return;
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (e.key === 'Tab') {
+      if (e.shiftKey) {
+        // Shift + Tab
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+      } else {
+        // Tab
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    }
+  }
+
+  // Event listeners for photo items (click and keyboard)
   photoItems.forEach((item) => {
     item.addEventListener('click', () => {
       const index = parseInt(item.dataset.index || '0', 10);
-      openLightbox(index);
+      openLightbox(index, item);
+    });
+
+    // Allow Enter/Space to open lightbox
+    item.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const index = parseInt(item.dataset.index || '0', 10);
+        openLightbox(index, item);
+      }
     });
   });
 
@@ -315,8 +406,16 @@ const photos = gallery?.photos?.slice().sort((a, b) => a.order - b.order) || [];
   document.addEventListener('keydown', (e) => {
     if (lightbox?.style.display === 'flex') {
       if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowLeft') showPhoto(currentIndex - 1);
-      if (e.key === 'ArrowRight') showPhoto(currentIndex + 1);
+      if (e.key === 'ArrowLeft') {
+        showPhoto(currentIndex - 1);
+        prevBtn?.focus();
+      }
+      if (e.key === 'ArrowRight') {
+        showPhoto(currentIndex + 1);
+        nextBtn?.focus();
+      }
+      // Handle focus trap
+      handleFocusTrap(e);
     }
   });
 
