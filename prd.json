@@ -1485,7 +1485,7 @@
       "Share site link on social media",
       "Verify custom image appears in preview"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "social",

@@ -113,6 +113,75 @@ export interface FaqConfig {
 }
 
 // ============================================================================
+// Social Sharing / OG Image Types
+// ============================================================================
+
+/**
+ * Social sharing configuration for a wedding
+ * PRD: "Admin can customize share image"
+ */
+export interface SocialConfig {
+  /** Custom OG image URL (uploaded by admin) */
+  ogImageUrl?: string;
+  /** Custom OG image file name */
+  ogImageFileName?: string;
+  /** Custom OG image content type */
+  ogImageContentType?: string;
+  /** When the OG image was uploaded */
+  ogImageUploadedAt?: string;
+}
+
+/**
+ * Request to update social/OG image settings
+ */
+export interface UpdateSocialConfigRequest {
+  socialConfig: SocialConfig;
+}
+
+/**
+ * Response after updating social settings
+ */
+export interface UpdateSocialConfigResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+/**
+ * Request for creating a signed upload URL for OG image
+ */
+export interface OgImageUploadUrlRequest {
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+}
+
+/**
+ * Response containing a signed upload URL for OG image
+ */
+export interface OgImageUploadUrlResponse {
+  uploadId: string;
+  uploadUrl: string;
+  expiresAt: string;
+}
+
+/**
+ * Response after uploading an OG image
+ */
+export interface OgImageUploadResponse {
+  ogImageUrl: string;
+}
+
+/**
+ * OG image upload validation error code
+ */
+export const OG_IMAGE_UPLOAD_VALIDATION_ERROR = 'OG_IMAGE_UPLOAD_VALIDATION_ERROR' as const;
+
+/**
+ * OG image upload invalid/expired error code
+ */
+export const OG_IMAGE_UPLOAD_INVALID = 'OG_IMAGE_UPLOAD_INVALID' as const;
+
+// ============================================================================
 // Gallery Types (Admin Curated Photos)
 // ============================================================================
 
@@ -428,6 +497,8 @@ export interface RenderConfig {
   faq?: FaqConfig;
   /** Whether passcode protection is enabled (hash is never exposed) */
   passcodeProtected?: boolean;
+  /** Custom OG image URL for social sharing (if uploaded by admin) */
+  ogImageUrl?: string;
   /** Meal options for RSVP form (if configured) */
   mealConfig?: MealConfig;
   /** Gift registry links */
@@ -740,6 +811,8 @@ export interface Wedding {
   photoModerationConfig?: PhotoModerationConfig;
   /** Embedded video configuration */
   video?: VideoConfig;
+  /** Social sharing configuration (custom OG image) */
+  socialConfig?: SocialConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -2247,4 +2320,6 @@ export type ErrorCode =
   | typeof VIDEO_NOT_FOUND
   | typeof SCHEDULED_EMAIL_NOT_FOUND
   | typeof SCHEDULED_EMAIL_ALREADY_SENT
-  | typeof INVALID_SCHEDULE_TIME;
+  | typeof INVALID_SCHEDULE_TIME
+  | typeof OG_IMAGE_UPLOAD_VALIDATION_ERROR
+  | typeof OG_IMAGE_UPLOAD_INVALID;

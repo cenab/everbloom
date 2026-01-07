@@ -186,6 +186,8 @@ export interface RenderConfig {
   video?: VideoConfig;
   /** Whether passcode protection is enabled (hash is never exposed) */
   passcodeProtected?: boolean;
+  /** Custom OG image URL for social sharing (PRD: "Admin can customize share image") */
+  ogImageUrl?: string;
   wedding: {
     slug: string;
     partnerNames: [string, string];

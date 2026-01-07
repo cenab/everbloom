@@ -48,6 +48,9 @@ import type {
   UpdateVideoResponse,
   VideoConfig,
   VideoEmbed,
+  UpdateSocialConfigRequest,
+  UpdateSocialConfigResponse,
+  SocialConfig,
 } from '../types';
 import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, WEDDING_NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, NOT_FOUND, GALLERY_PHOTO_NOT_FOUND, VIDEO_URL_INVALID, VIDEO_NOT_FOUND } from '../types';
 
@@ -1152,6 +1155,111 @@ export class WeddingController {
     }
 
     return { ok: true, data: renderConfig };
+  }
+
+  // ============================================================================
+  // Social Config / OG Image Endpoints
+  // ============================================================================
+
+  /**
+   * Get social sharing configuration for a wedding
+   * PRD: "Admin can customize share image"
+   */
+  @Get(':id/social-config')
+  async getSocialConfig(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+  ): Promise<ApiResponse<SocialConfig>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    const socialConfig = this.weddingService.getSocialConfig(id);
+
+    if (!socialConfig) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return { ok: true, data: socialConfig };
+  }
+
+  /**
+   * Update social sharing configuration for a wedding
+   * PRD: "Admin can customize share image"
+   */
+  @Put(':id/social-config')
+  async updateSocialConfig(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: UpdateSocialConfigRequest,
+  ): Promise<ApiResponse<UpdateSocialConfigResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (!body.socialConfig) {
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+    }
+
+    // Validate OG image URL if provided
+    if (body.socialConfig.ogImageUrl) {
+      try {
+        new URL(body.socialConfig.ogImageUrl);
+      } catch {
+        throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+      }
+    }
+
+    const result = this.weddingService.updateSocialConfig(id, body.socialConfig);
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Remove custom OG image from a wedding
+   * PRD: "Admin can customize share image" (implies ability to remove)
+   */
+  @Delete(':id/social-config/og-image')
+  async removeSocialOgImage(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+  ): Promise<ApiResponse<UpdateSocialConfigResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    const result = this.weddingService.removeSocialOgImage(id);
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
   }
 
   /**

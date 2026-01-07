@@ -22,10 +22,11 @@ import { EmailTemplateSettings } from './EmailTemplateSettings';
 import { GallerySettings } from './GallerySettings';
 import { PhotoModerationSettings } from './PhotoModerationSettings';
 import { VideoSettings } from './VideoSettings';
+import { SocialSettings } from './SocialSettings';
 import { getAuthToken } from '../lib/auth';
 import type { Wedding, ApiResponse, RenderConfig } from '../types';
 
-type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'accommodations' | 'email-stats' | 'photo-stats' | 'guestbook' | 'music' | 'seating' | 'communications' | 'email-templates' | 'gallery' | 'photo-moderation' | 'video';
+type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'accommodations' | 'email-stats' | 'photo-stats' | 'guestbook' | 'music' | 'seating' | 'communications' | 'email-templates' | 'gallery' | 'photo-moderation' | 'video' | 'social';
 
 /**
  * Admin Dashboard component.
@@ -334,6 +335,18 @@ export function Dashboard() {
     );
   }
 
+  if (view === 'social' && selectedWedding) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <SocialSettings
+          wedding={selectedWedding}
+          onBack={() => setView('dashboard')}
+          onSocialConfigChanged={fetchWeddings}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -379,6 +392,7 @@ export function Dashboard() {
           onNavigateToGallery={() => setView('gallery')}
           onNavigateToPhotoModeration={() => setView('photo-moderation')}
           onNavigateToVideo={() => setView('video')}
+          onNavigateToSocial={() => setView('social')}
           onBack={weddings.length > 1 ? () => setSelectedWedding(null) : undefined}
         />
       )}
@@ -470,6 +484,7 @@ interface WeddingDashboardProps {
   onNavigateToGallery: () => void;
   onNavigateToPhotoModeration: () => void;
   onNavigateToVideo: () => void;
+  onNavigateToSocial: () => void;
   onBack?: () => void;
 }
 
@@ -501,6 +516,7 @@ function WeddingDashboard({
   onNavigateToGallery,
   onNavigateToPhotoModeration,
   onNavigateToVideo,
+  onNavigateToSocial,
   onBack,
 }: WeddingDashboardProps) {
   return (
@@ -681,6 +697,12 @@ function WeddingDashboard({
             onClick={onNavigateToSeating}
           />
         )}
+        <DashboardCard
+          title="Social sharing"
+          description="Customize link preview image"
+          icon={<ShareIcon className="w-6 h-6" />}
+          onClick={onNavigateToSocial}
+        />
         <DashboardCard
           title="Your site"
           description="View your wedding website"
@@ -1186,6 +1208,24 @@ function VideoIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z"
+      />
+    </svg>
+  );
+}
+
+function ShareIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"
       />
     </svg>
   );

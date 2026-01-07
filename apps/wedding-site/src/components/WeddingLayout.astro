@@ -14,9 +14,10 @@ const description = `Join us to celebrate the wedding of ${wedding.partnerNames[
 const siteUrl = import.meta.env.PUBLIC_WEDDING_SITE_URL || import.meta.env.SITE || 'https://everbloom.wedding';
 const canonicalUrl = `${siteUrl}/w/${wedding.slug}`;
 
-// Default OG image - a themed placeholder with the wedding colors
-// In the future, this could be a custom image uploaded by the couple
-const ogImageUrl = `${siteUrl}/og-image-default.svg`;
+// OG image: Use custom uploaded image if available, otherwise use default
+// PRD: "Admin can customize share image"
+const defaultOgImageUrl = `${siteUrl}/og-image-default.svg`;
+const ogImageUrl = config.ogImageUrl || defaultOgImageUrl;
 ---
 
 <!DOCTYPE html>

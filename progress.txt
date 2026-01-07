@@ -4449,3 +4449,77 @@ Implemented email template customization feature allowing admins to personalize 
 - Could add email preview before scheduling
 - Could add recurring scheduled emails (weekly reminders, etc.)
 - Worker authentication could be strengthened for production
+
+---
+
+## 2026-01-07: Custom OG Image / Social Sharing Feature
+
+**Feature:** Admin can customize share image (PRD: social category)
+
+**Priority rationale:** This feature builds on the existing OG meta tags infrastructure (already passing) and allows couples to upload a custom image that appears when their wedding site is shared on social media platforms like Facebook, Twitter, and LinkedIn. This is a self-contained feature with clear user value.
+
+**Implementation:**
+
+1. **Platform API Types (services/platform-api/src/types/index.ts):**
+   - Added SocialConfig interface with ogImageUrl, ogImageFileName, ogImageContentType, ogImageUploadedAt
+   - Added UpdateSocialConfigRequest and UpdateSocialConfigResponse interfaces
+   - Added OgImageUploadUrlRequest, OgImageUploadUrlResponse, OgImageUploadResponse interfaces
+   - Added error codes: OG_IMAGE_UPLOAD_VALIDATION_ERROR, OG_IMAGE_UPLOAD_INVALID
+   - Added ogImageUrl to RenderConfig interface
+   - Added socialConfig to Wedding interface
+
+2. **WeddingService (services/platform-api/src/wedding/wedding.service.ts):**
+   - Updated generateRenderConfig() to include ogImageUrl from socialConfig
+   - Added getSocialConfig() method to retrieve current social config
+   - Added updateSocialConfig() method to save social config and regenerate render_config
+   - Added removeSocialOgImage() method to clear OG image and regenerate render_config
+
+3. **WeddingController (services/platform-api/src/wedding/wedding.controller.ts):**
+   - Added GET /:id/social-config endpoint
+   - Added PUT /:id/social-config endpoint with URL validation
+   - Added DELETE /:id/social-config/og-image endpoint
+
+4. **Platform UI Types (apps/platform-ui/src/types.ts):**
+   - Added SocialConfig interface
+   - Added UpdateSocialConfigResponse interface
+   - Added ogImageUrl to RenderConfig interface
+   - Added socialConfig to Wedding interface
+
+5. **SocialSettings Component (apps/platform-ui/src/components/SocialSettings.tsx) [NEW]:**
+   - File input for image upload (JPEG, PNG, WebP; max 5MB)
+   - Image preview with 1.91:1 aspect ratio (optimal for social media)
+   - Recommended dimensions guidance (1200 x 630 pixels)
+   - Save/cancel/remove functionality
+   - Success/error message handling
+   - Back navigation to dashboard
+
+6. **Dashboard Component (apps/platform-ui/src/components/Dashboard.tsx):**
+   - Added SocialSettings import
+   - Added 'social' to View type
+   - Added view handler for social settings
+   - Added onNavigateToSocial prop to WeddingDashboard
+   - Added "Social sharing" card with ShareIcon
+   - Added ShareIcon component
+
+7. **Wedding Site Types (apps/wedding-site/src/types.ts):**
+   - Added ogImageUrl to RenderConfig interface
+
+8. **WeddingLayout.astro (apps/wedding-site/src/components/WeddingLayout.astro):**
+   - Updated OG image logic to use config.ogImageUrl if available
+   - Falls back to default SVG image if no custom image set
+
+**Design decisions:**
+- Image stored as data URL for simplicity (production would use signed URL upload to storage)
+- 1.91:1 aspect ratio matches Facebook/LinkedIn optimal dimensions
+- Max 5MB file size prevents excessive storage/bandwidth
+- JPEG/PNG/WebP supported (most common web formats)
+- Custom image propagates through render_config for consistent data flow
+
+**PRD features now passing:**
+- "Admin can customize share image" ✓
+
+**Notes for next person:**
+- Production should use signed URL upload to Supabase Storage instead of data URL
+- Could add image cropping tool for optimal OG image dimensions
+- Could add preview of how the link will appear on different platforms
+- Could validate image dimensions match 1200x630 recommendation

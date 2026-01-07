@@ -28,6 +28,7 @@ import type {
   VideoConfig,
   VideoEmbed,
   VideoEmbedPlatform,
+  SocialConfig,
 } from '../types';
 
 const scryptAsync = promisify(scrypt);
@@ -498,6 +499,11 @@ export class WeddingService {
     // Add video configuration if present and feature enabled
     if (wedding.features.VIDEO_EMBED && wedding.video && wedding.video.videos.length > 0) {
       config.video = wedding.video;
+    }
+
+    // Add custom OG image URL if uploaded
+    if (wedding.socialConfig?.ogImageUrl) {
+      config.ogImageUrl = wedding.socialConfig.ogImageUrl;
     }
 
     return config;
@@ -1729,5 +1735,80 @@ export class WeddingService {
       return null;
     }
     return wedding.video ?? { ...DEFAULT_VIDEO };
+  }
+
+  // ============================================================================
+  // Social Config / OG Image Methods
+  // ============================================================================
+
+  /**
+   * Update social sharing configuration for a wedding (custom OG image)
+   * Updates both the wedding record and regenerates render_config
+   * PRD: "Admin can customize share image"
+   */
+  updateSocialConfig(
+    weddingId: string,
+    socialConfig: SocialConfig,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    wedding.socialConfig = socialConfig;
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    // Regenerate render_config to include OG image URL
+    const updatedConfig = this.generateRenderConfig(wedding);
+    this.renderConfigs.set(weddingId, updatedConfig);
+
+    this.logger.log(
+      `Updated social config for wedding ${weddingId}: ogImageUrl=${socialConfig.ogImageUrl ?? 'none'}`,
+    );
+
+    return { wedding, renderConfig: updatedConfig };
+  }
+
+  /**
+   * Get social config for a wedding
+   */
+  getSocialConfig(weddingId: string): SocialConfig | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+    return wedding.socialConfig ?? {};
+  }
+
+  /**
+   * Remove the custom OG image from a wedding
+   */
+  removeSocialOgImage(
+    weddingId: string,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    // Clear the OG image fields but keep other social config
+    wedding.socialConfig = {
+      ...wedding.socialConfig,
+      ogImageUrl: undefined,
+      ogImageFileName: undefined,
+      ogImageContentType: undefined,
+      ogImageUploadedAt: undefined,
+    };
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    // Regenerate render_config without OG image
+    const updatedConfig = this.generateRenderConfig(wedding);
+    this.renderConfigs.set(weddingId, updatedConfig);
+
+    this.logger.log(`Removed OG image for wedding ${weddingId}`);
+
+    return { wedding, renderConfig: updatedConfig };
   }
 }

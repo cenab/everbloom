@@ -210,6 +210,8 @@ export interface RenderConfig {
   accommodations?: AccommodationsConfig;
   gallery?: GalleryConfig;
   video?: VideoConfig;
+  /** Custom OG image URL for social sharing */
+  ogImageUrl?: string;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -344,6 +346,8 @@ export interface Wedding {
   gallery?: GalleryConfig;
   photoModerationConfig?: PhotoModerationConfig;
   video?: VideoConfig;
+  /** Social sharing configuration (custom OG image) */
+  socialConfig?: SocialConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -1230,6 +1234,34 @@ export interface VideoConfig {
  * Response after updating video embeds
  */
 export interface UpdateVideoResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
+// ============================================================================
+// Social Config / OG Image Types
+// PRD: "Admin can customize share image"
+// ============================================================================
+
+/**
+ * Social sharing configuration for a wedding
+ * Controls the Open Graph image used when sharing the wedding site on social media
+ */
+export interface SocialConfig {
+  /** URL of the custom OG image (after upload) */
+  ogImageUrl?: string;
+  /** Original file name of the uploaded image */
+  ogImageFileName?: string;
+  /** MIME type of the uploaded image */
+  ogImageContentType?: string;
+  /** ISO timestamp when the image was uploaded */
+  ogImageUploadedAt?: string;
+}
+
+/**
+ * Response after updating social config
+ */
+export interface UpdateSocialConfigResponse {
   wedding: Wedding;
   renderConfig: RenderConfig;
 }
