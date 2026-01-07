@@ -4,7 +4,9 @@ import type {
   RsvpViewData,
   RsvpSubmitRequest,
   RsvpSubmitResponse,
-} from '@wedding-bestie/shared';
+  SubmitGuestbookMessageRequest,
+  SubmitGuestbookMessageResponse,
+} from '../types';
 
 /**
  * Platform API base URL
@@ -88,6 +90,39 @@ export async function submitRsvp(request: RsvpSubmitRequest): Promise<{
     return { data: result.data, error: null };
   } catch (error) {
     console.error('Error submitting RSVP:', error);
+    return { data: null, error: 'NETWORK_ERROR' };
+  }
+}
+
+/**
+ * Submit a guestbook message
+ * Public endpoint - no auth required
+ */
+export async function submitGuestbookMessage(
+  slug: string,
+  request: SubmitGuestbookMessageRequest,
+): Promise<{
+  data: SubmitGuestbookMessageResponse | null;
+  error: string | null;
+}> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/guestbook/${slug}/submit`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    const result: ApiResponse<SubmitGuestbookMessageResponse> = await response.json();
+
+    if (!result.ok) {
+      return { data: null, error: result.error };
+    }
+
+    return { data: result.data, error: null };
+  } catch (error) {
+    console.error('Error submitting guestbook message:', error);
     return { data: null, error: 'NETWORK_ERROR' };
   }
 }

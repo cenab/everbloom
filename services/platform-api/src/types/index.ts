@@ -11,7 +11,8 @@ export type FeatureFlag =
   | 'FAQ_SECTION'
   | 'PASSCODE_SITE'
   | 'REGISTRY'
-  | 'ACCOMMODATIONS';
+  | 'ACCOMMODATIONS'
+  | 'GUESTBOOK';
 
 /**
  * Template categories matching product positioning
@@ -198,6 +199,75 @@ export interface UpdateAccommodationsResponse {
   renderConfig: RenderConfig;
 }
 
+// ============================================================================
+// Guestbook Types
+// ============================================================================
+
+/**
+ * Guestbook message status
+ */
+export type GuestbookMessageStatus = 'pending' | 'approved' | 'rejected';
+
+/**
+ * A single guestbook message from a guest
+ */
+export interface GuestbookMessage {
+  id: string;
+  weddingId: string;
+  /** Guest name (not necessarily tied to guest list) */
+  guestName: string;
+  /** The message content */
+  message: string;
+  /** Moderation status */
+  status: GuestbookMessageStatus;
+  /** When the message was submitted */
+  createdAt: string;
+  /** When the message was last moderated */
+  moderatedAt?: string;
+}
+
+/**
+ * Guestbook configuration
+ */
+export interface GuestbookConfig {
+  /** Messages that have been approved for display */
+  messages: GuestbookMessage[];
+}
+
+/**
+ * Request to submit a guestbook message (public endpoint)
+ */
+export interface SubmitGuestbookMessageRequest {
+  guestName: string;
+  message: string;
+}
+
+/**
+ * Response after submitting a guestbook message
+ */
+export interface SubmitGuestbookMessageResponse {
+  message: GuestbookMessage;
+}
+
+/**
+ * Request to moderate a guestbook message
+ */
+export interface ModerateGuestbookMessageRequest {
+  status: 'approved' | 'rejected';
+}
+
+/**
+ * Response from guestbook messages list (admin)
+ */
+export interface GuestbookMessagesResponse {
+  messages: GuestbookMessage[];
+}
+
+/**
+ * Guestbook message not found error code
+ */
+export const GUESTBOOK_MESSAGE_NOT_FOUND = 'GUESTBOOK_MESSAGE_NOT_FOUND' as const;
+
 /**
  * The render_config contract - wedding site renders exclusively from this
  */
@@ -217,6 +287,8 @@ export interface RenderConfig {
   registry?: RegistryConfig;
   /** Accommodations and travel info */
   accommodations?: AccommodationsConfig;
+  /** Guestbook messages (approved only for public display) */
+  guestbook?: GuestbookConfig;
   wedding: {
     slug: string;
     partnerNames: [string, string];
@@ -1364,4 +1436,5 @@ export type ErrorCode =
   | typeof INTERNAL_ERROR
   | typeof RATE_LIMIT_EXCEEDED
   | typeof INVALID_MEAL_OPTION
-  | typeof MEAL_OPTIONS_NOT_CONFIGURED;
+  | typeof MEAL_OPTIONS_NOT_CONFIGURED
+  | typeof GUESTBOOK_MESSAGE_NOT_FOUND;

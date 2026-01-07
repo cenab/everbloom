@@ -20,6 +20,7 @@ import type {
   MealConfig,
   RegistryConfig,
   AccommodationsConfig,
+  GuestbookConfig,
 } from '../types';
 
 const scryptAsync = promisify(scrypt);
@@ -141,6 +142,21 @@ const createAccommodationsSection = (order: number, enabled: boolean): Section =
   data: { ...DEFAULT_ACCOMMODATIONS_SECTION_DATA },
 });
 
+const GUESTBOOK_SECTION_ID = 'guestbook';
+
+const DEFAULT_GUESTBOOK_SECTION_DATA = {
+  title: 'Guestbook',
+  description: 'Leave a message for the happy couple.',
+};
+
+const createGuestbookSection = (order: number, enabled: boolean): Section => ({
+  id: GUESTBOOK_SECTION_ID,
+  type: 'guestbook',
+  enabled,
+  order,
+  data: { ...DEFAULT_GUESTBOOK_SECTION_DATA },
+});
+
 /**
  * Features enabled by plan tier
  */
@@ -155,6 +171,7 @@ const PLAN_FEATURES: Record<PlanTier, FeatureFlag[]> = {
     'PASSCODE_SITE',
     'REGISTRY',
     'ACCOMMODATIONS',
+    'GUESTBOOK',
   ],
 };
 
@@ -170,6 +187,7 @@ const ALL_FEATURES: FeatureFlag[] = [
   'PASSCODE_SITE',
   'REGISTRY',
   'ACCOMMODATIONS',
+  'GUESTBOOK',
 ];
 
 /**
@@ -344,6 +362,7 @@ export class WeddingService {
         createFaqSection(4, wedding.features.FAQ_SECTION),
         createRegistrySection(5, wedding.features.REGISTRY),
         createAccommodationsSection(6, wedding.features.ACCOMMODATIONS),
+        createGuestbookSection(7, wedding.features.GUESTBOOK),
       ],
       wedding: {
         slug: wedding.slug,
@@ -547,6 +566,7 @@ export class WeddingService {
     const hasPhotoSection = existingConfig.sections.some((section) => section.type === 'photo-upload');
     const hasFaqSection = existingConfig.sections.some((section) => section.type === 'faq');
     const hasRegistrySection = existingConfig.sections.some((section) => section.type === 'registry');
+    const hasGuestbookSection = existingConfig.sections.some((section) => section.type === 'guestbook');
     const updatedConfig: RenderConfig = {
       ...existingConfig,
       features: updatedFeatures,
@@ -566,6 +586,9 @@ export class WeddingService {
         }
         if (section.type === 'accommodations') {
           return { ...section, enabled: updatedFeatures.ACCOMMODATIONS };
+        }
+        if (section.type === 'guestbook') {
+          return { ...section, enabled: updatedFeatures.GUESTBOOK };
         }
         return section;
       }),
@@ -601,6 +624,14 @@ export class WeddingService {
       updatedConfig.sections = [
         ...updatedConfig.sections,
         createAccommodationsSection(maxOrder + 1, updatedFeatures.ACCOMMODATIONS),
+      ];
+    }
+
+    if (!hasGuestbookSection) {
+      const maxOrder = updatedConfig.sections.reduce((max, section) => Math.max(max, section.order), -1);
+      updatedConfig.sections = [
+        ...updatedConfig.sections,
+        createGuestbookSection(maxOrder + 1, updatedFeatures.GUESTBOOK),
       ];
     }
 
@@ -1035,5 +1066,42 @@ export class WeddingService {
       return null;
     }
     return wedding.mealConfig || null;
+  }
+
+  /**
+   * Update guestbook configuration in render_config
+   * Called after guestbook messages are moderated
+   * PRD: "Guestbook messages display on public site"
+   */
+  updateGuestbookConfig(
+    weddingId: string,
+    guestbook: GuestbookConfig,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    const existingConfig = this.renderConfigs.get(weddingId);
+    if (!existingConfig) {
+      return null;
+    }
+
+    // Update guestbook in render_config (only approved messages)
+    const updatedConfig: RenderConfig = {
+      ...existingConfig,
+      guestbook: guestbook.messages.length > 0 ? guestbook : undefined,
+    };
+
+    this.renderConfigs.set(weddingId, updatedConfig);
+
+    this.logger.log(
+      `Updated guestbook config for wedding ${weddingId}: ${guestbook.messages.length} approved messages`,
+    );
+
+    return { wedding, renderConfig: updatedConfig };
   }
 }

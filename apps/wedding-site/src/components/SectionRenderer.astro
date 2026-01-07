@@ -7,13 +7,14 @@ import PhotoUploadSection from './sections/PhotoUploadSection.astro';
 import FaqSection from './sections/FaqSection.astro';
 import RegistrySection from './sections/RegistrySection.astro';
 import AccommodationsSection from './sections/AccommodationsSection.astro';
+import GuestbookSection from './sections/GuestbookSection.astro';
 
 interface Props {
   config: RenderConfig;
 }
 
 const { config } = Astro.props;
-const { sections, theme, wedding, features, faq, registry, accommodations } = config;
+const { sections, theme, wedding, features, faq, registry, accommodations, guestbook } = config;
 
 // Filter enabled sections and sort by order
 const enabledSections = sections
@@ -62,6 +63,11 @@ const enabledSections = sections
     case 'accommodations':
       if (features.ACCOMMODATIONS) {
         return <AccommodationsSection section={section} theme={theme} accommodations={accommodations} />;
+      }
+      return null;
+    case 'guestbook':
+      if (features.GUESTBOOK) {
+        return <GuestbookSection section={section} theme={theme} guestbook={guestbook} weddingSlug={wedding.slug} />;
       }
       return null;
     default:

@@ -1,0 +1,353 @@
+---
+import type { Section, Theme, GuestbookConfig } from '../../types';
+
+interface Props {
+  section: Section;
+  theme: Theme;
+  guestbook?: GuestbookConfig;
+  weddingSlug: string;
+}
+
+const { section, theme, guestbook, weddingSlug } = Astro.props;
+const { title, description } = section.data as { title?: string; description?: string };
+
+// Only show approved messages (server should already filter, but double-check)
+const approvedMessages = guestbook?.messages?.filter(m => m.status === 'approved') || [];
+
+// Platform API URL for client-side fetch
+const apiBaseUrl = import.meta.env.PUBLIC_PLATFORM_API_URL || 'http://localhost:3001/api';
+---
+
+<section
+  class="guestbook-section"
+  style={`--primary: ${theme.primary}; --accent: ${theme.accent}; --neutral-light: ${theme.neutralLight}; --neutral-dark: ${theme.neutralDark};`}
+  data-wedding-slug={weddingSlug}
+  data-api-base-url={apiBaseUrl}
+>
+  <div class="guestbook-content">
+    <h2 class="section-title">{title || 'Guestbook'}</h2>
+    {description && <p class="section-description">{description}</p>}
+
+    <!-- Submission form -->
+    <form id="guestbook-form" class="guestbook-form">
+      <div class="form-group">
+        <label for="guest-name" class="form-label">Your name</label>
+        <input
+          type="text"
+          id="guest-name"
+          name="guestName"
+          required
+          maxlength="100"
+          class="form-input"
+          placeholder="Enter your name"
+        />
+      </div>
+      <div class="form-group">
+        <label for="message" class="form-label">Your message</label>
+        <textarea
+          id="message"
+          name="message"
+          required
+          maxlength="1000"
+          rows="4"
+          class="form-textarea"
+          placeholder="Leave a message for the happy couple..."
+        ></textarea>
+      </div>
+      <button type="submit" class="submit-button" id="submit-button">
+        Sign the guestbook
+      </button>
+      <div id="form-message" class="form-message" aria-live="polite"></div>
+    </form>
+
+    <!-- Messages display -->
+    <div class="messages-section">
+      <h3 class="messages-title">Messages from guests</h3>
+      {approvedMessages.length === 0 ? (
+        <p class="no-messages">Be the first to leave a message!</p>
+      ) : (
+        <div class="messages-list">
+          {approvedMessages.map((msg) => (
+            <article class="message-card">
+              <div class="message-header">
+                <span class="message-author">{msg.guestName}</span>
+                <time class="message-date" datetime={msg.createdAt}>
+                  {new Date(msg.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </time>
+              </div>
+              <p class="message-text">{msg.message}</p>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+</section>
+
+<script>
+  const form = document.getElementById('guestbook-form') as HTMLFormElement;
+  const submitButton = document.getElementById('submit-button') as HTMLButtonElement;
+  const formMessage = document.getElementById('form-message') as HTMLDivElement;
+  const section = document.querySelector('.guestbook-section') as HTMLElement;
+  const weddingSlug = section?.dataset.weddingSlug;
+  const apiBaseUrl = section?.dataset.apiBaseUrl || 'http://localhost:3001/api';
+
+  if (form && weddingSlug) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+      const guestName = formData.get('guestName') as string;
+      const message = formData.get('message') as string;
+
+      if (!guestName.trim() || !message.trim()) {
+        formMessage.textContent = 'Please fill in all fields.';
+        formMessage.className = 'form-message error';
+        return;
+      }
+
+      submitButton.disabled = true;
+      submitButton.textContent = 'Sending...';
+      formMessage.textContent = '';
+
+      try {
+        const response = await fetch(`${apiBaseUrl}/guestbook/${weddingSlug}/submit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ guestName: guestName.trim(), message: message.trim() }),
+        });
+
+        const data = await response.json();
+
+        if (data.ok) {
+          formMessage.textContent = 'Thank you for your message! It will appear after the couple approves it.';
+          formMessage.className = 'form-message success';
+          form.reset();
+        } else {
+          formMessage.textContent = data.error === 'FEATURE_DISABLED'
+            ? 'The guestbook is not available at this time.'
+            : 'Unable to submit your message. Please try again.';
+          formMessage.className = 'form-message error';
+        }
+      } catch {
+        formMessage.textContent = 'Unable to submit your message. Please try again.';
+        formMessage.className = 'form-message error';
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Sign the guestbook';
+      }
+    });
+  }
+</script>
+
+<style>
+  .guestbook-section {
+    background-color: var(--neutral-light);
+    padding: 6rem 2rem;
+  }
+
+  .guestbook-content {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .section-title {
+    font-family: 'Cormorant Garamond', 'Georgia', serif;
+    font-size: clamp(1.75rem, 5vw, 2.5rem);
+    font-weight: 400;
+    color: var(--neutral-dark);
+    margin: 0 0 1.5rem 0;
+    letter-spacing: 0.02em;
+    text-align: center;
+  }
+
+  .section-description {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 1.125rem;
+    color: var(--neutral-dark);
+    opacity: 0.8;
+    line-height: 1.6;
+    margin: 0 0 3rem 0;
+    text-align: center;
+  }
+
+  /* Form styles */
+  .guestbook-form {
+    background-color: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 3rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-label {
+    display: block;
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--neutral-dark);
+    margin-bottom: 0.5rem;
+  }
+
+  .form-input,
+  .form-textarea {
+    width: 100%;
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 1rem;
+    color: var(--neutral-dark);
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 8px;
+    padding: 0.875rem 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .form-input:focus,
+  .form-textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(var(--primary), 0.1);
+  }
+
+  .form-textarea {
+    resize: vertical;
+    min-height: 120px;
+  }
+
+  .submit-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #fff;
+    background-color: var(--primary);
+    border: none;
+    border-radius: 8px;
+    padding: 0.875rem 2rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+  }
+
+  .submit-button:hover:not(:disabled) {
+    background-color: var(--accent);
+  }
+
+  .submit-button:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .submit-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .form-message {
+    margin-top: 1rem;
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+
+  .form-message.success {
+    color: #059669;
+  }
+
+  .form-message.error {
+    color: #dc2626;
+  }
+
+  /* Messages section */
+  .messages-section {
+    margin-top: 3rem;
+  }
+
+  .messages-title {
+    font-family: 'Cormorant Garamond', 'Georgia', serif;
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--neutral-dark);
+    margin: 0 0 1.5rem 0;
+    text-align: center;
+  }
+
+  .no-messages {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 1rem;
+    color: var(--neutral-dark);
+    opacity: 0.6;
+    text-align: center;
+  }
+
+  .messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .message-card {
+    background-color: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  .message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.75rem;
+    gap: 1rem;
+  }
+
+  .message-author {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--neutral-dark);
+  }
+
+  .message-date {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 0.8125rem;
+    color: var(--neutral-dark);
+    opacity: 0.6;
+    flex-shrink: 0;
+  }
+
+  .message-text {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 1rem;
+    color: var(--neutral-dark);
+    opacity: 0.85;
+    line-height: 1.7;
+    margin: 0;
+    white-space: pre-wrap;
+  }
+
+  @media (max-width: 640px) {
+    .guestbook-section {
+      padding: 4rem 1.5rem;
+    }
+
+    .guestbook-form {
+      padding: 1.5rem;
+    }
+
+    .message-header {
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+  }
+</style>

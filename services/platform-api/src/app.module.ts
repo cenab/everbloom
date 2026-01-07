@@ -9,6 +9,7 @@ import { GuestModule } from './guest/guest.module';
 import { RsvpModule } from './rsvp/rsvp.module';
 import { InvitationModule } from './invitation/invitation.module';
 import { PhotosModule } from './photos/photos.module';
+import { GuestbookModule } from './guestbook/guestbook.module';
 
 /**
  * Rate limiting configuration.
@@ -50,6 +51,7 @@ import { PhotosModule } from './photos/photos.module';
     RsvpModule,
     InvitationModule,
     PhotosModule,
+    GuestbookModule,
   ],
   controllers: [AppController],
   providers: [

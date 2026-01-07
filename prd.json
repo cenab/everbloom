@@ -937,7 +937,7 @@
       "Submit message",
       "Verify confirmation is shown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "guestbook",
@@ -949,7 +949,7 @@
       "Verify approved messages appear on site",
       "Verify rejected messages are hidden"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "guestbook",
@@ -960,7 +960,7 @@
       "Navigate to public wedding site",
       "Verify guestbook section shows approved messages"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "guestbook",
@@ -971,7 +971,7 @@
       "Verify guestbook section is not visible",
       "Verify guestbook submission endpoint returns FEATURE_DISABLED"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "music",

@@ -11,7 +11,8 @@ export type FeatureFlag =
   | 'FAQ_SECTION'
   | 'PASSCODE_SITE'
   | 'REGISTRY'
-  | 'ACCOMMODATIONS';
+  | 'ACCOMMODATIONS'
+  | 'GUESTBOOK';
 
 /**
  * Template categories matching product positioning
@@ -770,4 +771,43 @@ export interface TagListResponse {
 export interface AssignTagsRequest {
   guestIds: string[];
   tagIds: string[];
+}
+
+// ============================================================================
+// Guestbook Types
+// ============================================================================
+
+/**
+ * Guestbook message status
+ */
+export type GuestbookMessageStatus = 'pending' | 'approved' | 'rejected';
+
+/**
+ * A single guestbook message from a guest
+ */
+export interface GuestbookMessage {
+  id: string;
+  weddingId: string;
+  guestName: string;
+  message: string;
+  status: GuestbookMessageStatus;
+  createdAt: string;
+  moderatedAt?: string;
+}
+
+/**
+ * Response from guestbook messages list
+ */
+export interface GuestbookMessagesResponse {
+  messages: GuestbookMessage[];
+}
+
+/**
+ * Guestbook summary for dashboard
+ */
+export interface GuestbookSummaryResponse {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
 }

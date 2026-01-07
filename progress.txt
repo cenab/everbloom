@@ -3382,3 +3382,73 @@ With HTTP status 429 Too Many Requests.
 - The ThrottlerException is caught by HttpExceptionFilter and converted to structured error
 - Test rate limiting: make >100 requests in 60 seconds to see 429 response
 
+
+---
+
+### 2026-01-07 - Guestbook Feature Implementation
+
+**Feature worked on:** Guestbook (guest submissions + admin moderation + public display)
+
+**Priority rationale:** The guestbook is a premium feature that allows guests to leave heartfelt messages for the couple. It follows established patterns in the codebase (similar structure to FAQ, Photos) and is self-contained.
+
+**What was done:**
+
+1. **Platform API (NestJS):**
+   - Added GUESTBOOK to FeatureFlag type
+   - Created GuestbookMessage, GuestbookConfig, GuestbookMessageStatus types
+   - Added GUESTBOOK_MESSAGE_NOT_FOUND error code
+   - Created GuestbookService with in-memory storage (submitMessage, getMessagesForWedding, getApprovedMessages, getMessage, moderateMessage, deleteMessage, getGuestbookConfig, getMessageCounts)
+   - Created GuestbookAdminController (auth-protected endpoints):
+     - GET /weddings/:weddingId/guestbook/messages - list all messages
+     - GET /weddings/:weddingId/guestbook/summary - get message counts
+     - PUT /weddings/:weddingId/guestbook/messages/:messageId/moderate - approve/reject
+     - DELETE /weddings/:weddingId/guestbook/messages/:messageId - delete
+   - Created GuestbookPublicController (no auth required):
+     - POST /guestbook/:slug/submit - guest submits message
+     - GET /guestbook/:slug/messages - get approved messages
+   - Updated WeddingService:
+     - Added GUESTBOOK to PLAN_FEATURES (premium only) and ALL_FEATURES
+     - Added createGuestbookSection helper and guestbook section to renderConfig
+     - Added updateGuestbookConfig method for syncing approved messages
+   - Registered GuestbookModule in app.module.ts
+
+2. **Platform UI (React):**
+   - Added GUESTBOOK to FeatureFlag type
+   - Added all guestbook types (GuestbookMessage, GuestbookMessagesResponse, etc.)
+   - Created GuestbookManager.tsx component with:
+     - Message list with filter tabs (all/pending/approved/rejected)
+     - Summary cards (total/pending/approved/rejected counts)
+     - Approve/reject/delete actions with loading states
+     - Refresh button
+   - Updated Dashboard.tsx:
+     - Added guestbook view handler
+     - Added onNavigateToGuestbook prop
+     - Added MessageSquareIcon and Guestbook dashboard card (conditional on GUESTBOOK feature flag)
+   - Updated CreateWedding.tsx and FeatureSettings.tsx with GUESTBOOK in FEATURE_INFO and PLAN_AVAILABLE_FEATURES
+
+3. **Wedding Site (Astro):**
+   - Added GUESTBOOK to FeatureFlag type
+   - Added guestbook types (GuestbookMessage, GuestbookConfig, SubmitGuestbookMessageRequest, etc.)
+   - Added guestbook field to RenderConfig
+   - Created GuestbookSection.astro component with:
+     - Submission form (name + message)
+     - Client-side form handling with platform API calls
+     - Approved messages display
+     - Success/error messaging
+   - Updated SectionRenderer.astro to handle guestbook section type
+   - Added submitGuestbookMessage function to api.ts
+
+**PRD features now passing:**
+- "Guest can leave a message for the couple" ✓
+- "Admin can moderate guestbook messages" ✓
+- "Guestbook messages display on public site" ✓
+- "Guestbook respects feature toggle" ✓
+
+**Notes for next person:**
+- Guestbook is a premium-only feature (in PLAN_FEATURES)
+- New messages start with status 'pending' and require admin moderation
+- Only approved messages are shown on the public site
+- The guestbook section renders in order=7 in the default section list
+- render_config is updated after moderation actions to sync approved messages
+- Message length is limited to 1000 characters
+- Consider adding pagination for weddings with many messages

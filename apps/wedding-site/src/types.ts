@@ -11,7 +11,8 @@ export type FeatureFlag =
   | 'FAQ_SECTION'
   | 'PASSCODE_SITE'
   | 'REGISTRY'
-  | 'ACCOMMODATIONS';
+  | 'ACCOMMODATIONS'
+  | 'GUESTBOOK';
 
 /**
  * Theme configuration for wedding sites
@@ -172,6 +173,8 @@ export interface RenderConfig {
   registry?: RegistryConfig;
   /** Accommodations and travel info */
   accommodations?: AccommodationsConfig;
+  /** Guestbook messages (approved only) */
+  guestbook?: GuestbookConfig;
   /** Whether passcode protection is enabled (hash is never exposed) */
   passcodeProtected?: boolean;
   wedding: {
@@ -315,4 +318,48 @@ export interface VerifyPasscodeResponse {
   valid: boolean;
   /** Token for session persistence (only returned if valid) */
   sessionToken?: string;
+}
+
+// ============================================================================
+// Guestbook Types
+// ============================================================================
+
+/**
+ * Status of a guestbook message
+ */
+export type GuestbookMessageStatus = 'pending' | 'approved' | 'rejected';
+
+/**
+ * A single guestbook message from a guest
+ */
+export interface GuestbookMessage {
+  id: string;
+  weddingId: string;
+  guestName: string;
+  message: string;
+  status: GuestbookMessageStatus;
+  createdAt: string;
+  moderatedAt?: string;
+}
+
+/**
+ * Guestbook configuration for rendering
+ */
+export interface GuestbookConfig {
+  messages: GuestbookMessage[];
+}
+
+/**
+ * Request body for submitting a guestbook message
+ */
+export interface SubmitGuestbookMessageRequest {
+  guestName: string;
+  message: string;
+}
+
+/**
+ * Response from submitting a guestbook message
+ */
+export interface SubmitGuestbookMessageResponse {
+  message: GuestbookMessage;
 }

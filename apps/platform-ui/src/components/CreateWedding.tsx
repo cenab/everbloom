@@ -73,6 +73,10 @@ const FEATURE_INFO: Record<FeatureFlag, { label: string; description: string }> 
     label: 'Accommodations',
     description: 'Share hotel and travel information with guests',
   },
+  GUESTBOOK: {
+    label: 'Guestbook',
+    description: 'Let guests leave messages for the couple',
+  },
 };
 
 /**
@@ -89,6 +93,7 @@ const PLAN_AVAILABLE_FEATURES: Record<PlanTier, FeatureFlag[]> = {
     'PASSCODE_SITE',
     'REGISTRY',
     'ACCOMMODATIONS',
+    'GUESTBOOK',
   ],
 };
 
@@ -101,6 +106,7 @@ const DEFAULT_FEATURE_SELECTION: Record<FeatureFlag, boolean> = {
   PASSCODE_SITE: false,
   REGISTRY: false,
   ACCOMMODATIONS: false,
+  GUESTBOOK: false,
 };
 
 const ALL_FEATURES = Object.keys(FEATURE_INFO) as FeatureFlag[];
