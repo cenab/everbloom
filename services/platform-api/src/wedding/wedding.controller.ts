@@ -57,7 +57,30 @@ import type {
   DiscardDraftResponse,
   DraftRenderConfigResponse,
 } from '../types';
-import { TEMPLATE_NOT_FOUND, FEATURE_DISABLED, WEDDING_NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, NOT_FOUND, GALLERY_PHOTO_NOT_FOUND, VIDEO_URL_INVALID, VIDEO_NOT_FOUND, NO_DRAFT_EXISTS, NO_CHANGES_TO_PUBLISH, INVALID_LANGUAGE } from '../types';
+import {
+  TEMPLATE_NOT_FOUND,
+  FEATURE_DISABLED,
+  WEDDING_NOT_FOUND,
+  VALIDATION_ERROR,
+  UNAUTHORIZED,
+  NOT_FOUND,
+  GALLERY_PHOTO_NOT_FOUND,
+  VIDEO_URL_INVALID,
+  VIDEO_NOT_FOUND,
+  NO_DRAFT_EXISTS,
+  NO_CHANGES_TO_PUBLISH,
+  INVALID_LANGUAGE,
+  CUSTOM_DOMAIN_ALREADY_EXISTS,
+  CUSTOM_DOMAIN_NOT_CONFIGURED,
+  INVALID_DOMAIN_FORMAT,
+} from '../types';
+import type {
+  AddCustomDomainRequest,
+  AddCustomDomainResponse,
+  VerifyCustomDomainResponse,
+  RemoveCustomDomainResponse,
+  GetCustomDomainResponse,
+} from '../types';
 
 @Controller('weddings')
 export class WeddingController {
@@ -1570,6 +1593,145 @@ export class WeddingController {
     }
 
     return { ok: true, data: { wedding: updatedWedding } };
+  }
+
+  // ============================================================================
+  // Custom Domain Endpoints
+  // PRD: "Admin can connect custom domain"
+  // PRD: "SSL certificate is provisioned for custom domain"
+  // PRD: "Site works on both default and custom domain"
+  // ============================================================================
+
+  /**
+   * Get custom domain configuration for a wedding
+   */
+  @Get(':id/custom-domain')
+  async getCustomDomain(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+  ): Promise<ApiResponse<GetCustomDomainResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    const result = this.weddingService.getCustomDomain(id);
+
+    if (!result) {
+      throw new NotFoundException({ ok: false, error: NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Add a custom domain to a wedding
+   * PRD: "Admin can connect custom domain"
+   */
+  @Post(':id/custom-domain')
+  async addCustomDomain(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: AddCustomDomainRequest,
+  ): Promise<ApiResponse<AddCustomDomainResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (!body.domain?.trim()) {
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+    }
+
+    const result = this.weddingService.addCustomDomain(id, body.domain.trim());
+
+    if ('error' in result) {
+      if (result.error === 'INVALID_DOMAIN_FORMAT') {
+        throw new BadRequestException({ ok: false, error: INVALID_DOMAIN_FORMAT });
+      }
+      if (result.error === 'CUSTOM_DOMAIN_ALREADY_EXISTS') {
+        throw new BadRequestException({ ok: false, error: CUSTOM_DOMAIN_ALREADY_EXISTS });
+      }
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Verify DNS configuration for a custom domain
+   * PRD: "Admin can connect custom domain"
+   */
+  @Post(':id/custom-domain/verify')
+  async verifyCustomDomain(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+  ): Promise<ApiResponse<VerifyCustomDomainResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    const result = await this.weddingService.verifyCustomDomain(id);
+
+    if ('error' in result) {
+      if (result.error === 'CUSTOM_DOMAIN_NOT_CONFIGURED') {
+        throw new BadRequestException({ ok: false, error: CUSTOM_DOMAIN_NOT_CONFIGURED });
+      }
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
+  }
+
+  /**
+   * Remove a custom domain from a wedding
+   * PRD: "Admin can connect custom domain" (includes ability to disconnect)
+   */
+  @Delete(':id/custom-domain')
+  async removeCustomDomain(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+  ): Promise<ApiResponse<RemoveCustomDomainResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    const result = this.weddingService.removeCustomDomain(id);
+
+    if ('error' in result) {
+      if (result.error === 'CUSTOM_DOMAIN_NOT_CONFIGURED') {
+        throw new BadRequestException({ ok: false, error: CUSTOM_DOMAIN_NOT_CONFIGURED });
+      }
+      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    }
+
+    return { ok: true, data: result };
   }
 
   /**

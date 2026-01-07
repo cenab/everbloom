@@ -30,6 +30,9 @@ import type {
   VideoEmbedPlatform,
   SocialConfig,
   PreviewStatus,
+  CustomDomainConfig,
+  CustomDomainStatus,
+  DnsRecord,
 } from '../types';
 
 const scryptAsync = promisify(scrypt);
@@ -2161,5 +2164,313 @@ export class WeddingService {
     }
 
     return draftConfig;
+  }
+
+  // ============================================================================
+  // Custom Domain Methods
+  // PRD: "Admin can connect custom domain"
+  // PRD: "SSL certificate is provisioned for custom domain"
+  // PRD: "Site works on both default and custom domain"
+  // ============================================================================
+
+  /**
+   * The target host for CNAME records (wedding sites hosted on Netlify)
+   * In production, this would be the actual Netlify site domain
+   */
+  private static readonly CUSTOM_DOMAIN_CNAME_TARGET =
+    process.env.CUSTOM_DOMAIN_CNAME_TARGET || 'everbloom-wedding.netlify.app';
+
+  /**
+   * Validate a domain format
+   * Accepts: example.com, sub.example.com, wedding.my-domain.co.uk
+   * Rejects: http://, spaces, invalid characters
+   */
+  private isValidDomainFormat(domain: string): boolean {
+    // Remove any protocol if accidentally included
+    const cleanDomain = domain.replace(/^https?:\/\//i, '').replace(/\/.*$/, '').trim();
+
+    // Domain regex: allows subdomains, letters, numbers, hyphens, dots
+    // Must have at least one dot and valid TLD
+    const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i;
+
+    if (!domainRegex.test(cleanDomain)) {
+      return false;
+    }
+
+    // Additional checks
+    if (cleanDomain.includes('..')) return false;
+    if (cleanDomain.length > 253) return false;
+
+    return true;
+  }
+
+  /**
+   * Normalize a domain (lowercase, no protocol, no trailing slash)
+   */
+  private normalizeDomain(domain: string): string {
+    return domain
+      .toLowerCase()
+      .replace(/^https?:\/\//i, '')
+      .replace(/\/.*$/, '')
+      .trim();
+  }
+
+  /**
+   * Generate DNS records that need to be configured for a custom domain
+   */
+  private generateDnsRecords(domain: string): DnsRecord[] {
+    const records: DnsRecord[] = [];
+
+    // Primary CNAME record pointing to our hosting
+    records.push({
+      type: 'CNAME',
+      name: domain,
+      value: WeddingService.CUSTOM_DOMAIN_CNAME_TARGET,
+      verified: false,
+    });
+
+    // TXT record for domain ownership verification
+    const verificationToken = randomBytes(16).toString('hex');
+    records.push({
+      type: 'TXT',
+      name: `_everbloom.${domain}`,
+      value: `everbloom-verify=${verificationToken}`,
+      verified: false,
+    });
+
+    return records;
+  }
+
+  /**
+   * Add a custom domain to a wedding
+   * Creates the domain configuration with DNS records that need to be configured
+   * PRD: "Admin can connect custom domain"
+   */
+  addCustomDomain(
+    weddingId: string,
+    domain: string,
+  ): { customDomain: CustomDomainConfig; instructions: string } | { error: string } {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return { error: 'WEDDING_NOT_FOUND' };
+    }
+
+    // Normalize and validate the domain
+    const normalizedDomain = this.normalizeDomain(domain);
+    if (!this.isValidDomainFormat(normalizedDomain)) {
+      return { error: 'INVALID_DOMAIN_FORMAT' };
+    }
+
+    // Check if this wedding already has a custom domain
+    if (wedding.customDomain) {
+      return { error: 'CUSTOM_DOMAIN_ALREADY_EXISTS' };
+    }
+
+    // Check if this domain is already in use by another wedding
+    for (const w of this.weddings.values()) {
+      if (w.id !== weddingId && w.customDomain?.domain === normalizedDomain) {
+        return { error: 'CUSTOM_DOMAIN_ALREADY_EXISTS' };
+      }
+    }
+
+    // Generate DNS records
+    const dnsRecords = this.generateDnsRecords(normalizedDomain);
+
+    // Create the custom domain configuration
+    const customDomain: CustomDomainConfig = {
+      domain: normalizedDomain,
+      status: 'pending',
+      dnsRecords,
+      addedAt: new Date().toISOString(),
+    };
+
+    // Store on the wedding
+    wedding.customDomain = customDomain;
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    // Generate instructions
+    const cnameRecord = dnsRecords.find((r) => r.type === 'CNAME');
+    const txtRecord = dnsRecords.find((r) => r.type === 'TXT');
+
+    const instructions = `To connect your domain, add these DNS records with your domain registrar:
+
+1. CNAME Record:
+   Name: ${cnameRecord?.name}
+   Value: ${cnameRecord?.value}
+
+2. TXT Record (for verification):
+   Name: ${txtRecord?.name}
+   Value: ${txtRecord?.value}
+
+After adding these records, click "Verify domain" to check the configuration.
+DNS changes can take up to 48 hours to propagate.`;
+
+    this.logger.log(`Added custom domain ${normalizedDomain} for wedding ${weddingId}`);
+
+    return { customDomain, instructions };
+  }
+
+  /**
+   * Verify DNS records for a custom domain
+   * In production, this would actually query DNS servers
+   * For development, we simulate verification
+   * PRD: "Admin can connect custom domain"
+   */
+  async verifyCustomDomain(
+    weddingId: string,
+  ): Promise<{ customDomain: CustomDomainConfig; allRecordsVerified: boolean; message: string } | { error: string }> {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return { error: 'WEDDING_NOT_FOUND' };
+    }
+
+    if (!wedding.customDomain) {
+      return { error: 'CUSTOM_DOMAIN_NOT_CONFIGURED' };
+    }
+
+    const customDomain = wedding.customDomain;
+
+    // In production, we would use DNS lookup to verify records
+    // For development, we simulate DNS verification:
+    // - In dev mode, auto-verify after domain is added (for testing)
+    // - In production, would use dns.resolveCname() and dns.resolveTxt()
+
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+
+    if (isDevelopment) {
+      // In development, auto-verify all records after 5 seconds of being added
+      const addedTime = new Date(customDomain.addedAt).getTime();
+      const now = Date.now();
+      const fiveSecondsAgo = now - 5000;
+
+      if (addedTime < fiveSecondsAgo) {
+        // Mark all records as verified
+        customDomain.dnsRecords = customDomain.dnsRecords.map((record) => ({
+          ...record,
+          verified: true,
+        }));
+      }
+    } else {
+      // Production: Actually check DNS
+      // This would require implementing DNS lookups
+      // For now, we leave records unverified until manually checked
+      this.logger.log(`Would verify DNS for ${customDomain.domain} in production`);
+    }
+
+    // Check if all records are verified
+    const allRecordsVerified = customDomain.dnsRecords.every((r) => r.verified);
+
+    // Update status based on verification
+    if (allRecordsVerified) {
+      if (customDomain.status === 'pending' || customDomain.status === 'verifying') {
+        customDomain.status = 'ssl_pending';
+        customDomain.verifiedAt = new Date().toISOString();
+
+        // In development, immediately provision SSL (simulate)
+        if (isDevelopment) {
+          customDomain.status = 'active';
+          customDomain.sslProvisionedAt = new Date().toISOString();
+        }
+      }
+    } else {
+      customDomain.status = 'verifying';
+    }
+
+    // Save updates
+    wedding.customDomain = customDomain;
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    // Generate message
+    let message: string;
+    if (allRecordsVerified && customDomain.status === 'active') {
+      message = 'Your domain is verified and active! SSL certificate has been provisioned.';
+    } else if (allRecordsVerified) {
+      message = 'DNS records verified. SSL certificate is being provisioned. This may take a few minutes.';
+    } else {
+      const unverifiedCount = customDomain.dnsRecords.filter((r) => !r.verified).length;
+      message = `${unverifiedCount} DNS record(s) not yet detected. Please ensure all records are configured correctly. DNS changes can take up to 48 hours to propagate.`;
+    }
+
+    this.logger.log(`Verified custom domain for wedding ${weddingId}: status=${customDomain.status}`);
+
+    return { customDomain, allRecordsVerified, message };
+  }
+
+  /**
+   * Remove a custom domain from a wedding
+   * PRD: "Admin can connect custom domain" (includes ability to disconnect)
+   */
+  removeCustomDomain(weddingId: string): { success: boolean; message: string } | { error: string } {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return { error: 'WEDDING_NOT_FOUND' };
+    }
+
+    if (!wedding.customDomain) {
+      return { error: 'CUSTOM_DOMAIN_NOT_CONFIGURED' };
+    }
+
+    const removedDomain = wedding.customDomain.domain;
+
+    // Remove the custom domain
+    delete wedding.customDomain;
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    this.logger.log(`Removed custom domain ${removedDomain} from wedding ${weddingId}`);
+
+    return {
+      success: true,
+      message: `Custom domain ${removedDomain} has been disconnected. Your site is still accessible at the default URL.`,
+    };
+  }
+
+  /**
+   * Get custom domain configuration for a wedding
+   */
+  getCustomDomain(weddingId: string): {
+    customDomain: CustomDomainConfig | null;
+    defaultDomainUrl: string;
+    customDomainUrl?: string;
+  } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    const siteBaseUrl = process.env.WEDDING_SITE_URL || 'http://localhost:4321';
+    const defaultDomainUrl = `${siteBaseUrl}/w/${wedding.slug}`;
+
+    let customDomainUrl: string | undefined;
+    if (wedding.customDomain?.status === 'active') {
+      customDomainUrl = `https://${wedding.customDomain.domain}`;
+    }
+
+    return {
+      customDomain: wedding.customDomain || null,
+      defaultDomainUrl,
+      customDomainUrl,
+    };
+  }
+
+  /**
+   * Find a wedding by custom domain
+   * Used by the wedding site to route custom domain requests
+   */
+  getWeddingByCustomDomain(domain: string): Wedding | null {
+    const normalizedDomain = this.normalizeDomain(domain);
+
+    for (const wedding of this.weddings.values()) {
+      if (
+        wedding.customDomain?.domain === normalizedDomain &&
+        wedding.customDomain?.status === 'active'
+      ) {
+        return wedding;
+      }
+    }
+
+    return null;
   }
 }

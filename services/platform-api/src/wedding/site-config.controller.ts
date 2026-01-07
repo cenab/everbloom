@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Param, Body, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, Body, NotFoundException, BadRequestException } from '@nestjs/common';
 import { WeddingService } from './wedding.service';
 import { randomBytes } from 'crypto';
-import type { ApiResponse, RenderConfig, VerifyPasscodeRequest, VerifyPasscodeResponse } from '../types';
-import { INVALID_PASSCODE, WEDDING_NOT_FOUND, NOT_FOUND, VALIDATION_ERROR } from '../types';
+import type { ApiResponse, RenderConfig, VerifyPasscodeRequest, VerifyPasscodeResponse, DomainLookupResponse } from '../types';
+import { INVALID_PASSCODE, WEDDING_NOT_FOUND, NOT_FOUND, VALIDATION_ERROR, DOMAIN_NOT_FOUND } from '../types';
 
 /**
  * Public controller for wedding site rendering
@@ -11,6 +11,40 @@ import { INVALID_PASSCODE, WEDDING_NOT_FOUND, NOT_FOUND, VALIDATION_ERROR } from
 @Controller('site-config')
 export class SiteConfigController {
   constructor(private readonly weddingService: WeddingService) {}
+
+  /**
+   * Look up a wedding by custom domain
+   * Returns the wedding slug and default URL for redirection
+   * This allows wedding sites to route custom domain requests to the correct wedding
+   */
+  @Get('domain/lookup')
+  async lookupByDomain(
+    @Query('domain') domain: string,
+  ): Promise<ApiResponse<DomainLookupResponse>> {
+    if (!domain) {
+      throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
+    }
+
+    const wedding = this.weddingService.getWeddingByCustomDomain(domain);
+
+    if (!wedding) {
+      throw new NotFoundException({ ok: false, error: DOMAIN_NOT_FOUND });
+    }
+
+    // Only return domain info if the domain is active/verified
+    const domainResult = this.weddingService.getCustomDomain(wedding.id);
+    if (!domainResult || !domainResult.customDomain || domainResult.customDomain.status !== 'active') {
+      throw new NotFoundException({ ok: false, error: DOMAIN_NOT_FOUND });
+    }
+
+    return {
+      ok: true,
+      data: {
+        slug: wedding.slug,
+        defaultUrl: domainResult.defaultDomainUrl,
+      },
+    };
+  }
 
   /**
    * Get render_config for a wedding by slug

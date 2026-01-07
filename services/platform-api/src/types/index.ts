@@ -817,6 +817,8 @@ export interface Wedding {
   socialConfig?: SocialConfig;
   /** Site language (defaults to 'en' if not set) */
   language?: string;
+  /** Custom domain configuration */
+  customDomain?: CustomDomainConfig;
   createdAt: string;
   updatedAt: string;
 }
@@ -2345,7 +2347,12 @@ export type ErrorCode =
   | typeof DATA_EXPORT_FAILED
   | typeof NO_DRAFT_EXISTS
   | typeof NO_CHANGES_TO_PUBLISH
-  | typeof INVALID_LANGUAGE;
+  | typeof INVALID_LANGUAGE
+  | typeof CUSTOM_DOMAIN_ALREADY_EXISTS
+  | typeof CUSTOM_DOMAIN_NOT_CONFIGURED
+  | typeof CUSTOM_DOMAIN_VERIFICATION_FAILED
+  | typeof INVALID_DOMAIN_FORMAT
+  | typeof DOMAIN_NOT_FOUND;
 
 // ============================================================================
 // Privacy / Guest Data Export Types
@@ -2541,3 +2548,140 @@ export interface LanguageListResponse {
  * Invalid language code error
  */
 export const INVALID_LANGUAGE = 'INVALID_LANGUAGE' as const;
+
+// ============================================================================
+// Custom Domain Types
+// PRD: "Admin can connect custom domain"
+// PRD: "SSL certificate is provisioned for custom domain"
+// PRD: "Site works on both default and custom domain"
+// ============================================================================
+
+/**
+ * DNS record type for domain verification
+ */
+export type DnsRecordType = 'CNAME' | 'A' | 'TXT';
+
+/**
+ * Status of a custom domain configuration
+ * - pending: Domain added but not yet verified
+ * - verifying: DNS records detected, verification in progress
+ * - ssl_pending: DNS verified, waiting for SSL certificate provisioning
+ * - active: Domain fully configured and SSL active
+ * - failed: Domain verification or SSL provisioning failed
+ */
+export type CustomDomainStatus =
+  | 'pending'
+  | 'verifying'
+  | 'ssl_pending'
+  | 'active'
+  | 'failed';
+
+/**
+ * A DNS record that needs to be configured
+ */
+export interface DnsRecord {
+  type: DnsRecordType;
+  name: string;
+  value: string;
+  /** Whether this record has been detected in DNS */
+  verified?: boolean;
+}
+
+/**
+ * Custom domain configuration for a wedding site
+ */
+export interface CustomDomainConfig {
+  /** The custom domain (e.g., "wedding.example.com") */
+  domain: string;
+  /** Current status of the domain configuration */
+  status: CustomDomainStatus;
+  /** DNS records that need to be configured */
+  dnsRecords: DnsRecord[];
+  /** When the domain was added */
+  addedAt: string;
+  /** When the domain was last verified */
+  verifiedAt?: string;
+  /** When SSL was provisioned */
+  sslProvisionedAt?: string;
+  /** Error message if status is 'failed' */
+  errorMessage?: string;
+}
+
+/**
+ * Request to add a custom domain
+ */
+export interface AddCustomDomainRequest {
+  domain: string;
+}
+
+/**
+ * Response after adding a custom domain
+ */
+export interface AddCustomDomainResponse {
+  customDomain: CustomDomainConfig;
+  /** Instructions for configuring DNS */
+  instructions: string;
+}
+
+/**
+ * Response after checking domain verification status
+ */
+export interface VerifyCustomDomainResponse {
+  customDomain: CustomDomainConfig;
+  /** Whether all DNS records are verified */
+  allRecordsVerified: boolean;
+  /** Human-readable status message */
+  message: string;
+}
+
+/**
+ * Response after removing a custom domain
+ */
+export interface RemoveCustomDomainResponse {
+  success: boolean;
+  message: string;
+}
+
+/**
+ * Response containing custom domain info
+ */
+export interface GetCustomDomainResponse {
+  customDomain: CustomDomainConfig | null;
+  /** Default domain URL (always available) */
+  defaultDomainUrl: string;
+  /** Custom domain URL (if configured and active) */
+  customDomainUrl?: string;
+}
+
+/**
+ * Custom domain already exists error code
+ */
+export const CUSTOM_DOMAIN_ALREADY_EXISTS = 'CUSTOM_DOMAIN_ALREADY_EXISTS' as const;
+
+/**
+ * Custom domain not configured error code
+ */
+export const CUSTOM_DOMAIN_NOT_CONFIGURED = 'CUSTOM_DOMAIN_NOT_CONFIGURED' as const;
+
+/**
+ * Custom domain verification failed error code
+ */
+export const CUSTOM_DOMAIN_VERIFICATION_FAILED = 'CUSTOM_DOMAIN_VERIFICATION_FAILED' as const;
+
+/**
+ * Invalid domain format error code
+ */
+export const INVALID_DOMAIN_FORMAT = 'INVALID_DOMAIN_FORMAT' as const;
+
+/**
+ * Domain not found error code (for public lookup)
+ */
+export const DOMAIN_NOT_FOUND = 'DOMAIN_NOT_FOUND' as const;
+
+/**
+ * Response for looking up a wedding by custom domain
+ */
+export interface DomainLookupResponse {
+  slug: string;
+  defaultUrl: string;
+}

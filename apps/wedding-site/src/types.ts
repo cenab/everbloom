@@ -498,3 +498,15 @@ export interface GuestTableAssignment {
   seatNumber?: number;
   tableNotes?: string;
 }
+
+// ============================================================================
+// Custom Domain Types
+// ============================================================================
+
+/**
+ * Response from domain lookup endpoint
+ */
+export interface DomainLookupResponse {
+  slug: string;
+  defaultUrl: string;
+}

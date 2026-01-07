@@ -1402,3 +1402,100 @@ export interface LanguageListResponse {
  * Error code when an invalid language is provided
  */
 export const INVALID_LANGUAGE = 'INVALID_LANGUAGE' as const;
+
+// ============================================================================
+// Custom Domain Types
+// PRD: "Admin can connect custom domain"
+// PRD: "SSL certificate is provisioned for custom domain"
+// PRD: "Site works on both default and custom domain"
+// ============================================================================
+
+/**
+ * DNS record type for domain verification
+ */
+export type DnsRecordType = 'CNAME' | 'A' | 'TXT';
+
+/**
+ * Status of a custom domain configuration
+ * - pending: Domain added but not yet verified
+ * - verifying: DNS records detected, verification in progress
+ * - ssl_pending: DNS verified, waiting for SSL certificate provisioning
+ * - active: Domain fully configured and SSL active
+ * - failed: Domain verification or SSL provisioning failed
+ */
+export type CustomDomainStatus =
+  | 'pending'
+  | 'verifying'
+  | 'ssl_pending'
+  | 'active'
+  | 'failed';
+
+/**
+ * A DNS record that needs to be configured
+ */
+export interface DnsRecord {
+  type: DnsRecordType;
+  name: string;
+  value: string;
+  /** Whether this record has been detected in DNS */
+  verified?: boolean;
+}
+
+/**
+ * Custom domain configuration for a wedding site
+ */
+export interface CustomDomainConfig {
+  /** The custom domain (e.g., "wedding.example.com") */
+  domain: string;
+  /** Current status of the domain configuration */
+  status: CustomDomainStatus;
+  /** DNS records that need to be configured */
+  dnsRecords: DnsRecord[];
+  /** When the domain was added */
+  addedAt: string;
+  /** When the domain was last verified */
+  verifiedAt?: string;
+  /** When SSL was provisioned */
+  sslProvisionedAt?: string;
+  /** Error message if status is 'failed' */
+  errorMessage?: string;
+}
+
+/**
+ * Response after adding a custom domain
+ */
+export interface AddCustomDomainResponse {
+  customDomain: CustomDomainConfig;
+  /** Instructions for configuring DNS */
+  instructions: string;
+}
+
+/**
+ * Response after checking domain verification status
+ */
+export interface VerifyCustomDomainResponse {
+  customDomain: CustomDomainConfig;
+  /** Whether all DNS records are verified */
+  allRecordsVerified: boolean;
+  /** Human-readable status message */
+  message: string;
+}
+
+/**
+ * Response after removing a custom domain
+ */
+export interface RemoveCustomDomainResponse {
+  success: boolean;
+  message: string;
+}
+
+/**
+ * Response containing custom domain info
+ */
+export interface GetCustomDomainResponse {
+  customDomain: CustomDomainConfig | null;
+  /** Default domain URL (always available) */
+  defaultDomainUrl: string;
+  /** Custom domain URL (if configured and active) */
+  customDomainUrl?: string;
+}

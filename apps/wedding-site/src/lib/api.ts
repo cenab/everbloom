@@ -6,6 +6,7 @@ import type {
   RsvpSubmitResponse,
   SubmitGuestbookMessageRequest,
   SubmitGuestbookMessageResponse,
+  DomainLookupResponse,
 } from '../types';
 
 /**
@@ -124,5 +125,31 @@ export async function submitGuestbookMessage(
   } catch (error) {
     console.error('Error submitting guestbook message:', error);
     return { data: null, error: 'NETWORK_ERROR' };
+  }
+}
+
+/**
+ * Look up a wedding by custom domain
+ * Returns the slug and default URL for the wedding associated with the domain
+ * Returns null if domain is not found or not verified
+ */
+export async function lookupByDomain(domain: string): Promise<DomainLookupResponse | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/site-config/domain/lookup?domain=${encodeURIComponent(domain)}`);
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const result: ApiResponse<DomainLookupResponse> = await response.json();
+
+    if (!result.ok) {
+      return null;
+    }
+
+    return result.data;
+  } catch (error) {
+    console.error(`Error looking up domain ${domain}:`, error);
+    return null;
   }
 }

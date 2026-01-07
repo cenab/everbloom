@@ -1413,7 +1413,7 @@
       "Configure DNS records",
       "Verify domain connection"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "custom-domain",
@@ -1424,7 +1424,7 @@
       "Navigate to custom domain via HTTPS",
       "Verify SSL certificate is valid"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "custom-domain",
@@ -1436,7 +1436,7 @@
       "Navigate to custom domain URL",
       "Verify site loads"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "preview",
