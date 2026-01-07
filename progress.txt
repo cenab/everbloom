@@ -533,3 +533,65 @@
 - Party size stepper has min=1, max=20
 - Error messages use human language (not technical codes)
 - The RsvpSection on wedding site links to /w/{slug}/rsvp which doesn't exist yet (future: request RSVP link page)
+
+---
+
+### 2026-01-06 - Admin RSVP Summary Dashboard
+
+**Feature worked on:** Admin can view RSVP summary (PRD: dashboard category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. RSVP features for guests are complete (view, submit, edit)
+2. Admin needs visibility into RSVP status to manage their wedding
+3. It's core dashboard functionality - admin must know who's coming
+4. Simple to implement since GuestService already has getGuestSummary()
+5. Completes the admin's wedding management workflow
+
+**What was done:**
+1. Added RSVP summary types to shared package:
+   - `RsvpSummary` interface with total, attending, notAttending, pending, totalPartySize
+   - `RsvpSummaryResponse` combining summary with guest list
+
+2. Added summary API endpoint to GuestController:
+   - `GET /api/weddings/:weddingId/guests/summary` - authenticated endpoint
+   - Returns RSVP counts and full guest list for the wedding
+   - Reuses existing GuestService.getGuestSummary() method
+
+3. Created RsvpDashboard component (apps/platform-ui/src/components/RsvpDashboard.tsx):
+   - Summary cards showing: Attending (with total party size), Not attending, Awaiting response, Total invited
+   - Guest list grouped by RSVP status (attending, not attending, pending)
+   - Shows party size and dietary notes for attending guests
+   - Shows RSVP submission date when available
+   - Empty state with friendly messaging
+   - Loading state with spinner
+
+4. Updated Dashboard component:
+   - Added "RSVP responses" card in WeddingDashboard
+   - Added navigation to RsvpDashboard view
+   - Added ClipboardIcon for the new card
+
+**API Endpoints:**
+- `GET /api/weddings/:weddingId/guests/summary` - Get RSVP summary (requires auth)
+  - Returns: { summary: RsvpSummary, guests: Guest[] }
+  - Summary includes: total, attending, notAttending, pending, totalPartySize
+
+**Design system adherence:**
+- Summary cards with calm colors (accent for attending, neutral for others)
+- Guest lists grouped by status with clear section headers
+- Human language: "Awaiting response" not "Pending", "Track who's coming" not "View RSVPs"
+- No pure black/white colors
+- Minimal, scannable layout
+
+**PRD features now passing:**
+- "Admin can view RSVP summary" ✓
+
+**Next steps:**
+- Implement CSV import for bulk guest adding
+- Implement invitation email sending
+- Implement photo upload feature
+
+**Notes for next person:**
+- RSVP summary is available at /api/weddings/:weddingId/guests/summary
+- Dashboard now has 3 cards: Your guests, RSVP responses, Your site
+- Guests are grouped by RSVP status in the dashboard for easy scanning
+- totalPartySize counts only attending guests' party sizes

@@ -20,6 +20,7 @@ import type {
   GuestListResponse,
   CreateGuestRequest,
   UpdateGuestRequest,
+  RsvpSummaryResponse,
 } from '@wedding-bestie/shared';
 import { GUEST_NOT_FOUND, GUEST_ALREADY_EXISTS } from '@wedding-bestie/shared';
 
@@ -47,6 +48,29 @@ export class GuestController {
       data: {
         guests,
         total: guests.length,
+      },
+    };
+  }
+
+  /**
+   * Get RSVP summary for a wedding
+   * PRD: "Admin can view RSVP summary"
+   */
+  @Get('summary')
+  async getRsvpSummary(
+    @Headers('authorization') authHeader: string,
+    @Param('weddingId') weddingId: string,
+  ): Promise<ApiResponse<RsvpSummaryResponse>> {
+    await this.requireWeddingOwner(authHeader, weddingId);
+
+    const summary = this.guestService.getGuestSummary(weddingId);
+    const guests = this.guestService.getGuestsForWedding(weddingId);
+
+    return {
+      ok: true,
+      data: {
+        summary,
+        guests,
       },
     };
   }

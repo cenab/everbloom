@@ -314,7 +314,7 @@
       "Verify counts for attending, not attending, no response",
       "Verify list reflects latest responses"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "photos",

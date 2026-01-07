@@ -372,3 +372,26 @@ export interface RsvpSubmitResponse {
   message: string;
   guest: RsvpGuestView;
 }
+
+// ============================================================================
+// RSVP Summary Types (Admin Dashboard)
+// ============================================================================
+
+/**
+ * RSVP summary counts for admin dashboard
+ */
+export interface RsvpSummary {
+  total: number;
+  attending: number;
+  notAttending: number;
+  pending: number;
+  totalPartySize: number;
+}
+
+/**
+ * Response from RSVP summary endpoint
+ */
+export interface RsvpSummaryResponse {
+  summary: RsvpSummary;
+  guests: Guest[];
+}
