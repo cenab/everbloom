@@ -592,7 +592,7 @@
       "Verify delivery status column shows sent/delivered/opened",
       "Verify failed deliveries are highlighted"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "guests",

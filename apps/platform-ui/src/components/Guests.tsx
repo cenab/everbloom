@@ -11,6 +11,9 @@ import type {
   SendInvitationResult,
   GuestTag,
   TagListResponse,
+  EmailOutbox,
+  EmailOutboxResponse,
+  EmailStatus,
 } from '../types';
 import { getAuthToken } from '../lib/auth';
 
@@ -23,9 +26,26 @@ interface GuestsProps {
  * Guests page component for managing wedding invitees.
  * PRD: "Admin can add invitees manually"
  */
+/**
+ * Get the latest email status for a guest by looking at all their outbox records.
+ * Returns the most recent status (prioritizing invitation over reminder).
+ */
+function getLatestEmailStatus(guestId: string, emailOutbox: EmailOutbox[]): { status: EmailStatus; type: string } | null {
+  const guestEmails = emailOutbox
+    .filter((e) => e.guestId === guestId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  if (guestEmails.length === 0) return null;
+
+  // Return the most recent email status
+  const latest = guestEmails[0];
+  return { status: latest.status, type: latest.emailType };
+}
+
 export function Guests({ weddingId, onBack }: GuestsProps) {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [tags, setTags] = useState<GuestTag[]>([]);
+  const [emailOutbox, setEmailOutbox] = useState<EmailOutbox[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -35,6 +55,21 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
   const [showTagManager, setShowTagManager] = useState(false);
   const [filterTagIds, setFilterTagIds] = useState<string[]>([]);
   const [showAssignTags, setShowAssignTags] = useState(false);
+
+  const fetchEmailOutbox = useCallback(async () => {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`/api/weddings/${weddingId}/invitations/outbox`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data: ApiResponse<EmailOutboxResponse> = await response.json();
+      if (data.ok) {
+        setEmailOutbox(data.data.emails);
+      }
+    } catch {
+      // Silently fail, outbox is supplementary data
+    }
+  }, [weddingId]);
 
   const fetchTags = useCallback(async () => {
     try {
@@ -79,7 +114,8 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
   useEffect(() => {
     fetchGuests();
     fetchTags();
-  }, [fetchGuests, fetchTags]);
+    fetchEmailOutbox();
+  }, [fetchGuests, fetchTags, fetchEmailOutbox]);
 
   const handleGuestAdded = (newGuest: Guest) => {
     setGuests((prev) => [...prev, newGuest].sort((a, b) => a.name.localeCompare(b.name)));
@@ -133,6 +169,7 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
     setShowSendInvites(false);
     setSelectedGuestIds(new Set());
     fetchGuests(); // Refresh to update inviteSentAt
+    fetchEmailOutbox(); // Refresh to update delivery status
   };
 
   const handleTagCreated = (tag: GuestTag) => {
@@ -324,6 +361,7 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
         <GuestList
           guests={filteredGuests}
           tags={tags}
+          emailOutbox={emailOutbox}
           weddingId={weddingId}
           onDelete={handleGuestDeleted}
           selectedIds={selectedGuestIds}
@@ -900,6 +938,7 @@ function CheckCircleIcon({ className }: { className?: string }) {
 interface GuestListProps {
   guests: Guest[];
   tags: GuestTag[];
+  emailOutbox: EmailOutbox[];
   weddingId: string;
   onDelete: (guestId: string) => void;
   selectedIds: Set<string>;
@@ -910,6 +949,7 @@ interface GuestListProps {
 function GuestList({
   guests,
   tags,
+  emailOutbox,
   weddingId,
   onDelete,
   selectedIds,
@@ -944,6 +984,7 @@ function GuestList({
             key={guest.id}
             guest={guest}
             tags={tags}
+            emailStatus={getLatestEmailStatus(guest.id, emailOutbox)}
             weddingId={weddingId}
             onDelete={onDelete}
             isSelected={selectedIds.has(guest.id)}
@@ -958,13 +999,14 @@ function GuestList({
 interface GuestRowProps {
   guest: Guest;
   tags: GuestTag[];
+  emailStatus: { status: EmailStatus; type: string } | null;
   weddingId: string;
   onDelete: (guestId: string) => void;
   isSelected: boolean;
   onToggleSelect: () => void;
 }
 
-function GuestRow({ guest, tags, weddingId, onDelete, isSelected, onToggleSelect }: GuestRowProps) {
+function GuestRow({ guest, tags, emailStatus, weddingId, onDelete, isSelected, onToggleSelect }: GuestRowProps) {
   // Get the tags for this guest
   const guestTags = tags.filter((t) => guest.tagIds?.includes(t.id));
   const [isDeleting, setIsDeleting] = useState(false);
@@ -1030,11 +1072,7 @@ function GuestRow({ guest, tags, weddingId, onDelete, isSelected, onToggleSelect
         </div>
       </div>
       <div className="flex items-center gap-4">
-        {guest.inviteSentAt && (
-          <span className="text-xs text-neutral-400">
-            Invited
-          </span>
-        )}
+        <InviteStatusBadge emailStatus={emailStatus} inviteSentAt={guest.inviteSentAt} />
         <RsvpStatusBadge status={guest.rsvpStatus} />
         <button
           onClick={handleDelete}
@@ -1046,6 +1084,75 @@ function GuestRow({ guest, tags, weddingId, onDelete, isSelected, onToggleSelect
         </button>
       </div>
     </li>
+  );
+}
+
+/**
+ * InviteStatusBadge component shows the delivery status of the invitation email.
+ * PRD: "Admin can see invite delivery status"
+ */
+function InviteStatusBadge({
+  emailStatus,
+  inviteSentAt,
+}: {
+  emailStatus: { status: EmailStatus; type: string } | null;
+  inviteSentAt?: string;
+}) {
+  // No invitation has been attempted
+  if (!emailStatus && !inviteSentAt) {
+    return null;
+  }
+
+  // Show detailed status from email outbox
+  if (emailStatus) {
+    const statusConfig = {
+      sent: {
+        className: 'bg-accent-100 text-accent-700',
+        label: 'Delivered',
+        icon: (
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
+        ),
+      },
+      pending: {
+        className: 'bg-amber-100 text-amber-700',
+        label: 'Sending',
+        icon: (
+          <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+          </svg>
+        ),
+      },
+      failed: {
+        className: 'bg-primary-100 text-primary-700',
+        label: 'Failed',
+        icon: (
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+        ),
+      },
+    };
+
+    const config = statusConfig[emailStatus.status];
+
+    return (
+      <span
+        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${config.className}`}
+        title={`${emailStatus.type === 'reminder' ? 'Reminder' : 'Invitation'} ${emailStatus.status}`}
+      >
+        {config.icon}
+        {config.label}
+      </span>
+    );
+  }
+
+  // Fallback: inviteSentAt exists but no outbox record (shouldn't happen normally)
+  return (
+    <span className="text-xs text-neutral-400">
+      Invited
+    </span>
   );
 }
 

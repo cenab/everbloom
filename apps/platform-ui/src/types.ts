@@ -391,6 +391,42 @@ export interface CsvImportResponse {
 // ============================================================================
 
 /**
+ * Email delivery status
+ */
+export type EmailStatus = 'pending' | 'sent' | 'failed';
+
+/**
+ * Type of email sent
+ */
+export type EmailType = 'invitation' | 'reminder' | 'update';
+
+/**
+ * Email outbox record for tracking email delivery
+ */
+export interface EmailOutbox {
+  id: string;
+  weddingId: string;
+  guestId: string;
+  emailType: EmailType;
+  status: EmailStatus;
+  toEmail: string;
+  toName: string;
+  subject: string;
+  sentAt?: string;
+  errorMessage?: string;
+  attempts: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Response from email outbox endpoint
+ */
+export interface EmailOutboxResponse {
+  emails: EmailOutbox[];
+}
+
+/**
  * Result of sending a single invitation
  */
 export interface SendInvitationResult {

@@ -1694,3 +1694,65 @@
 - Clicking "Select all" on new filter adds those guests to selection
 - The send dialog shows only guests that are both selected AND visible
 - This enables batch workflow: select bride's side, then select groom's side, send to both
+
+---
+
+### 2026-01-07 - Admin Can See Invite Delivery Status
+
+**Feature worked on:** Admin can see invite delivery status (PRD: guests category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. Invitation sending was already implemented and working
+2. Email outbox tracking (pending/sent/failed) already existed in the backend
+3. The only missing piece was surfacing this data in the admin UI
+4. Without visibility into delivery status, admins can't confirm invitations were delivered
+5. It completes the invitation workflow: send → track delivery → identify failures
+
+**What was done:**
+1. Added email outbox types to platform-ui types.ts:
+   - `EmailStatus` type ('pending' | 'sent' | 'failed')
+   - `EmailType` type ('invitation' | 'reminder' | 'update')
+   - `EmailOutbox` interface with full outbox record structure
+   - `EmailOutboxResponse` for the API response
+
+2. Updated Guests component to fetch email outbox:
+   - Added `emailOutbox` state
+   - Added `fetchEmailOutbox()` callback to fetch from `/api/weddings/:weddingId/invitations/outbox`
+   - Fetch outbox on mount and after sending invites
+   - Added helper function `getLatestEmailStatus()` to find the most recent email for each guest
+
+3. Created InviteStatusBadge component:
+   - Shows no badge if no invitation has been attempted
+   - Shows "Delivered" badge (green with checkmark) for `status: 'sent'`
+   - Shows "Sending" badge (amber with spinner) for `status: 'pending'`
+   - Shows "Failed" badge (red with warning icon) for `status: 'failed'`
+   - Badge includes tooltip showing whether it was an invitation or reminder
+   - Replaced the old static "Invited" text with this dynamic badge
+
+4. Updated GuestList and GuestRow components:
+   - Pass emailOutbox through component hierarchy
+   - Compute status per guest using the latest outbox record
+   - Display status badge alongside RSVP status badge
+
+**Design system adherence:**
+- Status badges use accent (green) for success, amber for pending, primary (terracotta) for failed
+- Small icons with semantic meaning (checkmark, spinner, warning)
+- Tooltip provides additional context without cluttering the UI
+- Human language: "Delivered", "Sending", "Failed"
+- No pure black/white colors
+
+**PRD features now passing:**
+- "Admin can see invite delivery status" ✓
+
+**Next steps:**
+- Implement "Admin can see bounce and failure status" (requires webhook integration for email bounces)
+- Continue with other incomplete features (content editing, analytics, etc.)
+
+**Notes for next person:**
+- Email outbox is fetched via GET /api/weddings/:weddingId/invitations/outbox
+- The status is determined by the most recent email record for each guest
+- Guests without any email records show no status badge
+- Status badge appears before the RSVP status badge in the guest row
+- The badge distinguishes between invitation and reminder emails via tooltip
+- Failed deliveries are highlighted in red/terracotta for visibility
+- The existing "Invited" fallback text is kept for edge cases where outbox doesn't have records
