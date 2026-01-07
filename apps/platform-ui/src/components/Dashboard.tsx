@@ -3,10 +3,11 @@ import { CreateWedding } from './CreateWedding';
 import { Guests } from './Guests';
 import { RsvpDashboard } from './RsvpDashboard';
 import { TemplateSelector } from './TemplateSelector';
+import { FeatureSettings } from './FeatureSettings';
 import { getAuthToken } from '../lib/auth';
 import type { Wedding, ApiResponse, RenderConfig } from '@wedding-bestie/shared';
 
-type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template';
+type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features';
 
 /**
  * Admin Dashboard component.
@@ -92,6 +93,18 @@ export function Dashboard() {
     );
   }
 
+  if (view === 'features' && selectedWedding) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <FeatureSettings
+          wedding={selectedWedding}
+          onBack={() => setView('dashboard')}
+          onFeaturesChanged={fetchWeddings}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -118,6 +131,7 @@ export function Dashboard() {
           onNavigateToGuests={() => setView('guests')}
           onNavigateToRsvp={() => setView('rsvp')}
           onNavigateToTemplate={() => setView('template')}
+          onNavigateToFeatures={() => setView('features')}
           onBack={weddings.length > 1 ? () => setSelectedWedding(null) : undefined}
         />
       )}
@@ -190,6 +204,7 @@ interface WeddingDashboardProps {
   onNavigateToGuests: () => void;
   onNavigateToRsvp: () => void;
   onNavigateToTemplate: () => void;
+  onNavigateToFeatures: () => void;
   onBack?: () => void;
 }
 
@@ -197,7 +212,7 @@ interface WeddingDashboardProps {
  * Dashboard view when a wedding is selected.
  * Shows quick actions for the wedding including navigation to guests.
  */
-function WeddingDashboard({ wedding, onNavigateToGuests, onNavigateToRsvp, onNavigateToTemplate, onBack }: WeddingDashboardProps) {
+function WeddingDashboard({ wedding, onNavigateToGuests, onNavigateToRsvp, onNavigateToTemplate, onNavigateToFeatures, onBack }: WeddingDashboardProps) {
   return (
     <div>
       {onBack && (
@@ -235,6 +250,12 @@ function WeddingDashboard({ wedding, onNavigateToGuests, onNavigateToRsvp, onNav
           description="Choose your visual style"
           icon={<PaletteIcon className="w-6 h-6" />}
           onClick={onNavigateToTemplate}
+        />
+        <DashboardCard
+          title="Site features"
+          description="Enable or disable features"
+          icon={<ToggleIcon className="w-6 h-6" />}
+          onClick={onNavigateToFeatures}
         />
         <DashboardCard
           title="Your site"
@@ -394,6 +415,24 @@ function PaletteIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z"
+      />
+    </svg>
+  );
+}
+
+function ToggleIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"
       />
     </svg>
   );

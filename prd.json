@@ -225,7 +225,7 @@
       "Navigate to RSVP URL",
       "Verify friendly 'RSVP disabled' message is shown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "features",
@@ -235,7 +235,7 @@
       "Attempt POST /rsvp-submit",
       "Verify response indicates FEATURE_DISABLED"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "guests",

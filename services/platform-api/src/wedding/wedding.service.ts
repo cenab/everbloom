@@ -320,6 +320,58 @@ export class WeddingService {
   }
 
   /**
+   * Update feature flags for a wedding
+   * Updates both the wedding record and regenerates render_config with new flags
+   */
+  updateFeatures(
+    weddingId: string,
+    features: Partial<Record<FeatureFlag, boolean>>,
+  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
+    const wedding = this.weddings.get(weddingId);
+    if (!wedding) {
+      return null;
+    }
+
+    // Update wedding features
+    const updatedFeatures = { ...wedding.features };
+    for (const [flag, enabled] of Object.entries(features) as [FeatureFlag, boolean][]) {
+      if (ALL_FEATURES.includes(flag)) {
+        updatedFeatures[flag] = enabled;
+      }
+    }
+
+    // Update wedding record
+    wedding.features = updatedFeatures;
+    wedding.updatedAt = new Date().toISOString();
+    this.weddings.set(weddingId, wedding);
+
+    // Update render_config features
+    const existingConfig = this.renderConfigs.get(weddingId);
+    if (!existingConfig) {
+      return null;
+    }
+
+    const updatedConfig: RenderConfig = {
+      ...existingConfig,
+      features: updatedFeatures,
+      // Also update section enabled states based on features
+      sections: existingConfig.sections.map((section) => {
+        if (section.type === 'rsvp') {
+          return { ...section, enabled: updatedFeatures.RSVP };
+        }
+        // Add other feature-dependent sections here as needed
+        return section;
+      }),
+    };
+
+    this.renderConfigs.set(weddingId, updatedConfig);
+
+    this.logger.log(`Updated features for wedding ${weddingId}: ${JSON.stringify(updatedFeatures)}`);
+
+    return { wedding, renderConfig: updatedConfig };
+  }
+
+  /**
    * Change a wedding's template while preserving content
    * This updates the render_config with the new template and its theme,
    * but keeps the existing sections data (content) intact.

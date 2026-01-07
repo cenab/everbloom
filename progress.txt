@@ -833,3 +833,77 @@
 - Template list endpoint is public, change endpoint requires auth
 - The wedding site renders from render_config which includes templateId
 - To test: create wedding → go to dashboard → click "Site template" → select new template → save → view site
+
+---
+
+### 2026-01-06 - Admin Can Disable RSVP Feature
+
+**Feature worked on:** Disabling RSVP hides RSVP on public site + Disabling RSVP blocks RSVP API endpoints (PRD: features category)
+
+**Priority rationale:** This is a high-priority feature because:
+1. Feature flags are foundational to the product architecture
+2. The feature flag infrastructure already existed but admins couldn't toggle them
+3. Without this, users can't customize which features are active on their site
+4. It validates the end-to-end feature flag flow: admin toggles → site renders → API blocks
+
+**What was done:**
+1. Added feature toggle types to shared package:
+   - `UpdateFeaturesRequest` - partial feature flag updates
+   - `UpdateFeaturesResponse` - returns updated wedding and render_config
+
+2. Added `updateFeatures` method to WeddingService:
+   - Updates wedding.features record
+   - Regenerates render_config with updated features
+   - Updates section enabled states based on feature flags (e.g., RSVP section disabled when RSVP flag is false)
+
+3. Added API endpoint to WeddingController:
+   - `PUT /api/weddings/:id/features` - authenticated endpoint to toggle features
+   - Validates ownership and updates feature flags
+   - Returns updated wedding and render_config
+
+4. Created FeatureSettings component (apps/platform-ui/src/components/FeatureSettings.tsx):
+   - Feature toggle UI with on/off switches for each flag
+   - Shows feature descriptions in human language
+   - Indicates which features require Premium plan
+   - Disables unavailable features based on plan tier
+   - Save/Cancel buttons with loading states
+
+5. Updated Dashboard component:
+   - Added "Site features" card to WeddingDashboard
+   - Added features view navigation
+   - Added ToggleIcon for the dashboard card
+
+**How feature disabling works (already implemented, now toggleable):**
+- Wedding site: `SectionRenderer.astro` checks `features.RSVP` before rendering RSVP section
+- RSVP page: Shows "RSVPs are currently closed for this event." when feature disabled
+- RSVP API: Both `/api/rsvp/view` and `/api/rsvp/submit` return `FEATURE_DISABLED` error
+
+**API Endpoints:**
+- `PUT /api/weddings/:id/features` - Update feature flags (requires auth)
+  - Request: `{ features: { RSVP: boolean, PHOTO_UPLOAD: boolean, ... } }`
+  - Response: `{ wedding: Wedding, renderConfig: RenderConfig }`
+
+**Design system adherence:**
+- Toggle switches with primary color when enabled
+- Feature descriptions in human language
+- Premium features shown but disabled with plan indicator
+- Calm, minimal UI with clear save/cancel actions
+- No pure black/white colors
+
+**PRD features now passing:**
+- "Disabling RSVP hides RSVP on public site" ✓
+- "Disabling RSVP blocks RSVP API endpoints" ✓
+
+**Next steps:**
+- Implement feature selection step during wedding setup
+- Implement photo upload feature
+- Implement announcement banner feature
+
+**Notes for next person:**
+- Feature toggles are at PUT /api/weddings/:id/features
+- Dashboard has a new "Site features" card to access settings
+- Starter plan only allows RSVP and CALENDAR_INVITE toggles
+- Premium plan allows all 6 feature toggles
+- When RSVP is disabled, the render_config is updated with features.RSVP=false AND sections[rsvp].enabled=false
+- The wedding site reads features from render_config, so changes are immediate
+- To test: create wedding → dashboard → "Site features" → toggle RSVP off → save → visit wedding site → RSVP section should be gone

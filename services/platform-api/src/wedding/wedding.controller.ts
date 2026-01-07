@@ -17,6 +17,8 @@ import type {
   RenderConfig,
   Template,
   ChangeTemplateRequest,
+  UpdateFeaturesRequest,
+  UpdateFeaturesResponse,
 } from '@wedding-bestie/shared';
 import { TEMPLATE_NOT_FOUND } from '@wedding-bestie/shared';
 
@@ -100,6 +102,41 @@ export class WeddingController {
   async listTemplates(): Promise<ApiResponse<Template[]>> {
     const templates = this.weddingService.getTemplates();
     return { ok: true, data: templates };
+  }
+
+  /**
+   * Update feature flags for a wedding
+   * Allows admin to enable/disable features independently
+   */
+  @Put(':id/features')
+  async updateFeatures(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+    @Body() body: UpdateFeaturesRequest,
+  ): Promise<ApiResponse<UpdateFeaturesResponse>> {
+    const user = await this.requireAuth(authHeader);
+    const wedding = this.weddingService.getWedding(id);
+
+    if (!wedding) {
+      throw new NotFoundException('Wedding not found');
+    }
+
+    // Ensure user owns this wedding
+    if (wedding.userId !== user.id) {
+      throw new NotFoundException('Wedding not found');
+    }
+
+    if (!body.features || typeof body.features !== 'object') {
+      throw new BadRequestException('Features object is required');
+    }
+
+    const result = this.weddingService.updateFeatures(id, body.features);
+
+    if (!result) {
+      throw new NotFoundException('Failed to update features');
+    }
+
+    return { ok: true, data: result };
   }
 
   /**

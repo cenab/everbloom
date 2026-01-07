@@ -288,6 +288,21 @@ export interface WeddingProvisionResponse {
   renderConfig: RenderConfig;
 }
 
+/**
+ * Request to update feature flags for a wedding
+ */
+export interface UpdateFeaturesRequest {
+  features: Partial<Record<FeatureFlag, boolean>>;
+}
+
+/**
+ * Response after updating feature flags
+ */
+export interface UpdateFeaturesResponse {
+  wedding: Wedding;
+  renderConfig: RenderConfig;
+}
+
 // ============================================================================
 // Guest Types
 // ============================================================================
