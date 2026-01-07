@@ -25,11 +25,23 @@ const faqItems = faq?.items?.slice().sort((a, b) => a.order - b.order) || [];
     {faqItems.length === 0 ? (
       <p class="no-faqs">Questions and answers will appear here.</p>
     ) : (
-      <div class="faq-list">
-        {faqItems.map((item) => (
-          <details class="faq-item">
-            <summary class="faq-question">{item.question}</summary>
-            <div class="faq-answer">{item.answer}</div>
+      <div class="faq-list" role="list">
+        {faqItems.map((item, index) => (
+          <details class="faq-item" role="listitem">
+            <summary
+              class="faq-question"
+              id={`faq-question-${index}`}
+              aria-controls={`faq-answer-${index}`}
+            >
+              <span class="faq-question-text">{item.question}</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </summary>
+            <div
+              class="faq-answer"
+              id={`faq-answer-${index}`}
+              role="region"
+              aria-labelledby={`faq-question-${index}`}
+            >{item.answer}</div>
           </details>
         ))}
       </div>
@@ -108,21 +120,47 @@ const faqItems = faq?.items?.slice().sort((a, b) => a.order - b.order) || [];
     display: none;
   }
 
-  .faq-question::after {
-    content: '+';
+  .faq-question-text {
+    flex: 1;
+  }
+
+  .faq-icon {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 1.5rem;
     font-weight: 300;
     color: var(--primary);
-    flex-shrink: 0;
     transition: transform 0.2s ease;
   }
 
-  .faq-item[open] .faq-question::after {
+  .faq-icon::before {
+    content: '+';
+  }
+
+  .faq-item[open] .faq-icon {
     transform: rotate(45deg);
   }
 
   .faq-question:hover {
     background-color: rgba(0, 0, 0, 0.02);
+  }
+
+  .faq-question:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .faq-question,
+    .faq-icon {
+      transition: none;
+    }
   }
 
   .faq-answer {

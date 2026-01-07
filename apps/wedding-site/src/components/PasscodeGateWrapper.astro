@@ -214,12 +214,14 @@ const slug = config.wedding.slug;
       const showError = (message) => {
         errorEl.textContent = message;
         errorEl.style.display = 'block';
-        input.style.borderColor = '#ef4444';
+        input.style.borderColor = '#b91c1c';
+        input.setAttribute('aria-invalid', 'true');
       };
 
       const clearError = () => {
         errorEl.style.display = 'none';
         input.style.borderColor = '';
+        input.removeAttribute('aria-invalid');
       };
 
       // Check for existing session

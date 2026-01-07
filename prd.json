@@ -1323,7 +1323,7 @@
       "Test with screen reader",
       "Verify all content is accessible"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "accessibility",

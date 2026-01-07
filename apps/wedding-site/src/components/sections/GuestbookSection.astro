@@ -29,7 +29,7 @@ const apiBaseUrl = import.meta.env.PUBLIC_PLATFORM_API_URL || 'http://localhost:
     {description && <p class="section-description">{description}</p>}
 
     <!-- Submission form -->
-    <form id="guestbook-form" class="guestbook-form">
+    <form id="guestbook-form" class="guestbook-form" aria-label="Guestbook submission form">
       <div class="form-group">
         <label for="guest-name" class="form-label">Your name</label>
         <input
@@ -40,7 +40,10 @@ const apiBaseUrl = import.meta.env.PUBLIC_PLATFORM_API_URL || 'http://localhost:
           maxlength="100"
           class="form-input"
           placeholder="Enter your name"
+          aria-required="true"
+          aria-describedby="guest-name-error"
         />
+        <span id="guest-name-error" class="field-error" role="alert"></span>
       </div>
       <div class="form-group">
         <label for="message" class="form-label">Your message</label>
@@ -52,12 +55,15 @@ const apiBaseUrl = import.meta.env.PUBLIC_PLATFORM_API_URL || 'http://localhost:
           rows="4"
           class="form-textarea"
           placeholder="Leave a message for the happy couple..."
+          aria-required="true"
+          aria-describedby="message-error"
         ></textarea>
+        <span id="message-error" class="field-error" role="alert"></span>
       </div>
       <button type="submit" class="submit-button" id="submit-button">
         Sign the guestbook
       </button>
-      <div id="form-message" class="form-message" aria-live="polite"></div>
+      <div id="form-message" class="form-message" role="status" aria-live="polite"></div>
     </form>
 
     <!-- Messages display -->
@@ -96,23 +102,72 @@ const apiBaseUrl = import.meta.env.PUBLIC_PLATFORM_API_URL || 'http://localhost:
   const weddingSlug = section?.dataset.weddingSlug;
   const apiBaseUrl = section?.dataset.apiBaseUrl || 'http://localhost:3001/api';
 
+  // Field elements for validation
+  const guestNameInput = document.getElementById('guest-name') as HTMLInputElement;
+  const messageInput = document.getElementById('message') as HTMLTextAreaElement;
+  const guestNameError = document.getElementById('guest-name-error') as HTMLSpanElement;
+  const messageError = document.getElementById('message-error') as HTMLSpanElement;
+
+  // Clear field error state
+  function clearFieldError(input: HTMLInputElement | HTMLTextAreaElement, errorEl: HTMLSpanElement) {
+    input.classList.remove('error');
+    input.removeAttribute('aria-invalid');
+    errorEl.textContent = '';
+  }
+
+  // Set field error state
+  function setFieldError(input: HTMLInputElement | HTMLTextAreaElement, errorEl: HTMLSpanElement, message: string) {
+    input.classList.add('error');
+    input.setAttribute('aria-invalid', 'true');
+    errorEl.textContent = message;
+  }
+
+  // Clear all errors
+  function clearAllErrors() {
+    clearFieldError(guestNameInput, guestNameError);
+    clearFieldError(messageInput, messageError);
+    formMessage.textContent = '';
+    formMessage.className = 'form-message';
+  }
+
+  // Add input listeners to clear errors on typing
+  guestNameInput?.addEventListener('input', () => clearFieldError(guestNameInput, guestNameError));
+  messageInput?.addEventListener('input', () => clearFieldError(messageInput, messageError));
+
   if (form && weddingSlug) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      clearAllErrors();
 
       const formData = new FormData(form);
-      const guestName = formData.get('guestName') as string;
-      const message = formData.get('message') as string;
+      const guestName = (formData.get('guestName') as string)?.trim();
+      const message = (formData.get('message') as string)?.trim();
 
-      if (!guestName.trim() || !message.trim()) {
-        formMessage.textContent = 'Please fill in all fields.';
-        formMessage.className = 'form-message error';
+      // Validate fields
+      let hasErrors = false;
+
+      if (!guestName) {
+        setFieldError(guestNameInput, guestNameError, 'Please enter your name');
+        hasErrors = true;
+      }
+
+      if (!message) {
+        setFieldError(messageInput, messageError, 'Please enter a message');
+        hasErrors = true;
+      }
+
+      if (hasErrors) {
+        // Focus the first invalid field
+        if (!guestName) {
+          guestNameInput.focus();
+        } else {
+          messageInput.focus();
+        }
         return;
       }
 
       submitButton.disabled = true;
       submitButton.textContent = 'Sending...';
-      formMessage.textContent = '';
 
       try {
         const response = await fetch(`${apiBaseUrl}/guestbook/${weddingSlug}/submit`, {
@@ -120,7 +175,7 @@ const apiBaseUrl = import.meta.env.PUBLIC_PLATFORM_API_URL || 'http://localhost:
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ guestName: guestName.trim(), message: message.trim() }),
+          body: JSON.stringify({ guestName, message }),
         });
 
         const data = await response.json();
@@ -251,6 +306,31 @@ const apiBaseUrl = import.meta.env.PUBLIC_PLATFORM_API_URL || 'http://localhost:
   .submit-button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  .submit-button:focus-visible {
+    outline: 2px solid var(--neutral-dark);
+    outline-offset: 2px;
+  }
+
+  .field-error {
+    display: block;
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+    font-size: 0.8125rem;
+    color: #b91c1c;
+    margin-top: 0.375rem;
+    min-height: 1rem;
+  }
+
+  .form-input.error,
+  .form-textarea.error {
+    border-color: #b91c1c;
+  }
+
+  .form-input.error:focus,
+  .form-textarea.error:focus {
+    border-color: #b91c1c;
+    box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.15);
   }
 
   .form-message {
