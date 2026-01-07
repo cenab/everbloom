@@ -270,7 +270,7 @@
       "Verify emails are enqueued",
       "Verify email_outbox records are created"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "rsvp",

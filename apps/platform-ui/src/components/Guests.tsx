@@ -7,6 +7,8 @@ import type {
   CsvGuestRow,
   CsvImportResponse,
   CsvImportRowResult,
+  SendInvitationsResponse,
+  SendInvitationResult,
 } from '@wedding-bestie/shared';
 import { getAuthToken } from '../lib/auth';
 
@@ -25,6 +27,8 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showCsvImport, setShowCsvImport] = useState(false);
+  const [selectedGuestIds, setSelectedGuestIds] = useState<Set<string>>(new Set());
+  const [showSendInvites, setShowSendInvites] = useState(false);
 
   const fetchGuests = useCallback(async () => {
     setIsLoading(true);
@@ -69,6 +73,32 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
     setShowCsvImport(false);
   };
 
+  const handleToggleSelect = (guestId: string) => {
+    setSelectedGuestIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(guestId)) {
+        next.delete(guestId);
+      } else {
+        next.add(guestId);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedGuestIds.size === guests.length) {
+      setSelectedGuestIds(new Set());
+    } else {
+      setSelectedGuestIds(new Set(guests.map((g) => g.id)));
+    }
+  };
+
+  const handleInvitesSent = () => {
+    setShowSendInvites(false);
+    setSelectedGuestIds(new Set());
+    fetchGuests(); // Refresh to update inviteSentAt
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
@@ -87,6 +117,15 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
             </p>
           </div>
           <div className="flex gap-3">
+            {selectedGuestIds.size > 0 && (
+              <button
+                onClick={() => setShowSendInvites(true)}
+                className="btn-primary flex items-center gap-2"
+              >
+                <EnvelopeIcon className="w-4 h-4" />
+                Send invites ({selectedGuestIds.size})
+              </button>
+            )}
             <button
               onClick={() => setShowCsvImport(true)}
               className="btn-secondary"
@@ -104,6 +143,15 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
           </div>
         </div>
       </div>
+
+      {showSendInvites && (
+        <SendInvitesDialog
+          weddingId={weddingId}
+          guests={guests.filter((g) => selectedGuestIds.has(g.id))}
+          onSuccess={handleInvitesSent}
+          onCancel={() => setShowSendInvites(false)}
+        />
+      )}
 
       {showCsvImport && (
         <CsvImportForm
@@ -136,6 +184,9 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
           guests={guests}
           weddingId={weddingId}
           onDelete={handleGuestDeleted}
+          selectedIds={selectedGuestIds}
+          onToggleSelect={handleToggleSelect}
+          onSelectAll={handleSelectAll}
         />
       )}
     </div>
@@ -708,15 +759,38 @@ interface GuestListProps {
   guests: Guest[];
   weddingId: string;
   onDelete: (guestId: string) => void;
+  selectedIds: Set<string>;
+  onToggleSelect: (guestId: string) => void;
+  onSelectAll: () => void;
 }
 
-function GuestList({ guests, weddingId, onDelete }: GuestListProps) {
+function GuestList({
+  guests,
+  weddingId,
+  onDelete,
+  selectedIds,
+  onToggleSelect,
+  onSelectAll,
+}: GuestListProps) {
+  const allSelected = guests.length > 0 && selectedIds.size === guests.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < guests.length;
+
   return (
     <div className="bg-neutral-50 border border-neutral-200 rounded-lg overflow-hidden">
-      <div className="px-4 py-3 border-b border-neutral-200 bg-neutral-100">
-        <span className="text-sm text-neutral-600">
-          {guests.length} {guests.length === 1 ? 'guest' : 'guests'}
-        </span>
+      <div className="px-4 py-3 border-b border-neutral-200 bg-neutral-100 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onSelectAll}
+            className="flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-800"
+          >
+            <CheckboxIcon checked={allSelected} indeterminate={someSelected} />
+            {allSelected ? 'Deselect all' : 'Select all'}
+          </button>
+          <span className="text-sm text-neutral-500">
+            {guests.length} {guests.length === 1 ? 'guest' : 'guests'}
+            {selectedIds.size > 0 && ` (${selectedIds.size} selected)`}
+          </span>
+        </div>
       </div>
       <ul className="divide-y divide-neutral-200">
         {guests.map((guest) => (
@@ -725,6 +799,8 @@ function GuestList({ guests, weddingId, onDelete }: GuestListProps) {
             guest={guest}
             weddingId={weddingId}
             onDelete={onDelete}
+            isSelected={selectedIds.has(guest.id)}
+            onToggleSelect={() => onToggleSelect(guest.id)}
           />
         ))}
       </ul>
@@ -736,9 +812,11 @@ interface GuestRowProps {
   guest: Guest;
   weddingId: string;
   onDelete: (guestId: string) => void;
+  isSelected: boolean;
+  onToggleSelect: () => void;
 }
 
-function GuestRow({ guest, weddingId, onDelete }: GuestRowProps) {
+function GuestRow({ guest, weddingId, onDelete, isSelected, onToggleSelect }: GuestRowProps) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -770,6 +848,12 @@ function GuestRow({ guest, weddingId, onDelete }: GuestRowProps) {
   return (
     <li className="px-4 py-4 flex items-center justify-between">
       <div className="flex items-center gap-4">
+        <button
+          onClick={onToggleSelect}
+          className="flex-shrink-0"
+        >
+          <CheckboxIcon checked={isSelected} />
+        </button>
         <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
           <span className="text-primary-700 font-medium">
             {guest.name.charAt(0).toUpperCase()}
@@ -781,6 +865,11 @@ function GuestRow({ guest, weddingId, onDelete }: GuestRowProps) {
         </div>
       </div>
       <div className="flex items-center gap-4">
+        {guest.inviteSentAt && (
+          <span className="text-xs text-neutral-400">
+            Invited
+          </span>
+        )}
         <RsvpStatusBadge status={guest.rsvpStatus} />
         <button
           onClick={handleDelete}
@@ -898,5 +987,201 @@ function TrashIcon({ className }: { className?: string }) {
         d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
       />
     </svg>
+  );
+}
+
+function EnvelopeIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+      />
+    </svg>
+  );
+}
+
+function CheckboxIcon({ checked, indeterminate }: { checked: boolean; indeterminate?: boolean }) {
+  if (indeterminate) {
+    return (
+      <div className="w-5 h-5 rounded border-2 border-primary-500 bg-primary-500 flex items-center justify-center">
+        <div className="w-2.5 h-0.5 bg-white rounded" />
+      </div>
+    );
+  }
+  if (checked) {
+    return (
+      <div className="w-5 h-5 rounded border-2 border-primary-500 bg-primary-500 flex items-center justify-center">
+        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+        </svg>
+      </div>
+    );
+  }
+  return (
+    <div className="w-5 h-5 rounded border-2 border-neutral-300 bg-white" />
+  );
+}
+
+interface SendInvitesDialogProps {
+  weddingId: string;
+  guests: Guest[];
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+/**
+ * Send invitations dialog component.
+ * PRD: "Admin can send invitation emails"
+ */
+function SendInvitesDialog({ weddingId, guests, onSuccess, onCancel }: SendInvitesDialogProps) {
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [results, setResults] = useState<SendInvitationResult[] | null>(null);
+
+  const handleSend = async () => {
+    setIsSending(true);
+    setError(null);
+
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`/api/weddings/${weddingId}/invitations/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ guestIds: guests.map((g) => g.id) }),
+      });
+
+      const data: ApiResponse<SendInvitationsResponse> = await response.json();
+
+      if (data.ok) {
+        setResults(data.data.results);
+      } else {
+        setError('message' in data ? (data as { message?: string }).message || 'Failed to send invitations' : 'Failed to send invitations');
+      }
+    } catch {
+      setError('Unable to send invitations. Please try again.');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Results view
+  if (results) {
+    const sent = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
+
+    return (
+      <div className="fixed inset-0 bg-neutral-900/50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <CheckCircleIcon className="w-6 h-6 text-accent-600" />
+            <h3 className="text-lg text-neutral-800">Invitations sent</h3>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-accent-50 border border-accent-200 rounded-lg p-4 text-center">
+              <p className="text-2xl font-semibold text-accent-700">{sent}</p>
+              <p className="text-sm text-accent-600">Sent successfully</p>
+            </div>
+            <div className="bg-neutral-100 border border-neutral-200 rounded-lg p-4 text-center">
+              <p className="text-2xl font-semibold text-neutral-700">{failed}</p>
+              <p className="text-sm text-neutral-600">Failed</p>
+            </div>
+          </div>
+
+          {failed > 0 && (
+            <div className="mb-6">
+              <p className="text-sm font-medium text-neutral-700 mb-2">Failed invitations</p>
+              <div className="border border-neutral-200 rounded-lg overflow-hidden max-h-32 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <tbody className="divide-y divide-neutral-200">
+                    {results.filter((r) => !r.success).map((result, idx) => (
+                      <tr key={idx}>
+                        <td className="px-3 py-2 text-neutral-800">{result.guestName}</td>
+                        <td className="px-3 py-2 text-neutral-500">{result.error}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <button onClick={onSuccess} className="btn-primary">
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Confirmation view
+  return (
+    <div className="fixed inset-0 bg-neutral-900/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 p-6">
+        <h3 className="text-lg text-neutral-800 mb-2">Send invitations</h3>
+        <p className="text-neutral-600 mb-6">
+          You're about to send invitation emails to <strong>{guests.length}</strong> {guests.length === 1 ? 'guest' : 'guests'}.
+          Each guest will receive a personalized email with their unique RSVP link.
+        </p>
+
+        <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 mb-6 max-h-48 overflow-y-auto">
+          <ul className="space-y-2">
+            {guests.map((guest) => (
+              <li key={guest.id} className="flex items-center gap-2 text-sm">
+                <EnvelopeIcon className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+                <span className="text-neutral-800">{guest.name}</span>
+                <span className="text-neutral-400">({guest.email})</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {error && (
+          <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg text-primary-800 text-sm mb-4">
+            {error}
+          </div>
+        )}
+
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onCancel}
+            className="btn-secondary"
+            disabled={isSending}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSend}
+            className="btn-primary flex items-center gap-2"
+            disabled={isSending}
+          >
+            {isSending ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Sending...
+              </>
+            ) : (
+              <>
+                <EnvelopeIcon className="w-4 h-4" />
+                Send {guests.length} {guests.length === 1 ? 'invitation' : 'invitations'}
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

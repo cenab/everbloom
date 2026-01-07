@@ -670,3 +670,84 @@
 - Duplicate emails within the same wedding are skipped
 - Import results include per-row error details for debugging
 - The import form maintains step state and shows results before closing
+
+---
+
+### 2026-01-06 - Admin Can Send Invitation Emails
+
+**Feature worked on:** Admin can send invitation emails (PRD: invites category)
+
+**Priority rationale:** This is the highest-priority incomplete feature because:
+1. The entire RSVP flow is complete (guests can view/submit/edit RSVP)
+2. But there's no way to actually SEND the RSVP links to guests
+3. Without invitation sending, the guest management features are incomplete
+4. It completes the core guest workflow: add guests → send invites → guests RSVP
+
+**What was done:**
+1. Added invitation/email types to shared package:
+   - `EmailStatus` type ('pending' | 'sent' | 'failed')
+   - `EmailType` type ('invitation' | 'reminder' | 'update')
+   - `EmailOutbox` interface for tracking sent emails
+   - `SendInvitationsRequest`, `SendInvitationResult`, `SendInvitationsResponse`
+   - `EMAIL_SEND_FAILED`, `NO_GUESTS_SELECTED` error codes
+
+2. Created EmailService (services/platform-api/src/invitation/email.service.ts):
+   - `buildInvitationEmail(guest, wedding)` - generates personalized HTML/text email content
+   - `sendEmail(content)` - sends via SendGrid API in production, logs in development
+   - Beautiful, branded email template with RSVP link
+   - Development mode: logs email to console instead of actually sending
+
+3. Created InvitationService (services/platform-api/src/invitation/invitation.service.ts):
+   - In-memory email_outbox storage for development
+   - `createOutboxRecord()` - tracks email attempts
+   - `updateOutboxStatus()` - updates status on send success/failure
+   - `sendInvitations(weddingId, guestIds)` - batch sends invitations
+   - `getOutboxForWedding()` / `getOutboxForGuest()` - retrieval methods
+
+4. Created InvitationController (services/platform-api/src/invitation/invitation.controller.ts):
+   - `POST /api/weddings/:weddingId/invitations/send` - send invitations to selected guests
+   - `GET /api/weddings/:weddingId/invitations/outbox` - get email history
+   - All endpoints require authentication and verify wedding ownership
+
+5. Created InvitationModule and registered in AppModule
+
+6. Updated Guests page component (apps/platform-ui/src/components/Guests.tsx):
+   - Added guest selection with checkboxes
+   - Added "Select all" / "Deselect all" functionality
+   - Added "Send invites" button that appears when guests are selected
+   - Created SendInvitesDialog component:
+     - Confirmation view showing selected guests
+     - Sends invitation via API
+     - Results view showing sent/failed counts
+     - Error handling with friendly messages
+
+**API Endpoints:**
+- `POST /api/weddings/:weddingId/invitations/send` - Send invitations (requires auth)
+  - Request: `{ guestIds: string[] }`
+  - Response: `{ sent, failed, total, results: SendInvitationResult[] }`
+- `GET /api/weddings/:weddingId/invitations/outbox` - Get email outbox (requires auth)
+  - Response: `{ emails: EmailOutbox[] }`
+
+**Design system adherence:**
+- Checkbox selection with primary color fill
+- Modal dialog for send confirmation
+- Clear summary cards for sent/failed counts
+- Human language: "Send invitations", "Invitations sent", "Sent successfully"
+- No pure black/white colors
+- Calm, minimal UI with branded email template
+
+**PRD features now passing:**
+- "Admin can send invitation emails" ✓
+
+**Next steps:**
+- Implement photo upload feature
+- Implement announcement banner feature
+- Implement reminder emails via worker queue
+
+**Notes for next person:**
+- In dev mode, emails are logged to console (look for "📧 DEVELOPMENT MODE" in platform-api output)
+- In production, set SENDGRID_API_KEY, SENDGRID_FROM_EMAIL, SENDGRID_FROM_NAME env vars
+- Set WEDDING_SITE_URL env var for RSVP links in emails (defaults to http://localhost:4321)
+- Email outbox tracks all sends with status (pending/sent/failed)
+- The invitation email includes a personalized RSVP link with the guest's token
+- To test: add guests → select them → click "Send invites" → check API console for logged emails

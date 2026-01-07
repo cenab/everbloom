@@ -442,3 +442,74 @@ export interface CsvImportResponse {
  * CSV import validation error code
  */
 export const CSV_IMPORT_VALIDATION_ERROR = 'CSV_IMPORT_VALIDATION_ERROR' as const;
+
+// ============================================================================
+// Invitation/Email Types
+// ============================================================================
+
+/**
+ * Email status in the email_outbox
+ */
+export type EmailStatus = 'pending' | 'sent' | 'failed';
+
+/**
+ * Email type identifier
+ */
+export type EmailType = 'invitation' | 'reminder' | 'update';
+
+/**
+ * Email outbox record for tracking sent emails
+ */
+export interface EmailOutbox {
+  id: string;
+  weddingId: string;
+  guestId: string;
+  emailType: EmailType;
+  status: EmailStatus;
+  toEmail: string;
+  toName: string;
+  subject: string;
+  sentAt?: string;
+  errorMessage?: string;
+  attempts: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Request body for sending invitations
+ */
+export interface SendInvitationsRequest {
+  guestIds: string[];
+}
+
+/**
+ * Result of sending a single invitation
+ */
+export interface SendInvitationResult {
+  guestId: string;
+  guestName: string;
+  email: string;
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Response from send invitations endpoint
+ */
+export interface SendInvitationsResponse {
+  sent: number;
+  failed: number;
+  total: number;
+  results: SendInvitationResult[];
+}
+
+/**
+ * Email sending failed error code
+ */
+export const EMAIL_SEND_FAILED = 'EMAIL_SEND_FAILED' as const;
+
+/**
+ * No guests selected for invitation error code
+ */
+export const NO_GUESTS_SELECTED = 'NO_GUESTS_SELECTED' as const;
