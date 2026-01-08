@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- Platform users (wedding admins)
 -- ============================================================================
 CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT NOT NULL UNIQUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -23,7 +23,7 @@ CREATE INDEX idx_users_email ON users(email);
 -- For passwordless authentication
 -- ============================================================================
 CREATE TABLE magic_links (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT NOT NULL,
     token_hash TEXT NOT NULL UNIQUE,
     expires_at TIMESTAMPTZ NOT NULL,
@@ -40,7 +40,7 @@ CREATE INDEX idx_magic_links_expires_at ON magic_links(expires_at);
 -- Active user sessions
 -- ============================================================================
 CREATE TABLE auth_sessions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     token_hash TEXT NOT NULL UNIQUE,
     expires_at TIMESTAMPTZ NOT NULL,
@@ -56,7 +56,7 @@ CREATE INDEX idx_auth_sessions_expires_at ON auth_sessions(expires_at);
 -- Core wedding records (system of record)
 -- ============================================================================
 CREATE TABLE weddings (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     slug TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
@@ -117,7 +117,7 @@ CREATE INDEX idx_weddings_status ON weddings(status);
 -- Contains render_config for wedding site rendering
 -- ============================================================================
 CREATE TABLE wedding_sites (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wedding_id UUID NOT NULL UNIQUE REFERENCES weddings(id) ON DELETE CASCADE,
 
     -- The render_config blob - wedding site renders ONLY from this
@@ -144,7 +144,7 @@ CREATE INDEX idx_wedding_sites_wedding_id ON wedding_sites(wedding_id);
 -- Wedding invitees and RSVP tracking
 -- ============================================================================
 CREATE TABLE guests (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wedding_id UUID NOT NULL REFERENCES weddings(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     email TEXT NOT NULL,
@@ -194,7 +194,7 @@ CREATE INDEX idx_guests_email ON guests(email);
 -- Guest segmentation tags
 -- ============================================================================
 CREATE TABLE tags (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wedding_id UUID NOT NULL REFERENCES weddings(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     color TEXT NOT NULL DEFAULT '#6B7280',
@@ -211,7 +211,7 @@ CREATE INDEX idx_tags_wedding_id ON tags(wedding_id);
 -- Tracks all sent emails
 -- ============================================================================
 CREATE TABLE email_outbox (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wedding_id UUID NOT NULL REFERENCES weddings(id) ON DELETE CASCADE,
     guest_id UUID NOT NULL REFERENCES guests(id) ON DELETE CASCADE,
     email_type TEXT NOT NULL CHECK (email_type IN ('invitation', 'reminder', 'save_the_date', 'thank_you', 'update')),
@@ -250,7 +250,7 @@ CREATE INDEX idx_email_outbox_email_type ON email_outbox(email_type);
 -- Emails scheduled for future sending
 -- ============================================================================
 CREATE TABLE scheduled_emails (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wedding_id UUID NOT NULL REFERENCES weddings(id) ON DELETE CASCADE,
     guest_ids UUID[] NOT NULL,
     email_type TEXT NOT NULL CHECK (email_type IN ('invitation', 'reminder', 'save_the_date', 'thank_you', 'update')),
@@ -277,7 +277,7 @@ CREATE INDEX idx_scheduled_emails_scheduled_at ON scheduled_emails(scheduled_at)
 -- Guest-uploaded photos
 -- ============================================================================
 CREATE TABLE photos (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wedding_id UUID NOT NULL REFERENCES weddings(id) ON DELETE CASCADE,
     file_name TEXT NOT NULL,
     content_type TEXT NOT NULL,
@@ -305,7 +305,7 @@ CREATE INDEX idx_photos_moderation_status ON photos(moderation_status);
 -- Guest messages for the couple
 -- ============================================================================
 CREATE TABLE guestbook_messages (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wedding_id UUID NOT NULL REFERENCES weddings(id) ON DELETE CASCADE,
     guest_name TEXT NOT NULL,
     message TEXT NOT NULL,
@@ -322,7 +322,7 @@ CREATE INDEX idx_guestbook_messages_status ON guestbook_messages(status);
 -- Tables for seating chart
 -- ============================================================================
 CREATE TABLE seating_tables (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wedding_id UUID NOT NULL REFERENCES weddings(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     capacity INTEGER NOT NULL CHECK (capacity > 0),
@@ -341,7 +341,7 @@ CREATE INDEX idx_seating_tables_wedding_id ON seating_tables(wedding_id);
 -- Guest table assignments
 -- ============================================================================
 CREATE TABLE seating_assignments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     guest_id UUID NOT NULL UNIQUE REFERENCES guests(id) ON DELETE CASCADE,
     table_id UUID NOT NULL REFERENCES seating_tables(id) ON DELETE CASCADE,
     seat_number INTEGER,
@@ -356,7 +356,7 @@ CREATE INDEX idx_seating_assignments_guest_id ON seating_assignments(guest_id);
 -- Music requests from guests
 -- ============================================================================
 CREATE TABLE song_requests (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wedding_id UUID NOT NULL REFERENCES weddings(id) ON DELETE CASCADE,
     song_title TEXT NOT NULL,
     artist_name TEXT NOT NULL,
@@ -371,7 +371,7 @@ CREATE INDEX idx_song_requests_wedding_id ON song_requests(wedding_id);
 -- Which guests are invited to which events
 -- ============================================================================
 CREATE TABLE event_guest_assignments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wedding_id UUID NOT NULL REFERENCES weddings(id) ON DELETE CASCADE,
     guest_id UUID NOT NULL REFERENCES guests(id) ON DELETE CASCADE,
     event_id UUID NOT NULL,
@@ -389,7 +389,7 @@ CREATE INDEX idx_event_guest_assignments_event_id ON event_guest_assignments(eve
 -- Tracking pending photo uploads (signed URLs)
 -- ============================================================================
 CREATE TABLE photo_uploads (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wedding_id UUID NOT NULL REFERENCES weddings(id) ON DELETE CASCADE,
     file_name TEXT NOT NULL,
     content_type TEXT NOT NULL,
@@ -408,7 +408,7 @@ CREATE INDEX idx_photo_uploads_expires_at ON photo_uploads(expires_at);
 -- Track domain verification attempts
 -- ============================================================================
 CREATE TABLE custom_domain_verifications (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wedding_id UUID NOT NULL REFERENCES weddings(id) ON DELETE CASCADE,
     domain TEXT NOT NULL,
     verification_token TEXT NOT NULL,
