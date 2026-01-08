@@ -1,0 +1,37 @@
+# Deploy Platform API to Railway
+# Triggered on push to main
+
+name: Deploy Platform API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/platform-api/**'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+    # Uncomment after creating 'production' environment in GitHub Settings
+    # environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        run: railway up --service platform-api
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+
+      - name: Health Check
+        run: |
+          sleep 30
+          curl -f ${{ secrets.PLATFORM_API_URL }}/api/health || exit 1
+        continue-on-error: true

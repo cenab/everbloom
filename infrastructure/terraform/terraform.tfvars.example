@@ -1,0 +1,29 @@
+# Terraform Variables
+# Copy to terraform.tfvars and fill in your values
+# NEVER commit terraform.tfvars to version control
+
+environment = "production"
+domain      = "everbloom.wedding"
+github_repo = "your-org/wedding-bestie"
+
+# Supabase
+supabase_access_token = "sbp_xxxxx"
+supabase_org_id       = "org-xxxxx"
+supabase_db_password  = "your-secure-database-password"
+
+# Vercel
+vercel_api_token = "xxxxx"
+vercel_team_id   = null # Optional, for team accounts
+
+# Stripe
+stripe_secret_key     = "sk_live_xxxxx"
+stripe_webhook_secret = "whsec_xxxxx"
+
+# SendGrid
+sendgrid_api_key = "SG.xxxxx"
+
+# Security
+worker_token = "xxxxx" # Generate with: openssl rand -hex 32
+
+# Note: Railway Redis is configured in Railway dashboard, not here.
+# In Railway, add Redis service and reference with ${{Redis.REDIS_URL}}

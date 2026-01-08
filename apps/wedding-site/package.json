@@ -9,13 +9,19 @@
     "preview": "astro preview",
     "dev:netlify": "netlify dev",
     "typecheck": "astro check && tsc --noEmit",
-    "test": "echo 'No tests yet'"
+    "test": "vitest run"
   },
   "dependencies": {
-    "astro": "^4.2.0"
+    "@netlify/functions": "^2.4.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "astro": "^4.2.0",
+    "bcryptjs": "^2.4.3"
   },
   "devDependencies": {
     "@astrojs/check": "^0.4.0",
-    "typescript": "^5.3.3"
+    "@types/bcryptjs": "^2.4.6",
+    "netlify-cli": "^17.0.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
   }
 }

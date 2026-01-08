@@ -8,12 +8,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "composite": true
+    "resolveJsonModule": true
   },
+  "files": [],
   "references": [
     { "path": "./apps/platform-ui" },
     { "path": "./services/platform-api" },

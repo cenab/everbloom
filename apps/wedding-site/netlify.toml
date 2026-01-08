@@ -1,0 +1,131 @@
+# Netlify configuration for Wedding Site
+# https://docs.netlify.com/configure-builds/file-based-configuration/
+
+[build]
+  command = "pnpm build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[functions]
+  node_bundler = "esbuild"
+  directory = "netlify/functions"
+  included_files = ["netlify/functions/**"]
+
+# Development settings
+[dev]
+  command = "pnpm dev"
+  port = 4321
+  targetPort = 4321
+  autoLaunch = false
+
+# Environment variables per context
+[context.production.environment]
+  NODE_ENV = "production"
+  # Set these in Netlify Dashboard for security:
+  # SUPABASE_URL, SUPABASE_ANON_KEY, DEFAULT_DOMAIN_URL
+
+[context.deploy-preview.environment]
+  NODE_ENV = "staging"
+
+[context.branch-deploy.environment]
+  NODE_ENV = "staging"
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-XSS-Protection = "1; mode=block"
+
+# Cache static assets
+[[headers]]
+  for = "/_astro/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.ico"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+# CORS for Netlify Functions
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+
+# API routes -> Netlify Functions
+[[redirects]]
+  from = "/api/site-config"
+  to = "/.netlify/functions/site-config"
+  status = 200
+
+[[redirects]]
+  from = "/api/rsvp-view"
+  to = "/.netlify/functions/rsvp-view"
+  status = 200
+
+[[redirects]]
+  from = "/api/rsvp-submit"
+  to = "/.netlify/functions/rsvp-submit"
+  status = 200
+
+[[redirects]]
+  from = "/api/photo-upload-token"
+  to = "/.netlify/functions/photo-upload-token"
+  status = 200
+
+[[redirects]]
+  from = "/api/photo-metadata"
+  to = "/.netlify/functions/photo-metadata"
+  status = 200
+
+[[redirects]]
+  from = "/api/passcode-verify"
+  to = "/.netlify/functions/passcode-verify"
+  status = 200
+
+[[redirects]]
+  from = "/api/guestbook-submit"
+  to = "/.netlify/functions/guestbook-submit"
+  status = 200
+
+[[redirects]]
+  from = "/api/music-request"
+  to = "/.netlify/functions/music-request"
+  status = 200
+
+[[redirects]]
+  from = "/api/domain-lookup"
+  to = "/.netlify/functions/domain-lookup"
+  status = 200
+
+[[redirects]]
+  from = "/api/data-export"
+  to = "/.netlify/functions/data-export"
+  status = 200
+
+# Custom domain routing (for guests with their own domains)
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/domain-lookup"
+  status = 200
+  force = false
+  conditions = {Role = ["custom-domain"]}
+
+# Edge function for custom domain detection (optional)
+# [[edge_functions]]
+#   path = "/*"
+#   function = "domain-router"

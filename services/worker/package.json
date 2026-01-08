@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
-    "test": "echo 'No tests yet'"
+    "test": "vitest run"
   },
   "dependencies": {
     "bullmq": "^5.1.0"
@@ -16,6 +16,7 @@
   "devDependencies": {
     "@types/node": "^20.10.0",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
   }
 }

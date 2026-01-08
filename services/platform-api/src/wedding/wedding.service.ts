@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { randomBytes, scrypt, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
+import { verifyDnsRecords, generateVerificationToken } from '../utils/dns-verification';
 import type {
   Wedding,
   WeddingStatus,
@@ -2313,8 +2314,7 @@ DNS changes can take up to 48 hours to propagate.`;
 
   /**
    * Verify DNS records for a custom domain
-   * In production, this would actually query DNS servers
-   * For development, we simulate verification
+   * Uses actual DNS lookups in production, simulates in development
    * PRD: "Admin can connect custom domain"
    */
   async verifyCustomDomain(
@@ -2330,12 +2330,6 @@ DNS changes can take up to 48 hours to propagate.`;
     }
 
     const customDomain = wedding.customDomain;
-
-    // In production, we would use DNS lookup to verify records
-    // For development, we simulate DNS verification:
-    // - In dev mode, auto-verify after domain is added (for testing)
-    // - In production, would use dns.resolveCname() and dns.resolveTxt()
-
     const isDevelopment = process.env.NODE_ENV !== 'production';
 
     if (isDevelopment) {
@@ -2352,10 +2346,47 @@ DNS changes can take up to 48 hours to propagate.`;
         }));
       }
     } else {
-      // Production: Actually check DNS
-      // This would require implementing DNS lookups
-      // For now, we leave records unverified until manually checked
-      this.logger.log(`Would verify DNS for ${customDomain.domain} in production`);
+      // Production: Perform actual DNS lookups
+      try {
+        // Get the expected TXT verification value
+        const txtRecord = customDomain.dnsRecords.find((r) => r.type === 'TXT');
+        const expectedTxtValue = txtRecord?.value || generateVerificationToken(weddingId, customDomain.domain);
+
+        this.logger.log(`Verifying DNS for ${customDomain.domain}...`);
+
+        const dnsResult = await verifyDnsRecords(customDomain.domain, expectedTxtValue);
+
+        // Update CNAME record verification status
+        customDomain.dnsRecords = customDomain.dnsRecords.map((record) => {
+          if (record.type === 'CNAME') {
+            return {
+              ...record,
+              verified: dnsResult.cnameVerified,
+            };
+          }
+          if (record.type === 'TXT') {
+            return {
+              ...record,
+              verified: dnsResult.txtVerified,
+            };
+          }
+          return record;
+        });
+
+        this.logger.log(
+          `DNS verification result for ${customDomain.domain}: CNAME=${dnsResult.cnameVerified}, TXT=${dnsResult.txtVerified}`,
+        );
+
+        if (dnsResult.cnameError) {
+          this.logger.warn(`CNAME error: ${dnsResult.cnameError}`);
+        }
+        if (dnsResult.txtError) {
+          this.logger.warn(`TXT error: ${dnsResult.txtError}`);
+        }
+      } catch (error) {
+        this.logger.error(`DNS verification failed for ${customDomain.domain}: ${error}`);
+        // Don't fail the request, just leave records as unverified
+      }
     }
 
     // Check if all records are verified

@@ -9,11 +9,11 @@
     "start": "nest start",
     "start:prod": "node dist/main",
     "typecheck": "tsc --noEmit",
-    "test": "jest --passWithNoTests",
+    "test": "jest",
     "test:watch": "jest --watch",
-    "db:migrate": "echo 'TODO: implement migrations'",
-    "db:generate": "echo 'TODO: implement migration generation'",
-    "db:seed": "echo 'TODO: implement seeding'"
+    "db:migrate": "cd ../.. && supabase db push",
+    "db:generate": "cd ../.. && supabase migration new",
+    "db:seed": "echo 'Run seed SQL via supabase SQL editor or psql'"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
@@ -21,6 +21,7 @@
     "@nestjs/core": "^10.3.0",
     "@nestjs/platform-express": "^10.3.0",
     "@nestjs/throttler": "^6.5.0",
+    "@supabase/supabase-js": "^2.39.0",
     "bullmq": "^5.1.0",
     "reflect-metadata": "^0.2.1",
     "rxjs": "^7.8.1",

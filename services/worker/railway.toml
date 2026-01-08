@@ -1,0 +1,10 @@
+[build]
+builder = "nixpacks"
+buildCommand = "pnpm install && pnpm build"
+
+[deploy]
+startCommand = "node dist/main.js"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 5
+
+# Worker has no HTTP port - it only processes queue jobs

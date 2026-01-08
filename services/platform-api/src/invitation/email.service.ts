@@ -305,6 +305,7 @@ ${partnerNames}
   /**
    * Build reminder email content
    * PRD: "Email design matches wedding theme"
+   * PRD: "Admin can customize invitation email content" (applies to reminders too)
    * @param guest The guest to send the reminder to
    * @param wedding The wedding details
    * @param rawToken The raw RSVP token for the URL (not stored, only used for email)
@@ -320,7 +321,68 @@ ${partnerNames}
     const partnerNames = `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`;
     const colors = theme || DEFAULT_THEME;
 
-    const subject = `A gentle reminder: RSVP for ${partnerNames}'s wedding`;
+    // Check for custom template
+    const customTemplate = wedding.emailTemplates?.reminder;
+
+    // Use custom subject or default
+    const subject = customTemplate?.subject
+      ? this.replaceMergeFields(customTemplate.subject, guest, wedding, rsvpUrl)
+      : `A gentle reminder: RSVP for ${partnerNames}'s wedding`;
+
+    // Use custom greeting or default
+    const greeting = customTemplate?.greeting
+      ? this.replaceMergeFields(customTemplate.greeting, guest, wedding, rsvpUrl)
+      : `Hi ${guest.name},`;
+
+    // Use custom body text or default
+    const bodyText = customTemplate?.bodyText
+      ? this.replaceMergeFields(customTemplate.bodyText, guest, wedding, rsvpUrl)
+      : `We hope you're doing well. If you haven't had a chance to RSVP yet, we'd love to hear from you.\n\nYour response helps us finalize the details and celebrate with care.`;
+
+    // Use custom closing or default
+    const closing = customTemplate?.closing
+      ? this.replaceMergeFields(customTemplate.closing, guest, wedding, rsvpUrl)
+      : `With gratitude,`;
+
+    // If custom template, use the buildEmailHtml helper
+    if (customTemplate) {
+      const bodyParagraphs = bodyText.split('\n').filter(p => p.trim());
+      const htmlBody = this.buildEmailHtml(
+        partnerNames,
+        greeting,
+        bodyParagraphs,
+        'RSVP Now',
+        rsvpUrl,
+        closing,
+        partnerNames,
+        colors,
+        rsvpUrl,
+      );
+
+      const textBody = `
+${partnerNames}
+
+${greeting}
+
+${bodyText}
+
+Please RSVP here:
+${rsvpUrl}
+
+${closing}
+${partnerNames}
+      `.trim();
+
+      return {
+        to: guest.email,
+        toName: guest.name,
+        subject,
+        htmlBody,
+        textBody,
+      };
+    }
+
+    // Default template (kept for backwards compatibility)
 
     const htmlBody = `
 <!DOCTYPE html>
@@ -445,6 +507,7 @@ ${partnerNames}
    * PRD: "Verify template focuses on date announcement"
    * PRD: "Verify no RSVP link is included"
    * PRD: "Verify design matches wedding theme"
+   * PRD: "Admin can customize invitation email content" (applies to save-the-date too)
    * @param guest The guest to send the save-the-date to
    * @param wedding The wedding details
    * @param theme Optional theme to use for email colors (falls back to default)
@@ -470,7 +533,65 @@ ${partnerNames}
     const weddingSiteUrl = process.env.WEDDING_SITE_URL || 'http://localhost:4321';
     const siteUrl = `${weddingSiteUrl}/w/${wedding.slug}`;
 
-    const subject = `Save the Date: ${partnerNames}'s Wedding`;
+    // Check for custom template
+    const customTemplate = wedding.emailTemplates?.saveTheDate;
+
+    // Use custom subject or default
+    const subject = customTemplate?.subject
+      ? this.replaceMergeFields(customTemplate.subject, guest, wedding)
+      : `Save the Date: ${partnerNames}'s Wedding`;
+
+    // If custom template, use it with merge fields
+    if (customTemplate) {
+      const greeting = customTemplate.greeting
+        ? this.replaceMergeFields(customTemplate.greeting, guest, wedding)
+        : `Dear ${guest.name},`;
+
+      const bodyText = customTemplate.bodyText
+        ? this.replaceMergeFields(customTemplate.bodyText, guest, wedding)
+        : `We're thrilled to share some wonderful news with you!\n\n${eventDate}\n${location}\n\nWe would be honored to have you join us as we celebrate our love and begin our new journey together.\n\nA formal invitation will follow with all the details.`;
+
+      const closing = customTemplate.closing
+        ? this.replaceMergeFields(customTemplate.closing, guest, wedding)
+        : `With love and excitement,`;
+
+      const bodyParagraphs = bodyText.split('\n').filter(p => p.trim());
+      const htmlBody = this.buildEmailHtml(
+        partnerNames,
+        greeting,
+        bodyParagraphs,
+        siteUrl ? 'Visit Our Wedding Site' : null,
+        siteUrl || null,
+        closing,
+        partnerNames,
+        colors,
+      );
+
+      const textBody = `
+SAVE THE DATE
+
+${partnerNames}
+
+${greeting}
+
+${bodyText}
+
+${siteUrl ? `Visit our wedding site: ${siteUrl}` : ''}
+
+${closing}
+${partnerNames}
+      `.trim();
+
+      return {
+        to: guest.email,
+        toName: guest.name,
+        subject,
+        htmlBody,
+        textBody,
+      };
+    }
+
+    // Default template (kept for backwards compatibility)
 
     const htmlBody = `
 <!DOCTYPE html>
@@ -633,6 +754,7 @@ ${partnerNames}
   /**
    * Build thank-you email content
    * PRD: "Admin can send thank-you emails"
+   * PRD: "Admin can customize invitation email content" (applies to thank-you too)
    * @param guest The guest to send the thank-you to
    * @param wedding The wedding details
    * @param attended Whether the guest attended the wedding
@@ -647,8 +769,67 @@ ${partnerNames}
     const partnerNames = `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`;
     const colors = theme || DEFAULT_THEME;
 
-    const subject = `Thank You from ${partnerNames}`;
+    // Check for custom template based on attendance
+    const customTemplate = attended
+      ? wedding.emailTemplates?.thankYouAttended
+      : wedding.emailTemplates?.thankYouNotAttended;
 
+    // Use custom subject or default
+    const subject = customTemplate?.subject
+      ? this.replaceMergeFields(customTemplate.subject, guest, wedding)
+      : `Thank You from ${partnerNames}`;
+
+    // If custom template, use it with merge fields
+    if (customTemplate) {
+      const greeting = customTemplate.greeting
+        ? this.replaceMergeFields(customTemplate.greeting, guest, wedding)
+        : `Dear ${guest.name},`;
+
+      const bodyText = customTemplate.bodyText
+        ? this.replaceMergeFields(customTemplate.bodyText, guest, wedding)
+        : attended
+          ? `What a beautiful celebration it was, and having you there made it even more special.\n\nWe are so grateful for your presence, your warm wishes, and your love.\n\nThe memories we made together will be cherished forever.`
+          : `Although we missed you at our wedding, we want you to know that you were in our hearts.\n\nThank you for your kind thoughts and warm wishes. They meant the world to us.\n\nWe hope to celebrate with you soon!`;
+
+      const closing = customTemplate.closing
+        ? this.replaceMergeFields(customTemplate.closing, guest, wedding)
+        : `With all our love and gratitude,`;
+
+      const bodyParagraphs = bodyText.split('\n').filter(p => p.trim());
+      const htmlBody = this.buildEmailHtml(
+        partnerNames,
+        greeting,
+        bodyParagraphs,
+        null,
+        null,
+        closing,
+        partnerNames,
+        colors,
+      );
+
+      const textBody = `
+THANK YOU
+
+${partnerNames}
+
+${greeting}
+
+${bodyText}
+
+${closing}
+${partnerNames}
+      `.trim();
+
+      return {
+        to: guest.email,
+        toName: guest.name,
+        subject,
+        htmlBody,
+        textBody,
+      };
+    }
+
+    // Default template (kept for backwards compatibility)
     // Different message for attendees vs non-attendees
     const attendeeMessage = `
       <p>What a beautiful celebration it was, and having you there made it even more special.</p>
