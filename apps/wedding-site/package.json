@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@astrojs/netlify": "^5.0.0",
     "@netlify/functions": "^2.4.0",
     "astro": "^4.2.0"
   },

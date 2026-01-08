@@ -1,5 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as jose from 'jose';
+import type * as Jose from 'jose';
+
+let josePromise: Promise<typeof import('jose')> | null = null;
+
+const loadJose = async (): Promise<typeof import('jose')> => {
+  if (!josePromise) {
+    // Use native dynamic import so jose's ESM build loads under CommonJS.
+    const dynamicImport = new Function('modulePath', 'return import(modulePath)') as (
+      modulePath: string,
+    ) => Promise<typeof import('jose')>;
+    josePromise = dynamicImport('jose');
+  }
+  return josePromise;
+};
 
 /**
  * JWT payload after verification
@@ -56,7 +69,7 @@ export type JwtVerifyResult =
 @Injectable()
 export class JwtVerifyService {
   private readonly logger = new Logger(JwtVerifyService.name);
-  private jwks: jose.JWTVerifyGetKey | null = null;
+  private jwks: Jose.JWTVerifyGetKey | null = null;
   private jwksLastFetched: number = 0;
   private readonly JWKS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -93,7 +106,8 @@ export class JwtVerifyService {
   /**
    * Get or refresh the JWKS key set
    */
-  private async getJwks(forceRefresh = false): Promise<jose.JWTVerifyGetKey> {
+  private async getJwks(forceRefresh = false): Promise<Jose.JWTVerifyGetKey> {
+    const jose = await loadJose();
     const now = Date.now();
 
     // Return cached JWKS if still valid and not forcing refresh
@@ -117,9 +131,10 @@ export class JwtVerifyService {
    */
   private async verifyWithRetry(
     token: string,
-    jwks: jose.JWTVerifyGetKey,
+    jwks: Jose.JWTVerifyGetKey,
     retryOnUnknownKid: boolean,
-  ): Promise<jose.JWTVerifyResult> {
+  ): Promise<Jose.JWTVerifyResult> {
+    const jose = await loadJose();
     const options = {
       issuer: this.getExpectedIssuer(),
       audience: this.getExpectedAudience(),
@@ -171,6 +186,7 @@ export class JwtVerifyService {
         },
       };
     } catch (error) {
+      const jose = await loadJose();
       // Handle specific JWT errors
       if (error instanceof jose.errors.JWTExpired) {
         return { success: false, reason: 'jwt_expired', message: 'Token has expired' };

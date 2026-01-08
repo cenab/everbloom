@@ -2,9 +2,9 @@
 # https://docs.netlify.com/configure-builds/file-based-configuration/
 
 [build]
-  command = "pnpm build"
-  publish = "dist"
-  functions = "netlify/functions"
+  command = "pnpm --filter @wedding-bestie/wedding-site build"
+  publish = "apps/wedding-site/dist"
+  functions = "apps/wedding-site/netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
@@ -16,7 +16,7 @@
 
 # Development settings
 [dev]
-  command = "pnpm dev"
+  command = "pnpm --filter @wedding-bestie/wedding-site dev"
   port = 4321
   targetPort = 4321
   autoLaunch = false
