@@ -1,5 +1,4 @@
 import { Module, Global } from '@nestjs/common';
-import { ThrottlerModule, seconds } from '@nestjs/throttler';
 import { RedisThrottlerStorage } from './redis-throttle.storage';
 
 /**
@@ -14,29 +13,6 @@ import { RedisThrottlerStorage } from './redis-throttle.storage';
  */
 @Global()
 @Module({
-  imports: [
-    ThrottlerModule.forRootAsync({
-      useFactory: () => ({
-        throttlers: [
-          {
-            name: 'default',
-            ttl: seconds(60),
-            limit: 100,
-          },
-          {
-            name: 'strict',
-            ttl: seconds(60),
-            limit: 10,
-          },
-          {
-            name: 'relaxed',
-            ttl: seconds(60),
-            limit: 300,
-          },
-        ],
-      }),
-    }),
-  ],
   providers: [RedisThrottlerStorage],
   exports: [RedisThrottlerStorage],
 })

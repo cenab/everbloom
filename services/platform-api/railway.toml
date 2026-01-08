@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "corepack enable && corepack prepare pnpm@10.27.0 --activate && pnpm install && pnpm build"
+buildCommand = "npm exec --yes pnpm@10.27.0 -- install && npm exec --yes pnpm@10.27.0 -- run build"
 
 [deploy]
 startCommand = "node dist/main.js"
@@ -8,6 +8,3 @@ healthcheckPath = "/api/health"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
-
-[service]
-internalPort = 3001

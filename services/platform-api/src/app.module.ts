@@ -13,6 +13,7 @@ import { GuestbookModule } from './guestbook/guestbook.module';
 import { MusicModule } from './music/music.module';
 import { SeatingModule } from './seating/seating.module';
 import { RedisThrottlerStorage } from './throttle/redis-throttle.storage';
+import { ThrottleModule } from './throttle/throttle.module';
 
 /**
  * Rate limiting configuration with Redis-backed storage.
@@ -33,6 +34,7 @@ import { RedisThrottlerStorage } from './throttle/redis-throttle.storage';
 @Module({
   imports: [
     ThrottlerModule.forRootAsync({
+      imports: [ThrottleModule],
       useFactory: (storage: RedisThrottlerStorage) => ({
         throttlers: [
           {
@@ -71,7 +73,6 @@ import { RedisThrottlerStorage } from './throttle/redis-throttle.storage';
   ],
   controllers: [AppController],
   providers: [
-    RedisThrottlerStorage,
     {
       // Apply throttling globally to all endpoints
       provide: APP_GUARD,

@@ -2,10 +2,10 @@
   "name": "@wedding-bestie/platform-api",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "dev": "nest start --watch",
-    "build": "nest build",
+    "build": "tsc --build --force",
     "start": "nest start",
     "start:prod": "node dist/main",
     "typecheck": "tsc --noEmit",
