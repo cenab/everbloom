@@ -12,11 +12,11 @@ interface LayoutProps {
  * Items auto-hide based on disabled features.
  */
 export function Layout({ children }: LayoutProps) {
-  const { isAuthenticated, user, logout, isLoading } = useAuth();
+  const { isAuthenticated, user, signOut, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await logout();
+    await signOut();
     navigate({ to: '/login' });
   };
 

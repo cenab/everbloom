@@ -114,7 +114,7 @@ export class GuestbookAdminController {
 
     // Update render_config with new approved messages
     const guestbookConfig = this.guestbookService.getGuestbookConfig(weddingId);
-    this.weddingService.updateGuestbookConfig(weddingId, guestbookConfig);
+    await this.weddingService.updateGuestbookConfig(weddingId, guestbookConfig);
 
     return { ok: true, data: { message } };
   }
@@ -140,7 +140,7 @@ export class GuestbookAdminController {
 
     // Update render_config
     const guestbookConfig = this.guestbookService.getGuestbookConfig(weddingId);
-    this.weddingService.updateGuestbookConfig(weddingId, guestbookConfig);
+    await this.weddingService.updateGuestbookConfig(weddingId, guestbookConfig);
 
     return { ok: true, data: { deleted } };
   }
@@ -159,7 +159,7 @@ export class GuestbookAdminController {
       throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
-    const wedding = this.weddingService.getWedding(weddingId);
+    const wedding = await this.weddingService.getWedding(weddingId);
     if (!wedding || wedding.userId !== user.id) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
@@ -205,7 +205,7 @@ export class GuestbookPublicController {
     @Body() body: SubmitGuestbookMessageRequest,
   ): Promise<ApiResponse<SubmitGuestbookMessageResponse>> {
     // Find wedding by slug
-    const wedding = this.weddingService.getWeddingBySlug(slug);
+    const wedding = await this.weddingService.getWeddingBySlug(slug);
     if (!wedding || wedding.status !== 'active') {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
@@ -259,7 +259,7 @@ export class GuestbookPublicController {
     @Param('slug') slug: string,
   ): Promise<ApiResponse<GuestbookMessagesResponse>> {
     // Find wedding by slug
-    const wedding = this.weddingService.getWeddingBySlug(slug);
+    const wedding = await this.weddingService.getWeddingBySlug(slug);
     if (!wedding || wedding.status !== 'active') {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }

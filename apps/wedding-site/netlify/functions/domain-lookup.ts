@@ -6,7 +6,12 @@ import {
   errorResponse,
   ErrorCodes,
 } from './utils/response';
-import { getSupabaseClient } from './utils/supabase';
+import { apiGet, getStatusFromResponse } from './utils/platform-api';
+
+interface DomainLookupResponse {
+  slug: string;
+  defaultUrl: string;
+}
 
 /**
  * GET /domain-lookup?domain=...
@@ -32,33 +37,16 @@ export default async function handler(request: Request, _context: Context): Prom
     return errorResponse(ErrorCodes.VALIDATION_ERROR, 400);
   }
 
-  try {
-    const supabase = getSupabaseClient();
+  // Call Platform API to look up domain
+  const response = await apiGet<DomainLookupResponse>('/site-config/domain/lookup', { domain });
 
-    // Look up wedding by custom domain
-    // Only return if domain is verified and active
-    const { data: wedding, error: weddingError } = await supabase
-      .from('weddings')
-      .select('slug')
-      .eq('status', 'active')
-      .filter('custom_domain->domain', 'eq', domain)
-      .filter('custom_domain->status', 'eq', 'active')
-      .single();
-
-    if (weddingError || !wedding) {
-      return errorResponse('DOMAIN_NOT_FOUND', 404);
-    }
-
-    // Get default domain URL from environment or construct it
-    const defaultDomainBase = process.env.DEFAULT_DOMAIN_URL || 'https://everbloom.wedding';
-    const defaultUrl = `${defaultDomainBase}/w/${wedding.slug}`;
-
-    return successResponse({
-      slug: wedding.slug,
-      defaultUrl,
-    });
-  } catch (error) {
-    console.error('Error looking up domain:', error);
-    return errorResponse(ErrorCodes.INTERNAL_ERROR, 500);
+  if (!response.ok || !response.data) {
+    const status = getStatusFromResponse(response);
+    return errorResponse(response.error || 'DOMAIN_NOT_FOUND', status);
   }
+
+  return successResponse({
+    slug: response.data.slug,
+    defaultUrl: response.data.defaultUrl,
+  });
 }

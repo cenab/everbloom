@@ -155,7 +155,7 @@ export class MusicAdminController {
       throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
-    const wedding = this.weddingService.getWedding(weddingId);
+    const wedding = await this.weddingService.getWedding(weddingId);
     if (!wedding || wedding.userId !== user.id) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
@@ -203,7 +203,7 @@ export class MusicPublicController {
     @Body() body: SubmitSongRequestRequest,
   ) {
     // Find wedding by slug
-    const wedding = this.weddingService.getWeddingBySlug(slug);
+    const wedding = await this.weddingService.getWeddingBySlug(slug);
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }

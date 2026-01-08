@@ -14,6 +14,9 @@ importers:
 
   apps/platform-ui:
     dependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.90.0
+        version: 2.90.0
       '@tanstack/react-query':
         specifier: ^5.17.0
         version: 5.90.16(react@18.3.1)
@@ -63,25 +66,16 @@ importers:
       '@netlify/functions':
         specifier: ^2.4.0
         version: 2.8.2
-      '@supabase/supabase-js':
-        specifier: ^2.39.0
-        version: 2.90.0
       astro:
         specifier: ^4.2.0
         version: 4.16.19(@types/node@20.19.27)(rollup@4.55.1)(terser@5.44.1)(typescript@5.9.3)
-      bcryptjs:
-        specifier: ^2.4.3
-        version: 2.4.3
     devDependencies:
       '@astrojs/check':
         specifier: ^0.4.0
         version: 0.4.1(prettier@3.7.4)(typescript@5.9.3)
-      '@types/bcryptjs':
-        specifier: ^2.4.6
-        version: 2.4.6
       netlify-cli:
         specifier: ^17.0.0
-        version: 17.38.1(@types/express@4.17.25)(@types/node@20.19.27)(ioredis@5.8.2)(picomatch@4.0.3)(rollup@4.55.1)
+        version: 17.38.1(@types/express@4.17.25)(@types/node@20.19.27)(ioredis@5.9.1)(picomatch@4.0.3)(rollup@4.55.1)
       typescript:
         specifier: ^5.3.3
         version: 5.9.3
@@ -112,6 +106,12 @@ importers:
       bullmq:
         specifier: ^5.1.0
         version: 5.66.4
+      ioredis:
+        specifier: ^5.9.1
+        version: 5.9.1
+      jose:
+        specifier: ^6.1.3
+        version: 6.1.3
       reflect-metadata:
         specifier: ^0.2.1
         version: 0.2.2
@@ -1381,6 +1381,9 @@ packages:
   '@ioredis/commands@1.4.0':
     resolution: {integrity: sha512-aFT2yemJJo+TZCmieA7qnYGQooOS7QfNmYrzGtsYd3g9j5iDP8AimYYAesf79ohjbLG12XxC4nG5DyEnC88AsQ==}
 
+  '@ioredis/commands@1.5.0':
+    resolution: {integrity: sha512-eUgLqrMf8nJkZxT24JvVRrQya1vZkQh8BBeYNwGDqa5I0VUi8ACx7uFvAaLxintokpTenkK6DASvo/bvNbBGow==}
+
   '@isaacs/cliui@8.0.2':
     resolution: {integrity: sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA==}
     engines: {node: '>=12'}
@@ -2253,9 +2256,6 @@ packages:
   '@types/babel__traverse@7.28.0':
     resolution: {integrity: sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q==}
 
-  '@types/bcryptjs@2.4.6':
-    resolution: {integrity: sha512-9xlo6R2qDs5uixm0bcIqCeMCE6HiQsIyel9KQySStiyqNl2tnj2mP3DX1Nf56MD6KMenNNlBBsy3LJ7gUEQPXQ==}
-
   '@types/body-parser@1.19.6':
     resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
 
@@ -2907,9 +2907,6 @@ packages:
   baseline-browser-mapping@2.9.11:
     resolution: {integrity: sha512-Sg0xJUNDU1sJNGdfGWhVHX0kkZ+HWcvmVymJbj6NSgZZmW/8S9Y2HQ5euytnIgakgxN6papOAWiwDo1ctFDcoQ==}
     hasBin: true
-
-  bcryptjs@2.4.3:
-    resolution: {integrity: sha512-V/Hy/X9Vt7f3BbPJEi8BdVFMByHi+jNXrYkW3huaybV/kQ0KJg0Y6PkEMbn+zeT+i+SiKZ/HMqJGIIt4LZDqNQ==}
 
   before-after-hook@2.2.3:
     resolution: {integrity: sha512-NzUnlZexiaH/46WDhANlyR2bXRopNg4F/zuSA3OpZnllCUgRaOF2znDioDWrmbNVsuZk6l9pMquQB38cfBZwkQ==}
@@ -4651,6 +4648,10 @@ packages:
     resolution: {integrity: sha512-C6uC+kleiIMmjViJINWk80sOQw5lEzse1ZmvD+S/s8p8CWapftSaC+kocGTx6xrbrJ4WmYQGC08ffHLr6ToR6Q==}
     engines: {node: '>=12.22.0'}
 
+  ioredis@5.9.1:
+    resolution: {integrity: sha512-BXNqFQ66oOsR82g9ajFFsR8ZKrjVvYCLyeML9IvSMAsP56XH2VXBdZjmI11p65nXXJxTEt1hie3J2QeFJVgrtQ==}
+    engines: {node: '>=12.22.0'}
+
   ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
     engines: {node: '>= 0.10'}
@@ -5021,6 +5022,9 @@ packages:
   jiti@2.6.1:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
     hasBin: true
+
+  jose@6.1.3:
+    resolution: {integrity: sha512-0TpaTfihd4QMNwrz/ob2Bp7X04yuxJkjRGi4aKmOqwhov54i6u79oCv7T+C7lo70MKH6BesI3vscD1yb/yzKXQ==}
 
   js-string-escape@1.0.1:
     resolution: {integrity: sha512-Smw4xcfIQ5LVjAOuJCvN/zIodzA/BBSsluuoSykP+lUvScIi4U6RJLfwHet5cxFnCswUjISV8oAXaqaJDY3chg==}
@@ -8941,6 +8945,8 @@ snapshots:
 
   '@ioredis/commands@1.4.0': {}
 
+  '@ioredis/commands@1.5.0': {}
+
   '@isaacs/cliui@8.0.2':
     dependencies:
       string-width: 5.1.2
@@ -10112,8 +10118,6 @@ snapshots:
     dependencies:
       '@babel/types': 7.28.5
 
-  '@types/bcryptjs@2.4.6': {}
-
   '@types/body-parser@1.19.6':
     dependencies:
       '@types/connect': 3.4.38
@@ -11011,8 +11015,6 @@ snapshots:
   base64-js@1.5.1: {}
 
   baseline-browser-mapping@2.9.11: {}
-
-  bcryptjs@2.4.3: {}
 
   before-after-hook@2.2.3: {}
 
@@ -13068,9 +13070,23 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  ioredis@5.9.1:
+    dependencies:
+      '@ioredis/commands': 1.5.0
+      cluster-key-slot: 1.1.2
+      debug: 4.4.3(supports-color@9.4.0)
+      denque: 2.1.0
+      lodash.defaults: 4.2.0
+      lodash.isarguments: 3.1.0
+      redis-errors: 1.2.0
+      redis-parser: 3.0.0
+      standard-as-callback: 2.1.0
+    transitivePeerDependencies:
+      - supports-color
+
   ipaddr.js@1.9.1: {}
 
-  ipx@2.1.0(@netlify/blobs@8.1.0)(ioredis@5.8.2):
+  ipx@2.1.0(@netlify/blobs@8.1.0)(ioredis@5.9.1):
     dependencies:
       '@fastify/accept-negotiator': 1.1.0
       citty: 0.1.6
@@ -13086,7 +13102,7 @@ snapshots:
       sharp: 0.32.6
       svgo: 3.3.2
       ufo: 1.6.2
-      unstorage: 1.17.3(@netlify/blobs@8.1.0)(ioredis@5.8.2)
+      unstorage: 1.17.3(@netlify/blobs@8.1.0)(ioredis@5.9.1)
       xss: 1.0.15
     transitivePeerDependencies:
       - '@azure/app-configuration'
@@ -13605,6 +13621,8 @@ snapshots:
   jiti@1.21.7: {}
 
   jiti@2.6.1: {}
+
+  jose@6.1.3: {}
 
   js-string-escape@1.0.1: {}
 
@@ -14442,7 +14460,7 @@ snapshots:
 
   nested-error-stacks@2.1.1: {}
 
-  netlify-cli@17.38.1(@types/express@4.17.25)(@types/node@20.19.27)(ioredis@5.8.2)(picomatch@4.0.3)(rollup@4.55.1):
+  netlify-cli@17.38.1(@types/express@4.17.25)(@types/node@20.19.27)(ioredis@5.9.1)(picomatch@4.0.3)(rollup@4.55.1):
     dependencies:
       '@bugsnag/js': 7.25.0
       '@fastify/static': 7.0.4
@@ -14505,7 +14523,7 @@ snapshots:
       https-proxy-agent: 7.0.5
       inquirer: 6.5.2
       inquirer-autocomplete-prompt: 1.4.0(inquirer@6.5.2)
-      ipx: 2.1.0(@netlify/blobs@8.1.0)(ioredis@5.8.2)
+      ipx: 2.1.0(@netlify/blobs@8.1.0)(ioredis@5.9.1)
       is-docker: 3.0.0
       is-stream: 4.0.1
       is-wsl: 3.1.0
@@ -16495,7 +16513,7 @@ snapshots:
 
   unpipe@1.0.0: {}
 
-  unstorage@1.17.3(@netlify/blobs@8.1.0)(ioredis@5.8.2):
+  unstorage@1.17.3(@netlify/blobs@8.1.0)(ioredis@5.9.1):
     dependencies:
       anymatch: 3.1.3
       chokidar: 4.0.3
@@ -16507,7 +16525,7 @@ snapshots:
       ufo: 1.6.2
     optionalDependencies:
       '@netlify/blobs': 8.1.0
-      ioredis: 5.8.2
+      ioredis: 5.9.1
 
   untildify@3.0.3: {}
 

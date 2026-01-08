@@ -19,12 +19,14 @@ import type {
   PhotoUploadUrlRequest,
   PhotoUploadUrlResponse,
   PhotoUploadResponse,
+  PhotoMetadata,
 } from '../types';
 import {
   FEATURE_DISABLED,
   WEDDING_NOT_FOUND,
   PHOTO_UPLOAD_INVALID,
   PHOTO_UPLOAD_VALIDATION_ERROR,
+  VALIDATION_ERROR,
 } from '../types';
 import { WeddingService } from '../wedding/wedding.service';
 import { PhotosService } from './photos.service';
@@ -80,7 +82,7 @@ export class PhotosController {
       });
     }
 
-    const wedding = this.weddingService.getWeddingBySlug(slug);
+    const wedding = await this.weddingService.getWeddingBySlug(slug);
 
     if (!wedding || wedding.status !== 'active') {
       throw new NotFoundException({
@@ -97,7 +99,7 @@ export class PhotosController {
     }
 
     // Check if moderation is required for this wedding
-    const moderationRequired = this.weddingService.isPhotoModerationRequired(wedding.id);
+    const moderationRequired = await this.weddingService.isPhotoModerationRequired(wedding.id);
 
     const { uploadId, signature, expiresAt } = this.photosService.createUpload(
       wedding.id,
@@ -223,5 +225,40 @@ export class PhotosController {
     await this.photosService.storeUpload(upload, file);
 
     return { ok: true, data: { uploadId } };
+  }
+
+  /**
+   * Complete a photo upload and retrieve the photo metadata
+   * POST /api/photos/complete
+   *
+   * This endpoint is called after the file has been uploaded to confirm
+   * the upload completed successfully and retrieve the photo record details.
+   *
+   * PRD: "Rate limits prevent abuse" - Strict limit: 30 requests per minute
+   */
+  @Throttle({ strict: { ttl: 60000, limit: 30 } })
+  @Post('complete')
+  async completeUpload(
+    @Body() body: { uploadId: string; uploaderName?: string; uploaderEmail?: string },
+  ): Promise<ApiResponse<PhotoMetadata>> {
+    const { uploadId } = body || {};
+
+    if (!uploadId) {
+      throw new BadRequestException({
+        ok: false,
+        error: VALIDATION_ERROR,
+      });
+    }
+
+    const photo = this.photosService.completeUpload(uploadId);
+
+    if (!photo) {
+      throw new NotFoundException({
+        ok: false,
+        error: PHOTO_UPLOAD_INVALID,
+      });
+    }
+
+    return { ok: true, data: photo };
   }
 }

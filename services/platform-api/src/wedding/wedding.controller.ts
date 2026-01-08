@@ -97,7 +97,7 @@ export class WeddingController {
     @Headers('authorization') authHeader: string,
   ): Promise<ApiResponse<Wedding[]>> {
     const user = await this.requireAuth(authHeader);
-    const weddings = this.weddingService.getWeddingsForUser(user.id);
+    const weddings = await this.weddingService.getWeddingsForUser(user.id);
     return { ok: true, data: weddings };
   }
 
@@ -110,7 +110,7 @@ export class WeddingController {
     @Param('id') id: string,
   ): Promise<ApiResponse<Wedding>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -134,7 +134,7 @@ export class WeddingController {
     @Param('id') id: string,
   ): Promise<ApiResponse<RenderConfig>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -145,7 +145,7 @@ export class WeddingController {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
-    const renderConfig = this.weddingService.getRenderConfig(id);
+    const renderConfig = await this.weddingService.getRenderConfig(id);
 
     if (!renderConfig) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -160,7 +160,7 @@ export class WeddingController {
    */
   @Get('templates/list')
   async listTemplates(): Promise<ApiResponse<Template[]>> {
-    const templates = this.weddingService.getTemplates();
+    const templates = await this.weddingService.getTemplates();
     return { ok: true, data: templates };
   }
 
@@ -175,7 +175,7 @@ export class WeddingController {
     @Body() body: UpdateFeaturesRequest,
   ): Promise<ApiResponse<UpdateFeaturesResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -190,7 +190,7 @@ export class WeddingController {
       throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
-    const result = this.weddingService.updateFeatures(id, body.features);
+    const result = await this.weddingService.updateFeatures(id, body.features);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -209,7 +209,7 @@ export class WeddingController {
     @Body() body: UpdateAnnouncementRequest,
   ): Promise<ApiResponse<UpdateAnnouncementResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -244,7 +244,7 @@ export class WeddingController {
       message: message ?? '',
     };
 
-    const result = this.weddingService.updateAnnouncement(id, announcement);
+    const result = await this.weddingService.updateAnnouncement(id, announcement);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -263,7 +263,7 @@ export class WeddingController {
     @Body() body: UpdateFaqRequest,
   ): Promise<ApiResponse<UpdateFaqResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -302,7 +302,7 @@ export class WeddingController {
       })),
     };
 
-    const result = this.weddingService.updateFaq(id, normalizedFaq);
+    const result = await this.weddingService.updateFaq(id, normalizedFaq);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -322,7 +322,7 @@ export class WeddingController {
     @Body() body: UpdateHeroContentRequest,
   ): Promise<ApiResponse<UpdateHeroContentResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -348,7 +348,7 @@ export class WeddingController {
       ...(subheadline && { subheadline }),
     };
 
-    const result = this.weddingService.updateHeroContent(id, heroContent);
+    const result = await this.weddingService.updateHeroContent(id, heroContent);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -369,7 +369,7 @@ export class WeddingController {
     @Body() body: UpdateEventDetailsRequest,
   ): Promise<ApiResponse<UpdateEventDetailsResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -421,7 +421,7 @@ export class WeddingController {
       }
     }
 
-    const result = this.weddingService.updateEventDetails(id, body.eventDetails);
+    const result = await this.weddingService.updateEventDetails(id, body.eventDetails);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -441,7 +441,7 @@ export class WeddingController {
     @Body() body: UpdatePasscodeRequest,
   ): Promise<ApiResponse<UpdatePasscodeResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -493,7 +493,7 @@ export class WeddingController {
     @Body() body: UpdateMealOptionsRequest,
   ): Promise<ApiResponse<UpdateMealOptionsResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -545,7 +545,7 @@ export class WeddingController {
       })),
     };
 
-    const result = this.weddingService.updateMealConfig(id, normalizedConfig);
+    const result = await this.weddingService.updateMealConfig(id, normalizedConfig);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -565,7 +565,7 @@ export class WeddingController {
     @Body() body: UpdateRegistryRequest,
   ): Promise<ApiResponse<UpdateRegistryResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -613,7 +613,7 @@ export class WeddingController {
       })),
     };
 
-    const result = this.weddingService.updateRegistry(id, normalizedRegistry);
+    const result = await this.weddingService.updateRegistry(id, normalizedRegistry);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -633,7 +633,7 @@ export class WeddingController {
     @Body() body: UpdateAccommodationsRequest,
   ): Promise<ApiResponse<UpdateAccommodationsResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -700,7 +700,7 @@ export class WeddingController {
       } : undefined,
     };
 
-    const result = this.weddingService.updateAccommodations(id, normalizedAccommodations);
+    const result = await this.weddingService.updateAccommodations(id, normalizedAccommodations);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -719,7 +719,7 @@ export class WeddingController {
     @Param('id') id: string,
   ): Promise<ApiResponse<GalleryConfig>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -729,7 +729,7 @@ export class WeddingController {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
-    const gallery = this.weddingService.getGallery(id);
+    const gallery = await this.weddingService.getGallery(id);
 
     if (!gallery) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -750,7 +750,7 @@ export class WeddingController {
     @Body() body: UpdateGalleryRequest,
   ): Promise<ApiResponse<UpdateGalleryResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -789,7 +789,7 @@ export class WeddingController {
       })),
     };
 
-    const result = this.weddingService.updateGallery(id, normalizedGallery);
+    const result = await this.weddingService.updateGallery(id, normalizedGallery);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -809,7 +809,7 @@ export class WeddingController {
     @Body() body: GalleryPhoto,
   ): Promise<ApiResponse<UpdateGalleryResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -834,7 +834,7 @@ export class WeddingController {
       uploadedAt: body.uploadedAt || new Date().toISOString(),
     };
 
-    const result = this.weddingService.addGalleryPhoto(id, photo);
+    const result = await this.weddingService.addGalleryPhoto(id, photo);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -855,7 +855,7 @@ export class WeddingController {
     @Body() body: { caption?: string; order?: number },
   ): Promise<ApiResponse<UpdateGalleryResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -865,7 +865,7 @@ export class WeddingController {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
-    const result = this.weddingService.updateGalleryPhoto(id, photoId, body);
+    const result = await this.weddingService.updateGalleryPhoto(id, photoId, body);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: GALLERY_PHOTO_NOT_FOUND });
@@ -885,7 +885,7 @@ export class WeddingController {
     @Param('photoId') photoId: string,
   ): Promise<ApiResponse<UpdateGalleryResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -895,7 +895,7 @@ export class WeddingController {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
-    const result = this.weddingService.removeGalleryPhoto(id, photoId);
+    const result = await this.weddingService.removeGalleryPhoto(id, photoId);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: GALLERY_PHOTO_NOT_FOUND });
@@ -918,7 +918,7 @@ export class WeddingController {
     @Param('id') id: string,
   ): Promise<ApiResponse<VideoConfig>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -936,7 +936,7 @@ export class WeddingController {
       });
     }
 
-    const video = this.weddingService.getVideo(id);
+    const video = await this.weddingService.getVideo(id);
 
     if (!video) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -957,7 +957,7 @@ export class WeddingController {
     @Body() body: UpdateVideoRequest,
   ): Promise<ApiResponse<UpdateVideoResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1003,7 +1003,7 @@ export class WeddingController {
       })),
     };
 
-    const result = this.weddingService.updateVideo(id, normalizedVideo);
+    const result = await this.weddingService.updateVideo(id, normalizedVideo);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -1024,7 +1024,7 @@ export class WeddingController {
     @Body() body: { url: string; title?: string },
   ): Promise<ApiResponse<UpdateVideoResponse & { video: VideoEmbed }>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1055,13 +1055,28 @@ export class WeddingController {
       });
     }
 
-    const result = this.weddingService.addVideo(id, body.url, body.title?.trim());
+    // Get existing video config to calculate order
+    const existingVideos = await this.weddingService.getVideo(id);
+    const nextOrder = existingVideos?.videos?.length ?? 0;
+
+    // Construct the VideoEmbed object
+    const video: VideoEmbed = {
+      id: require('crypto').randomUUID(),
+      platform: parsed.platform,
+      videoId: parsed.videoId,
+      url: body.url,
+      title: body.title?.trim(),
+      order: nextOrder,
+      addedAt: new Date().toISOString(),
+    };
+
+    const result = await this.weddingService.addVideo(id, video);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
     }
 
-    return { ok: true, data: result };
+    return { ok: true, data: { ...result, video } };
   }
 
   /**
@@ -1076,7 +1091,7 @@ export class WeddingController {
     @Body() body: { title?: string; order?: number },
   ): Promise<ApiResponse<UpdateVideoResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1094,7 +1109,7 @@ export class WeddingController {
       });
     }
 
-    const result = this.weddingService.updateVideoEmbed(id, videoId, body);
+    const result = await this.weddingService.updateVideoEmbed(id, videoId, body);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: VIDEO_NOT_FOUND });
@@ -1114,7 +1129,7 @@ export class WeddingController {
     @Param('videoId') videoId: string,
   ): Promise<ApiResponse<UpdateVideoResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1132,7 +1147,7 @@ export class WeddingController {
       });
     }
 
-    const result = this.weddingService.removeVideo(id, videoId);
+    const result = await this.weddingService.removeVideo(id, videoId);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: VIDEO_NOT_FOUND });
@@ -1152,7 +1167,7 @@ export class WeddingController {
     @Body() body: ChangeTemplateRequest,
   ): Promise<ApiResponse<RenderConfig>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1168,7 +1183,7 @@ export class WeddingController {
     }
 
     // Check if template exists
-    const template = this.weddingService.getTemplate(body.templateId);
+    const template = await this.weddingService.getTemplate(body.templateId);
     if (!template) {
       throw new BadRequestException({
         ok: false,
@@ -1176,7 +1191,7 @@ export class WeddingController {
       });
     }
 
-    const renderConfig = this.weddingService.changeTemplate(id, body.templateId);
+    const renderConfig = await this.weddingService.changeTemplate(id, body.templateId);
 
     if (!renderConfig) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -1199,7 +1214,7 @@ export class WeddingController {
     @Param('id') id: string,
   ): Promise<ApiResponse<SocialConfig>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1209,7 +1224,7 @@ export class WeddingController {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
-    const socialConfig = this.weddingService.getSocialConfig(id);
+    const socialConfig = await this.weddingService.getSocialConfig(id);
 
     if (!socialConfig) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -1229,7 +1244,7 @@ export class WeddingController {
     @Body() body: UpdateSocialConfigRequest,
   ): Promise<ApiResponse<UpdateSocialConfigResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1252,7 +1267,7 @@ export class WeddingController {
       }
     }
 
-    const result = this.weddingService.updateSocialConfig(id, body.socialConfig);
+    const result = await this.weddingService.updateSocialConfig(id, body.socialConfig);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -1271,7 +1286,7 @@ export class WeddingController {
     @Param('id') id: string,
   ): Promise<ApiResponse<UpdateSocialConfigResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1281,7 +1296,7 @@ export class WeddingController {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
-    const result = this.weddingService.removeSocialOgImage(id);
+    const result = await this.weddingService.removeSocialOgImage(id);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -1301,7 +1316,7 @@ export class WeddingController {
    */
   @Get('languages/list')
   async listLanguages(): Promise<ApiResponse<{ languages: { code: string; name: string; nativeName: string }[]; defaultLanguage: string }>> {
-    const languages = this.weddingService.getSupportedLanguages();
+    const languages = await this.weddingService.getSupportedLanguages();
     return {
       ok: true,
       data: {
@@ -1322,7 +1337,7 @@ export class WeddingController {
     @Body() body: { language: string },
   ): Promise<ApiResponse<{ wedding: Wedding; renderConfig: RenderConfig }>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1341,7 +1356,7 @@ export class WeddingController {
       throw new BadRequestException({ ok: false, error: INVALID_LANGUAGE });
     }
 
-    const result = this.weddingService.updateLanguage(id, body.language);
+    const result = await this.weddingService.updateLanguage(id, body.language);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -1366,7 +1381,7 @@ export class WeddingController {
     @Param('id') id: string,
   ): Promise<ApiResponse<PreviewStatus>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1376,7 +1391,7 @@ export class WeddingController {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
-    const status = this.weddingService.getPreviewStatus(id);
+    const status = await this.weddingService.getPreviewStatus(id);
 
     if (!status) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -1395,7 +1410,7 @@ export class WeddingController {
     @Param('id') id: string,
   ): Promise<ApiResponse<DraftRenderConfigResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1405,14 +1420,14 @@ export class WeddingController {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
-    const draftConfig = this.weddingService.getDraftRenderConfig(id);
-    const publishedConfig = this.weddingService.getPublishedRenderConfig(id);
+    const draftConfig = await this.weddingService.getDraftRenderConfig(id);
+    const publishedConfig = await this.weddingService.getPublishedRenderConfig(id);
 
     if (!draftConfig || !publishedConfig) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
     }
 
-    const hasDraftChanges = this.weddingService.hasDraftChanges(id);
+    const hasDraftChanges = await this.weddingService.hasDraftChanges(id);
 
     return {
       ok: true,
@@ -1435,7 +1450,7 @@ export class WeddingController {
     @Body() body: PublishDraftRequest,
   ): Promise<ApiResponse<PublishDraftResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1446,11 +1461,11 @@ export class WeddingController {
     }
 
     // Check if there are changes to publish
-    if (!this.weddingService.hasDraftChanges(id)) {
+    if (!(await this.weddingService.hasDraftChanges(id))) {
       throw new BadRequestException({ ok: false, error: NO_CHANGES_TO_PUBLISH });
     }
 
-    const result = this.weddingService.publishDraft(id);
+    const result = await this.weddingService.publishDraft(id);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -1475,7 +1490,7 @@ export class WeddingController {
     @Param('id') id: string,
   ): Promise<ApiResponse<DiscardDraftResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1486,11 +1501,11 @@ export class WeddingController {
     }
 
     // Check if there's a draft to discard
-    if (!this.weddingService.hasDraftChanges(id)) {
+    if (!(await this.weddingService.hasDraftChanges(id))) {
       throw new BadRequestException({ ok: false, error: NO_DRAFT_EXISTS });
     }
 
-    const result = this.weddingService.discardDraft(id);
+    const result = await this.weddingService.discardDraft(id);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -1517,7 +1532,7 @@ export class WeddingController {
     @Body() body: UpdateEmailTemplatesRequest,
   ): Promise<ApiResponse<UpdateEmailTemplatesResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1586,13 +1601,13 @@ export class WeddingController {
       }
     }
 
-    const updatedWedding = this.weddingService.updateEmailTemplates(id, body.emailTemplates);
+    const result = await this.weddingService.updateEmailTemplates(id, body.emailTemplates);
 
-    if (!updatedWedding) {
+    if (!result) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
-    return { ok: true, data: { wedding: updatedWedding } };
+    return { ok: true, data: result };
   }
 
   // ============================================================================
@@ -1611,7 +1626,7 @@ export class WeddingController {
     @Param('id') id: string,
   ): Promise<ApiResponse<GetCustomDomainResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1621,7 +1636,7 @@ export class WeddingController {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
-    const result = this.weddingService.getCustomDomain(id);
+    const result = await this.weddingService.getCustomDomain(id);
 
     if (!result) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -1641,7 +1656,7 @@ export class WeddingController {
     @Body() body: AddCustomDomainRequest,
   ): Promise<ApiResponse<AddCustomDomainResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1655,15 +1670,9 @@ export class WeddingController {
       throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
-    const result = this.weddingService.addCustomDomain(id, body.domain.trim());
+    const result = await this.weddingService.addCustomDomain(id, body.domain.trim());
 
-    if ('error' in result) {
-      if (result.error === 'INVALID_DOMAIN_FORMAT') {
-        throw new BadRequestException({ ok: false, error: INVALID_DOMAIN_FORMAT });
-      }
-      if (result.error === 'CUSTOM_DOMAIN_ALREADY_EXISTS') {
-        throw new BadRequestException({ ok: false, error: CUSTOM_DOMAIN_ALREADY_EXISTS });
-      }
+    if (!result) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
@@ -1680,7 +1689,7 @@ export class WeddingController {
     @Param('id') id: string,
   ): Promise<ApiResponse<VerifyCustomDomainResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1692,11 +1701,8 @@ export class WeddingController {
 
     const result = await this.weddingService.verifyCustomDomain(id);
 
-    if ('error' in result) {
-      if (result.error === 'CUSTOM_DOMAIN_NOT_CONFIGURED') {
-        throw new BadRequestException({ ok: false, error: CUSTOM_DOMAIN_NOT_CONFIGURED });
-      }
-      throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
+    if (!result) {
+      throw new BadRequestException({ ok: false, error: CUSTOM_DOMAIN_NOT_CONFIGURED });
     }
 
     return { ok: true, data: result };
@@ -1712,7 +1718,7 @@ export class WeddingController {
     @Param('id') id: string,
   ): Promise<ApiResponse<RemoveCustomDomainResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(id);
+    const wedding = await this.weddingService.getWedding(id);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -1722,7 +1728,7 @@ export class WeddingController {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
-    const result = this.weddingService.removeCustomDomain(id);
+    const result = await this.weddingService.removeCustomDomain(id);
 
     if ('error' in result) {
       if (result.error === 'CUSTOM_DOMAIN_NOT_CONFIGURED') {

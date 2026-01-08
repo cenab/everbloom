@@ -12,6 +12,7 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { GuestService } from './guest.service';
@@ -346,7 +347,7 @@ export class GuestController {
     @Param('weddingId') weddingId: string,
     @Body() body: CsvImportRequest,
   ): Promise<ApiResponse<CsvImportResponse>> {
-    await this.requireWeddingOwner(authHeader, weddingId);
+    const { wedding } = await this.requireWeddingOwner(authHeader, weddingId);
 
     // Validate request
     if (!body.guests || !Array.isArray(body.guests) || body.guests.length === 0) {
@@ -365,9 +366,12 @@ export class GuestController {
       });
     }
 
+    // Pass event date for token expiry capping
+    const eventDate = wedding.eventDetails?.date;
     const results = await this.guestService.importGuestsFromCsv(
       weddingId,
       body.guests,
+      eventDate,
     );
 
     const imported = results.filter((r) => r.success).length;
@@ -395,18 +399,27 @@ export class GuestController {
     @Param('weddingId') weddingId: string,
     @Body() body: CreateGuestRequest,
   ): Promise<ApiResponse<Guest>> {
-    await this.requireWeddingOwner(authHeader, weddingId);
+    const { wedding } = await this.requireWeddingOwner(authHeader, weddingId);
 
     try {
       // createGuest returns { guest, rawToken }
       // We discard rawToken here - it will be regenerated when sending invitations
-      const { guest } = await this.guestService.createGuest(weddingId, body);
+      // Pass event date for token expiry capping
+      const eventDate = wedding.eventDetails?.date;
+      const { guest } = await this.guestService.createGuest(weddingId, body, eventDate);
       return { ok: true, data: guest };
     } catch (error) {
       if (error instanceof Error && error.message === 'GUEST_ALREADY_EXISTS') {
         throw new ConflictException({
           ok: false,
           error: GUEST_ALREADY_EXISTS,
+        });
+      }
+      if (error instanceof Error && error.message === 'EVENT_EXPIRED') {
+        throw new BadRequestException({
+          ok: false,
+          error: 'EVENT_EXPIRED',
+          message: 'Cannot create guests for past events',
         });
       }
       throw error;
@@ -728,7 +741,7 @@ export class GuestController {
       throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
-    const wedding = this.weddingService.getWedding(weddingId);
+    const wedding = await this.weddingService.getWedding(weddingId);
     if (!wedding || wedding.userId !== user.id) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }

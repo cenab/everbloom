@@ -7,12 +7,23 @@ import {
   ErrorCodes,
   getQueryParam,
 } from './utils/response';
-import { getSupabaseClient } from './utils/supabase';
+import { apiPost, getStatusFromResponse } from './utils/platform-api';
 
 interface MusicRequestBody {
   songTitle: string;
   artistName: string;
   requesterName?: string;
+}
+
+interface SongRequestResponse {
+  songRequest: {
+    id: string;
+    weddingId: string;
+    songTitle: string;
+    artistName: string;
+    requesterName: string | null;
+    createdAt: string;
+  };
 }
 
 // Max field lengths
@@ -64,53 +75,22 @@ export default async function handler(request: Request, _context: Context): Prom
   }
 
   try {
-    const supabase = getSupabaseClient();
+    // Call Platform API to create the song request
+    const response = await apiPost<SongRequestResponse>(`/music/${slug}/request`, {
+      songTitle: body.songTitle.trim(),
+      artistName: body.artistName.trim(),
+      requesterName: body.requesterName?.trim() || null,
+    });
 
-    // Get wedding by slug
-    const { data: wedding, error: weddingError } = await supabase
-      .from('weddings')
-      .select('id, features')
-      .eq('slug', slug)
-      .eq('status', 'active')
-      .single();
-
-    if (weddingError || !wedding) {
-      return errorResponse(ErrorCodes.WEDDING_NOT_FOUND, 404);
-    }
-
-    // Check if music requests feature is enabled
-    if (!wedding.features?.MUSIC_REQUESTS) {
-      return errorResponse('MUSIC_REQUESTS_DISABLED', 403);
-    }
-
-    // Create song request
-    const { data: songRequest, error: requestError } = await supabase
-      .from('song_requests')
-      .insert({
-        wedding_id: wedding.id,
-        song_title: body.songTitle.trim(),
-        artist_name: body.artistName.trim(),
-        requester_name: body.requesterName?.trim() || null,
-      })
-      .select()
-      .single();
-
-    if (requestError) {
-      console.error('Error creating song request:', requestError);
-      return errorResponse(ErrorCodes.INTERNAL_ERROR, 500);
+    if (!response.ok) {
+      const status = getStatusFromResponse(response);
+      return errorResponse(response.error || ErrorCodes.INTERNAL_ERROR, status);
     }
 
     return successResponse({
       ok: true,
       message: 'Song request submitted successfully',
-      songRequest: {
-        id: songRequest.id,
-        weddingId: songRequest.wedding_id,
-        songTitle: songRequest.song_title,
-        artistName: songRequest.artist_name,
-        requesterName: songRequest.requester_name,
-        createdAt: songRequest.created_at,
-      },
+      songRequest: response.data?.songRequest,
     });
   } catch (error) {
     console.error('Error submitting song request:', error);

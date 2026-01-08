@@ -23,12 +23,98 @@ export class GuestService {
   // Key format: "{weddingId}:{eventId}:{guestId}"
   private eventGuestAssignments: Map<string, EventGuestAssignment> = new Map();
 
+  // Default token expiration: 30 days
+  private readonly TOKEN_EXPIRY_DAYS = 30;
+
+  // Grace period after event date before tokens expire (7 days)
+  // Allows guests to access RSVP status after the wedding
+  private readonly TOKEN_POST_EVENT_GRACE_DAYS = 7;
+
+  // Throttle last_used_at updates to prevent write amplification
+  // Only update if >1 hour since last update
+  private readonly LAST_USED_THROTTLE_MS = 60 * 60 * 1000; // 1 hour
+
   /**
    * Generate a secure RSVP token for a guest
    * Returns 32 bytes of random data as hex (64 character string)
+   * PRD: "Tokens are high entropy (128-bit+)"
    */
   private generateRsvpToken(): string {
     return randomBytes(32).toString('hex');
+  }
+
+  /**
+   * Calculate token expiration timestamp
+   * If eventDate is provided, cap expiry at eventDate + grace period
+   * This prevents tokens from remaining valid long after the wedding
+   *
+   * @param eventDate - Optional wedding/event date (ISO string)
+   * @returns Token expiration timestamp (ISO string), or null if tokens should not be issued
+   */
+  private getTokenExpiry(eventDate?: string): string | null {
+    const now = new Date();
+
+    // Default expiry: TOKEN_EXPIRY_DAYS from now
+    const defaultExpiry = new Date(now);
+    defaultExpiry.setDate(defaultExpiry.getDate() + this.TOKEN_EXPIRY_DAYS);
+
+    // If no event date provided, use default expiry
+    if (!eventDate) {
+      return defaultExpiry.toISOString();
+    }
+
+    // Validate event date
+    const eventDateParsed = new Date(eventDate);
+    if (isNaN(eventDateParsed.getTime())) {
+      this.logger.warn(`Invalid eventDate: ${eventDate}, using default expiry`);
+      return defaultExpiry.toISOString();
+    }
+
+    // Calculate event-based expiry: eventDate + grace period
+    const eventBasedExpiry = new Date(eventDateParsed);
+    eventBasedExpiry.setDate(eventBasedExpiry.getDate() + this.TOKEN_POST_EVENT_GRACE_DAYS);
+
+    // If event + grace is in the past, refuse to mint tokens
+    // This prevents issuing tokens for weddings that are already over
+    if (eventBasedExpiry <= now) {
+      this.logger.warn(`Event ${eventDate} + grace period is in the past, refusing to mint token`);
+      return null;
+    }
+
+    // Return the earlier of default expiry vs event-based expiry
+    const expiry = eventBasedExpiry < defaultExpiry ? eventBasedExpiry : defaultExpiry;
+    return expiry.toISOString();
+  }
+
+  /**
+   * Check if a token is expired
+   */
+  private isTokenExpired(expiresAt: string | undefined): boolean {
+    if (!expiresAt) {
+      return false; // No expiration means never expires
+    }
+    return new Date() > new Date(expiresAt);
+  }
+
+  /**
+   * Check if enough time has passed to warrant a last_used_at update
+   * Prevents write amplification from guests refreshing repeatedly
+   */
+  private shouldUpdateLastUsed(lastUsedAt: string | null | undefined): boolean {
+    if (!lastUsedAt) {
+      return true; // First use, always update
+    }
+
+    const lastUsedDate = new Date(lastUsedAt);
+
+    // Guard against invalid dates - treat as update needed
+    if (isNaN(lastUsedDate.getTime())) {
+      this.logger.warn(`Invalid lastUsedAt date: ${lastUsedAt}`);
+      return true;
+    }
+
+    const elapsed = Date.now() - lastUsedDate.getTime();
+    return elapsed >= this.LAST_USED_THROTTLE_MS;
   }
 
   /**
@@ -57,15 +143,27 @@ export class GuestService {
    * Create a new guest for a wedding
    * Returns both the guest and the raw RSVP token for email sending
    * The raw token is NOT stored - only its hash is persisted
+   *
+   * @param weddingId - The wedding ID
+   * @param request - Guest creation request
+   * @param eventDate - Optional event date for token expiry capping
+   * @throws Error with 'EVENT_EXPIRED' if event + grace period is in the past
    */
   async createGuest(
     weddingId: string,
     request: CreateGuestRequest,
+    eventDate?: string,
   ): Promise<{ guest: Guest; rawToken: string }> {
     // Check for duplicate email in same wedding
     const existing = this.findByEmail(weddingId, request.email);
     if (existing) {
       throw new Error('GUEST_ALREADY_EXISTS');
+    }
+
+    // Check if tokens can be issued for this event date
+    const tokenExpiry = this.getTokenExpiry(eventDate);
+    if (tokenExpiry === null) {
+      throw new Error('EVENT_EXPIRED');
     }
 
     const now = new Date().toISOString();
@@ -83,6 +181,8 @@ export class GuestService {
       partySize: request.partySize ?? 1,
       rsvpStatus: 'pending' as RsvpStatus,
       rsvpTokenHash: tokenHash, // Store hash, not raw token
+      rsvpTokenExpiresAt: tokenExpiry,
+      rsvpTokenCreatedAt: now,
       plusOneAllowance: request.plusOneAllowance,
       createdAt: now,
       updatedAt: now,
@@ -178,10 +278,15 @@ export class GuestService {
   /**
    * Import guests from CSV data
    * PRD: "Admin can import invitees via CSV"
+   *
+   * @param weddingId - The wedding ID
+   * @param rows - CSV guest data rows
+   * @param eventDate - Optional event date for token expiry capping
    */
   async importGuestsFromCsv(
     weddingId: string,
     rows: CsvGuestRow[],
+    eventDate?: string,
   ): Promise<CsvImportRowResult[]> {
     const results: CsvImportRowResult[] = [];
 
@@ -246,7 +351,7 @@ export class GuestService {
           name: row.name.trim(),
           email: row.email.trim(),
           partySize: row.partySize ?? 1,
-        });
+        }, eventDate);
 
         results.push({
           row: rowNumber,
@@ -256,13 +361,23 @@ export class GuestService {
           guest,
         });
       } catch (error) {
-        results.push({
-          row: rowNumber,
-          name: row.name,
-          email: row.email,
-          success: false,
-          error: 'Failed to create guest',
-        });
+        if (error instanceof Error && error.message === 'EVENT_EXPIRED') {
+          results.push({
+            row: rowNumber,
+            name: row.name,
+            email: row.email,
+            success: false,
+            error: 'Cannot import guests for past events',
+          });
+        } else {
+          results.push({
+            row: rowNumber,
+            name: row.name,
+            email: row.email,
+            success: false,
+            error: 'Failed to create guest',
+          });
+        }
       }
     }
 
@@ -278,10 +393,29 @@ export class GuestService {
   /**
    * Find a guest by RSVP token using timing-safe comparison
    * The token is hashed and compared against the stored hash
+   * PRD: "Tokens are expirable"
+   * @returns Guest if found and token is valid/not expired, null otherwise
    */
   getGuestByRsvpToken(token: string): Guest | null {
     for (const guest of this.guests.values()) {
       if (guest.rsvpTokenHash && this.verifyToken(token, guest.rsvpTokenHash)) {
+        // Check if token is expired
+        if (this.isTokenExpired(guest.rsvpTokenExpiresAt)) {
+          this.logger.warn(`RSVP token expired for guest ${guest.id}`);
+          return null;
+        }
+
+        // Throttle last_used_at updates to prevent write amplification
+        // Only update if >1 hour since last update
+        if (this.shouldUpdateLastUsed(guest.rsvpTokenLastUsedAt)) {
+          const updated: Guest = {
+            ...guest,
+            rsvpTokenLastUsedAt: new Date().toISOString(),
+          };
+          this.guests.set(guest.id, updated);
+          return updated;
+        }
+
         return guest;
       }
     }
@@ -293,12 +427,26 @@ export class GuestService {
    * Used when sending invitation/reminder emails
    * Returns the new raw token for email URL - the hash is stored
    * This invalidates any previous RSVP links for security
+   * PRD: "Tokens are high entropy, expirable"
+   *
+   * @param guestId - The guest ID
+   * @param eventDate - Optional event date for token expiry capping
+   * @returns Guest with new token and raw token, or null if guest not found
+   * @throws Error with 'EVENT_EXPIRED' if event + grace period is in the past
    */
-  regenerateRsvpToken(guestId: string): { guest: Guest; rawToken: string } | null {
+  regenerateRsvpToken(guestId: string, eventDate?: string): { guest: Guest; rawToken: string } | null {
     const guest = this.guests.get(guestId);
     if (!guest) {
       return null;
     }
+
+    // Check if tokens can be issued for this event date
+    const tokenExpiry = this.getTokenExpiry(eventDate);
+    if (tokenExpiry === null) {
+      throw new Error('EVENT_EXPIRED');
+    }
+
+    const now = new Date().toISOString();
 
     // Generate new raw token and hash for storage
     const rawToken = this.generateRsvpToken();
@@ -307,7 +455,10 @@ export class GuestService {
     const updated: Guest = {
       ...guest,
       rsvpTokenHash: tokenHash,
-      updatedAt: new Date().toISOString(),
+      rsvpTokenExpiresAt: tokenExpiry,
+      rsvpTokenCreatedAt: now,
+      rsvpTokenLastUsedAt: undefined, // Reset on regeneration
+      updatedAt: now,
     };
 
     this.guests.set(guestId, updated);

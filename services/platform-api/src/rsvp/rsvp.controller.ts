@@ -78,7 +78,7 @@ export class RsvpController {
     }
 
     // Get the wedding
-    const wedding = this.weddingService.getWedding(guest.weddingId);
+    const wedding = await this.weddingService.getWedding(guest.weddingId);
 
     if (!wedding) {
       throw new NotFoundException({
@@ -104,7 +104,7 @@ export class RsvpController {
     }
 
     // Get render config for theme
-    const renderConfig = this.weddingService.getRenderConfig(wedding.id);
+    const renderConfig = await this.weddingService.getRenderConfig(wedding.id);
 
     // Get table assignment if seating chart is enabled
     const tableAssignment = wedding.features.SEATING_CHART
@@ -206,7 +206,7 @@ export class RsvpController {
     }
 
     // Get the wedding
-    const wedding = this.weddingService.getWedding(guest.weddingId);
+    const wedding = await this.weddingService.getWedding(guest.weddingId);
 
     if (!wedding) {
       throw new NotFoundException({
@@ -406,7 +406,7 @@ export class RsvpController {
     }
 
     // Get the wedding
-    const wedding = this.weddingService.getWedding(guest.weddingId);
+    const wedding = await this.weddingService.getWedding(guest.weddingId);
 
     if (!wedding) {
       throw new NotFoundException({
@@ -416,7 +416,7 @@ export class RsvpController {
     }
 
     // Get render config for theme
-    const renderConfig = this.weddingService.getRenderConfig(wedding.id);
+    const renderConfig = await this.weddingService.getRenderConfig(wedding.id);
 
     // Get table assignment if seating chart is enabled
     const tableAssignment = wedding.features.SEATING_CHART

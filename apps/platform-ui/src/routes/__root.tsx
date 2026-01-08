@@ -7,14 +7,34 @@ import {
 import { Layout } from '../components/Layout';
 import { Dashboard } from '../components/Dashboard';
 import { Login } from '../components/Login';
-import { VerifyMagicLink } from '../components/VerifyMagicLink';
+import { AuthCallback } from '../components/AuthCallback';
 import { BillingSuccess } from '../components/BillingSuccess';
 import { BillingCancel } from '../components/BillingCancel';
 
-// Check if user is authenticated (simple localStorage check)
-// AuthProvider will handle the actual validation
+/**
+ * Check if user is authenticated via Supabase Auth.
+ * Note: This is a synchronous check that reads from Supabase's localStorage cache.
+ * The actual session validation happens asynchronously in the AuthProvider.
+ */
 function isAuthenticated(): boolean {
-  return !!localStorage.getItem('auth_token');
+  // Check Supabase's localStorage for session
+  const storageKey = `sb-${import.meta.env.VITE_SUPABASE_URL?.replace(/https?:\/\//, '').split('.')[0]}-auth-token`;
+  const storedSession = localStorage.getItem(storageKey);
+
+  if (!storedSession) {
+    return false;
+  }
+
+  try {
+    const session = JSON.parse(storedSession);
+    // Check if session exists and isn't expired
+    if (session?.expires_at) {
+      return Date.now() < session.expires_at * 1000;
+    }
+    return !!session?.access_token;
+  } catch {
+    return false;
+  }
 }
 
 // Root route with layout
@@ -50,16 +70,11 @@ const loginRoute = createRoute({
   component: Login,
 });
 
-// Auth verification route (handles magic link callback)
-const authVerifyRoute = createRoute({
+// Auth callback route (handles Supabase magic link)
+const authCallbackRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/auth/verify',
-  validateSearch: (search: Record<string, unknown>): { token?: string } => {
-    return {
-      token: typeof search.token === 'string' ? search.token : undefined,
-    };
-  },
-  component: VerifyMagicLink,
+  path: '/auth/callback',
+  component: AuthCallback,
 });
 
 // Billing success route (protected)
@@ -90,7 +105,7 @@ const billingCancelRoute = createRoute({
 export const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
-  authVerifyRoute,
+  authCallbackRoute,
   billingSuccessRoute,
   billingCancelRoute,
 ]);

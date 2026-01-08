@@ -52,7 +52,7 @@ export class PhotosAdminController {
     @Query('status') statusFilter?: PhotoModerationStatus,
   ): Promise<ApiResponse<PhotoListResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(weddingId);
+    const wedding = await this.weddingService.getWedding(weddingId);
 
     if (!wedding || wedding.userId !== user.id) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -85,7 +85,7 @@ export class PhotosAdminController {
     @Param('weddingId') weddingId: string,
   ): Promise<ApiResponse<PhotoSummaryResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(weddingId);
+    const wedding = await this.weddingService.getWedding(weddingId);
 
     if (!wedding || wedding.userId !== user.id) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -114,7 +114,7 @@ export class PhotosAdminController {
     @Body() body: { moderationRequired: boolean },
   ): Promise<ApiResponse<UpdatePhotoModerationResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(weddingId);
+    const wedding = await this.weddingService.getWedding(weddingId);
 
     if (!wedding || wedding.userId !== user.id) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -131,7 +131,7 @@ export class PhotosAdminController {
       throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
-    const result = this.weddingService.updatePhotoModeration(
+    const result = await this.weddingService.updatePhotoModeration(
       weddingId,
       body.moderationRequired,
     );
@@ -156,7 +156,7 @@ export class PhotosAdminController {
     @Body() body: { status: 'approved' | 'rejected' },
   ): Promise<ApiResponse<ModeratePhotoResponse>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(weddingId);
+    const wedding = await this.weddingService.getWedding(weddingId);
 
     if (!wedding || wedding.userId !== user.id) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -194,7 +194,7 @@ export class PhotosAdminController {
     @Param('photoId') photoId: string,
   ): Promise<ApiResponse<{ removed: boolean }>> {
     const user = await this.requireAuth(authHeader);
-    const wedding = this.weddingService.getWedding(weddingId);
+    const wedding = await this.weddingService.getWedding(weddingId);
 
     if (!wedding || wedding.userId !== user.id) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });

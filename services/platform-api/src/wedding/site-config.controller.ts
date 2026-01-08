@@ -25,14 +25,14 @@ export class SiteConfigController {
       throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
     }
 
-    const wedding = this.weddingService.getWeddingByCustomDomain(domain);
+    const wedding = await this.weddingService.getWeddingByCustomDomain(domain);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: DOMAIN_NOT_FOUND });
     }
 
     // Only return domain info if the domain is active/verified
-    const domainResult = this.weddingService.getCustomDomain(wedding.id);
+    const domainResult = await this.weddingService.getCustomDomain(wedding.id);
     if (!domainResult || !domainResult.customDomain || domainResult.customDomain.status !== 'active') {
       throw new NotFoundException({ ok: false, error: DOMAIN_NOT_FOUND });
     }
@@ -55,7 +55,7 @@ export class SiteConfigController {
   async getSiteConfig(
     @Param('slug') slug: string,
   ): Promise<ApiResponse<RenderConfig>> {
-    const wedding = this.weddingService.getWeddingBySlug(slug);
+    const wedding = await this.weddingService.getWeddingBySlug(slug);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -66,7 +66,7 @@ export class SiteConfigController {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
-    const renderConfig = this.weddingService.getRenderConfig(wedding.id);
+    const renderConfig = await this.weddingService.getRenderConfig(wedding.id);
 
     if (!renderConfig) {
       throw new NotFoundException({ ok: false, error: NOT_FOUND });
@@ -84,7 +84,7 @@ export class SiteConfigController {
     @Param('slug') slug: string,
     @Body() body: VerifyPasscodeRequest,
   ): Promise<ApiResponse<VerifyPasscodeResponse>> {
-    const wedding = this.weddingService.getWeddingBySlug(slug);
+    const wedding = await this.weddingService.getWeddingBySlug(slug);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -96,7 +96,7 @@ export class SiteConfigController {
     }
 
     // Check if passcode is required for this wedding
-    if (!this.weddingService.isPasscodeRequired(slug)) {
+    if (!(await this.weddingService.isPasscodeRequired(slug))) {
       // Passcode not required, return valid without needing to check
       return {
         ok: true,
@@ -138,7 +138,7 @@ export class SiteConfigController {
   async isPasscodeRequired(
     @Param('slug') slug: string,
   ): Promise<ApiResponse<{ required: boolean }>> {
-    const wedding = this.weddingService.getWeddingBySlug(slug);
+    const wedding = await this.weddingService.getWeddingBySlug(slug);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -149,7 +149,7 @@ export class SiteConfigController {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }
 
-    const required = this.weddingService.isPasscodeRequired(slug);
+    const required = await this.weddingService.isPasscodeRequired(slug);
 
     return { ok: true, data: { required } };
   }

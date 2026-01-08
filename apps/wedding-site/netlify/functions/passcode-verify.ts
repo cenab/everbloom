@@ -6,13 +6,16 @@ import {
   errorResponse,
   ErrorCodes,
 } from './utils/response';
-import { getSupabaseClient } from './utils/supabase';
-import { randomBytes } from 'crypto';
-import * as bcrypt from 'bcryptjs';
+import { apiPost, getStatusFromResponse } from './utils/platform-api';
 
 interface PasscodeVerifyRequest {
   slug: string;
   passcode: string;
+}
+
+interface VerifyPasscodeResponse {
+  valid: boolean;
+  sessionToken: string;
 }
 
 /**
@@ -20,7 +23,7 @@ interface PasscodeVerifyRequest {
  *
  * Verify a site passcode for protected wedding sites
  * Returns a session token if the passcode is correct
- * Uses bcrypt for secure passcode comparison
+ * Delegates verification to the Platform API
  */
 export default async function handler(request: Request, _context: Context): Promise<Response> {
   // Handle CORS
@@ -40,47 +43,20 @@ export default async function handler(request: Request, _context: Context): Prom
   }
 
   try {
-    const supabase = getSupabaseClient();
+    // Call Platform API to verify passcode
+    const response = await apiPost<VerifyPasscodeResponse>(
+      `/site-config/${body.slug}/verify-passcode`,
+      { passcode: body.passcode },
+    );
 
-    // Get wedding by slug
-    const { data: wedding, error: weddingError } = await supabase
-      .from('weddings')
-      .select('id, passcode_config, features')
-      .eq('slug', body.slug)
-      .eq('status', 'active')
-      .single();
-
-    if (weddingError || !wedding) {
-      return errorResponse(ErrorCodes.WEDDING_NOT_FOUND, 404);
+    if (!response.ok) {
+      const status = getStatusFromResponse(response);
+      return errorResponse(response.error || ErrorCodes.INTERNAL_ERROR, status);
     }
-
-    // Check if passcode protection is enabled
-    if (!wedding.features?.PASSCODE_SITE || !wedding.passcode_config?.enabled) {
-      return errorResponse('PASSCODE_NOT_CONFIGURED', 400);
-    }
-
-    // Check if passcode hash exists
-    const passcodeHash = wedding.passcode_config?.passcodeHash;
-    if (!passcodeHash) {
-      return errorResponse('PASSCODE_NOT_CONFIGURED', 400);
-    }
-
-    // Verify passcode using bcrypt
-    const isValid = await bcrypt.compare(body.passcode, passcodeHash);
-
-    if (!isValid) {
-      return errorResponse(ErrorCodes.INVALID_PASSCODE, 401);
-    }
-
-    // Generate session token
-    const sessionToken = randomBytes(32).toString('hex');
-
-    // In production, you might want to store this session token
-    // For now, we return it for client-side storage
 
     return successResponse({
-      valid: true,
-      sessionToken,
+      valid: response.data?.valid ?? true,
+      sessionToken: response.data?.sessionToken,
     });
   } catch (error) {
     console.error('Error verifying passcode:', error);

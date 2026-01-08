@@ -12,9 +12,10 @@ import { PhotosModule } from './photos/photos.module';
 import { GuestbookModule } from './guestbook/guestbook.module';
 import { MusicModule } from './music/music.module';
 import { SeatingModule } from './seating/seating.module';
+import { RedisThrottlerStorage } from './throttle/redis-throttle.storage';
 
 /**
- * Rate limiting configuration.
+ * Rate limiting configuration with Redis-backed storage.
  * PRD: "API endpoints are rate limited"
  *
  * Three tiers of limits:
@@ -22,30 +23,41 @@ import { SeatingModule } from './seating/seating.module';
  * - Strict: 10 requests per minute (sensitive operations like auth, RSVP submit)
  * - Relaxed: 300 requests per minute (read-heavy endpoints)
  *
- * Each tier can be applied to specific endpoints using @Throttle() decorator.
+ * Per-flow keys:
+ * - admin: Rate limited by Supabase Auth sub
+ * - guest: Rate limited by invite_id
+ * - public: Rate limited by IP address
+ *
+ * Use @RateLimitFlow('admin' | 'guest' | 'public') decorator on controllers/handlers.
  */
 @Module({
   imports: [
-    ThrottlerModule.forRoot([
-      {
-        // Default limit: 100 requests per minute
-        name: 'default',
-        ttl: seconds(60),
-        limit: 100,
-      },
-      {
-        // Strict limit: 10 requests per minute (auth, RSVP, uploads)
-        name: 'strict',
-        ttl: seconds(60),
-        limit: 10,
-      },
-      {
-        // Relaxed limit: 300 requests per minute (read-only endpoints)
-        name: 'relaxed',
-        ttl: seconds(60),
-        limit: 300,
-      },
-    ]),
+    ThrottlerModule.forRootAsync({
+      useFactory: (storage: RedisThrottlerStorage) => ({
+        throttlers: [
+          {
+            // Default limit: 100 requests per minute
+            name: 'default',
+            ttl: seconds(60),
+            limit: 100,
+          },
+          {
+            // Strict limit: 10 requests per minute (auth, RSVP, uploads)
+            name: 'strict',
+            ttl: seconds(60),
+            limit: 10,
+          },
+          {
+            // Relaxed limit: 300 requests per minute (read-only endpoints)
+            name: 'relaxed',
+            ttl: seconds(60),
+            limit: 300,
+          },
+        ],
+        storage,
+      }),
+      inject: [RedisThrottlerStorage],
+    }),
     AuthModule,
     BillingModule,
     WeddingModule,
@@ -59,6 +71,7 @@ import { SeatingModule } from './seating/seating.module';
   ],
   controllers: [AppController],
   providers: [
+    RedisThrottlerStorage,
     {
       // Apply throttling globally to all endpoints
       provide: APP_GUARD,

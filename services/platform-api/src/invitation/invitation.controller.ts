@@ -509,7 +509,7 @@ export class InvitationController {
       throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
     }
 
-    const wedding = this.weddingService.getWedding(weddingId);
+    const wedding = await this.weddingService.getWedding(weddingId);
     if (!wedding || wedding.userId !== user.id) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
     }

@@ -6,96 +6,92 @@ import {
   useEffect,
   type ReactNode,
 } from 'react';
-import type { User, ApiResponse, AuthSession } from '../types';
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { supabase, getAccessToken } from './supabase';
 
 interface AuthContextValue {
-  user: User | null;
+  user: SupabaseUser | null;
+  session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (session: AuthSession) => void;
-  logout: () => Promise<void>;
-  checkSession: () => Promise<void>;
+  signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>;
+  signOut: () => Promise<void>;
+  getToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const TOKEN_KEY = 'auth_token';
-
 /**
- * Auth provider that manages user session state.
- * Stores token in localStorage for persistence.
+ * Auth provider that manages Supabase Auth session.
+ * Uses magic link authentication for passwordless sign-in.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const login = useCallback((session: AuthSession) => {
-    localStorage.setItem(TOKEN_KEY, session.token);
-    setUser(session.user);
-  }, []);
-
-  const logout = useCallback(async () => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (token) {
-      try {
-        await fetch('/api/auth/logout', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      } catch {
-        // Ignore errors on logout
-      }
-    }
-    localStorage.removeItem(TOKEN_KEY);
-    setUser(null);
-  }, []);
-
-  const checkSession = useCallback(async () => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/auth/me', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data: ApiResponse<User> = await response.json();
-
-      if (data.ok) {
-        setUser(data.data);
-      } else {
-        // Invalid session, clear token
-        localStorage.removeItem(TOKEN_KEY);
-        setUser(null);
-      }
-    } catch {
-      // Network error, assume session is invalid
-      localStorage.removeItem(TOKEN_KEY);
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Check session on mount
+  // Initialize auth state
   useEffect(() => {
-    checkSession();
-  }, [checkSession]);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsLoading(false);
+    });
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setIsLoading(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  /**
+   * Sign in with magic link.
+   * Sends an email with a sign-in link.
+   */
+  const signInWithMagicLink = useCallback(async (email: string) => {
+    const redirectUrl = `${window.location.origin}/auth/callback`;
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectUrl,
+      },
+    });
+
+    return { error };
+  }, []);
+
+  /**
+   * Sign out the current user.
+   */
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+  }, []);
+
+  /**
+   * Get the current access token for API calls.
+   */
+  const getToken = useCallback(async () => {
+    return getAccessToken();
+  }, []);
 
   const value: AuthContextValue = {
     user,
+    session,
     isLoading,
     isAuthenticated: !!user,
-    login,
-    logout,
-    checkSession,
+    signInWithMagicLink,
+    signOut,
+    getToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -113,8 +109,25 @@ export function useAuth() {
 }
 
 /**
- * Get stored auth token for API calls
+ * Get stored auth token for API calls.
+ * Synchronous version that reads from Supabase localStorage cache.
+ * For components that haven't migrated to async yet.
  */
 export function getAuthToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  // Check Supabase's localStorage cache directly for synchronous access
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (!supabaseUrl) return null;
+
+  const projectRef = supabaseUrl.replace(/https?:\/\//, '').split('.')[0];
+  const storageKey = `sb-${projectRef}-auth-token`;
+  const storedSession = localStorage.getItem(storageKey);
+
+  if (!storedSession) return null;
+
+  try {
+    const session = JSON.parse(storedSession);
+    return session?.access_token ?? null;
+  } catch {
+    return null;
+  }
 }

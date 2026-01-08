@@ -577,6 +577,9 @@ export const MAGIC_LINK_EXPIRED = 'MAGIC_LINK_EXPIRED' as const;
 export interface User {
   id: string;
   email: string;
+  name?: string;
+  planTier: 'free' | 'starter' | 'premium';
+  stripeCustomerId?: string;
   createdAt: string;
 }
 
@@ -924,6 +927,12 @@ export interface Guest {
   dietaryNotes?: string;
   /** SHA-256 hash of the RSVP token - raw token is never stored */
   rsvpTokenHash?: string;
+  /** When the RSVP token expires. NULL means no expiration. */
+  rsvpTokenExpiresAt?: string;
+  /** When the RSVP token was generated */
+  rsvpTokenCreatedAt?: string;
+  /** Last time the token was used to view/submit RSVP */
+  rsvpTokenLastUsedAt?: string;
   /** Array of tag IDs assigned to this guest */
   tagIds?: string[];
   /** Plus-one allowance: 0 = no plus-ones, positive number = allowed plus-ones */
@@ -2597,6 +2606,8 @@ export interface CustomDomainConfig {
   status: CustomDomainStatus;
   /** DNS records that need to be configured */
   dnsRecords: DnsRecord[];
+  /** Verification token for TXT record */
+  verificationToken?: string;
   /** When the domain was added */
   addedAt: string;
   /** When the domain was last verified */

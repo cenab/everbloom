@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import type { ApiResponse, MagicLinkRequestResponse } from '../types';
+import { useAuth } from '../lib/auth';
 
 /**
- * Login page with magic link authentication.
+ * Login page with Supabase magic link authentication.
  * Human, calm language per design system microcopy rules.
  */
 export function Login() {
+  const { signInWithMagicLink } = useAuth();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -17,20 +18,12 @@ export function Login() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/request-link', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
+      const { error } = await signInWithMagicLink(email);
 
-      const data: ApiResponse<MagicLinkRequestResponse> = await response.json();
-
-      if (data.ok) {
-        setSent(true);
+      if (error) {
+        setError('Unable to send sign-in link. Please try again.');
       } else {
-        setError('Please enter a valid email address.');
+        setSent(true);
       }
     } catch {
       setError('Something went wrong. Please try again in a moment.');
@@ -55,7 +48,7 @@ export function Login() {
           </p>
 
           <p className="text-sm text-neutral-400">
-            The link will expire in 15 minutes. If you don't see it, check your spam folder.
+            The link will expire in 1 hour. If you don't see it, check your spam folder.
           </p>
 
           <button

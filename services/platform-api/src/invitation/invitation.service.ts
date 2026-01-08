@@ -211,13 +211,13 @@ export class InvitationService {
     total: number;
     results: SendInvitationResult[];
   }> {
-    const wedding = this.weddingService.getWedding(weddingId);
+    const wedding = await this.weddingService.getWedding(weddingId);
     if (!wedding) {
       throw new Error('WEDDING_NOT_FOUND');
     }
 
     // Get the theme from render_config so emails match the wedding site
-    const renderConfig = this.weddingService.getRenderConfig(weddingId);
+    const renderConfig = await this.weddingService.getRenderConfig(weddingId);
     const theme = renderConfig?.theme;
 
     const results: SendInvitationResult[] = [];
@@ -253,7 +253,24 @@ export class InvitationService {
 
       // Regenerate RSVP token for security - old links are invalidated
       // The raw token is only available during this request cycle
-      const tokenResult = this.guestService.regenerateRsvpToken(guestId);
+      // Pass event date for token expiry capping
+      let tokenResult: { guest: any; rawToken: string } | null;
+      try {
+        tokenResult = this.guestService.regenerateRsvpToken(guestId, wedding.eventDetails?.date);
+      } catch (error) {
+        if (error instanceof Error && error.message === 'EVENT_EXPIRED') {
+          results.push({
+            guestId,
+            guestName: guest.name,
+            email: guest.email,
+            success: false,
+            error: 'Cannot send invitations for past events',
+          });
+          failed++;
+          continue;
+        }
+        throw error;
+      }
       if (!tokenResult) {
         results.push({
           guestId,
@@ -340,7 +357,7 @@ export class InvitationService {
     weddingId: string,
     guestIds?: string[],
   ): Promise<SendRemindersResponse> {
-    const wedding = this.weddingService.getWedding(weddingId);
+    const wedding = await this.weddingService.getWedding(weddingId);
     if (!wedding) {
       throw new Error('WEDDING_NOT_FOUND');
     }
@@ -350,7 +367,7 @@ export class InvitationService {
     }
 
     // Get the theme from render_config so emails match the wedding site
-    const renderConfig = this.weddingService.getRenderConfig(weddingId);
+    const renderConfig = await this.weddingService.getRenderConfig(weddingId);
     const theme = renderConfig?.theme;
 
     let guests = this.guestService
@@ -370,7 +387,17 @@ export class InvitationService {
 
     for (const guest of guests) {
       // Regenerate RSVP token for security - old links are invalidated
-      const tokenResult = this.guestService.regenerateRsvpToken(guest.id);
+      // Pass event date for token expiry capping
+      let tokenResult: { guest: any; rawToken: string } | null;
+      try {
+        tokenResult = this.guestService.regenerateRsvpToken(guest.id, wedding.eventDetails?.date);
+      } catch (error) {
+        if (error instanceof Error && error.message === 'EVENT_EXPIRED') {
+          this.logger.warn(`Cannot send reminder for guest ${guest.id} - event expired`);
+          continue;
+        }
+        throw error;
+      }
       if (!tokenResult) {
         this.logger.warn(`Failed to regenerate token for guest ${guest.id}`);
         continue;
@@ -436,13 +463,13 @@ export class InvitationService {
     total: number;
     results: SendSaveTheDateResult[];
   }> {
-    const wedding = this.weddingService.getWedding(weddingId);
+    const wedding = await this.weddingService.getWedding(weddingId);
     if (!wedding) {
       throw new Error('WEDDING_NOT_FOUND');
     }
 
     // Get the theme from render_config so emails match the wedding site
-    const renderConfig = this.weddingService.getRenderConfig(weddingId);
+    const renderConfig = await this.weddingService.getRenderConfig(weddingId);
     const theme = renderConfig?.theme;
 
     const results: SendSaveTheDateResult[] = [];
@@ -552,13 +579,13 @@ export class InvitationService {
     total: number;
     results: SendThankYouResult[];
   }> {
-    const wedding = this.weddingService.getWedding(weddingId);
+    const wedding = await this.weddingService.getWedding(weddingId);
     if (!wedding) {
       throw new Error('WEDDING_NOT_FOUND');
     }
 
     // Get the theme from render_config so emails match the wedding site
-    const renderConfig = this.weddingService.getRenderConfig(weddingId);
+    const renderConfig = await this.weddingService.getRenderConfig(weddingId);
     const theme = renderConfig?.theme;
 
     const results: SendThankYouResult[] = [];
@@ -757,7 +784,7 @@ export class InvitationService {
     emailType: EmailType,
     scheduledAt: string,
   ): Promise<ScheduleEmailResponse> {
-    const wedding = this.weddingService.getWedding(weddingId);
+    const wedding = await this.weddingService.getWedding(weddingId);
     if (!wedding) {
       throw new Error('WEDDING_NOT_FOUND');
     }

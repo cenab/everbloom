@@ -1,39 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { randomBytes, createHash } from 'crypto';
+import { getSupabaseClient, DbUser, DbMagicLink, DbAuthSession } from '../utils/supabase';
 import type {
   User,
   AuthSession,
   MagicLinkRequestResponse,
 } from '../types';
 
-interface StoredMagicLink {
-  email: string;
-  hashedToken: string;
-  expiresAt: Date;
-}
-
-interface StoredSession {
-  userId: string;
-  hashedToken: string;
-  expiresAt: Date;
-}
-
 /**
- * In-memory auth service for development.
- * In production, this would be backed by Postgres.
+ * Production auth service using Supabase/Postgres.
+ * Handles magic link authentication and session management.
  */
 @Injectable()
 export class AuthService {
-  // In-memory stores for dev mode
-  private users: Map<string, User> = new Map();
-  private magicLinks: Map<string, StoredMagicLink> = new Map();
-  private sessions: Map<string, StoredSession> = new Map();
-
+  private readonly logger = new Logger(AuthService.name);
   private readonly MAGIC_LINK_EXPIRY_MINUTES = 15;
   private readonly SESSION_EXPIRY_DAYS = 7;
 
   /**
-   * Hash a token for secure storage
+   * Hash a token for secure storage using SHA-256
    */
   private hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
@@ -47,24 +32,52 @@ export class AuthService {
   }
 
   /**
+   * Convert database user to API user type
+   */
+  private dbUserToUser(dbUser: DbUser): User {
+    return {
+      id: dbUser.id,
+      email: dbUser.email,
+      name: dbUser.name || undefined,
+      planTier: dbUser.plan_tier as 'free' | 'starter' | 'premium',
+      stripeCustomerId: dbUser.stripe_customer_id || undefined,
+      createdAt: dbUser.created_at,
+    };
+  }
+
+  /**
    * Find or create a user by email
    */
-  private findOrCreateUser(email: string): User {
+  private async findOrCreateUser(email: string): Promise<User> {
+    const supabase = getSupabaseClient();
+
     // Check if user exists
-    for (const user of this.users.values()) {
-      if (user.email === email) {
-        return user;
-      }
+    const { data: existingUser, error: findError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (existingUser && !findError) {
+      return this.dbUserToUser(existingUser as DbUser);
     }
 
     // Create new user
-    const user: User = {
-      id: randomBytes(16).toString('hex'),
-      email,
-      createdAt: new Date().toISOString(),
-    };
-    this.users.set(user.id, user);
-    return user;
+    const { data: newUser, error: createError } = await supabase
+      .from('users')
+      .insert({
+        email,
+        plan_tier: 'free',
+      })
+      .select()
+      .single();
+
+    if (createError || !newUser) {
+      this.logger.error('Failed to create user', createError);
+      throw new Error('Failed to create user');
+    }
+
+    return this.dbUserToUser(newUser as DbUser);
   }
 
   /**
@@ -73,27 +86,49 @@ export class AuthService {
    * In production, would send via SendGrid.
    */
   async requestMagicLink(email: string): Promise<MagicLinkRequestResponse> {
+    const supabase = getSupabaseClient();
     const token = this.generateToken();
     const hashedToken = this.hashToken(token);
 
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + this.MAGIC_LINK_EXPIRY_MINUTES);
 
-    // Store the magic link (keyed by hashed token for lookup)
-    this.magicLinks.set(hashedToken, {
-      email,
-      hashedToken,
-      expiresAt,
-    });
+    // Delete any existing magic links for this email
+    await supabase
+      .from('magic_links')
+      .delete()
+      .eq('email', email);
+
+    // Store the magic link
+    const { error } = await supabase
+      .from('magic_links')
+      .insert({
+        email,
+        token_hash: hashedToken,
+        expires_at: expiresAt.toISOString(),
+      });
+
+    if (error) {
+      this.logger.error('Failed to create magic link', error);
+      throw new Error('Failed to create magic link');
+    }
+
+    // Build magic link URL
+    const platformUrl = process.env.PLATFORM_URL || 'http://localhost:3000';
+    const magicLinkUrl = `${platformUrl}/auth/verify?token=${token}`;
 
     // In dev mode, log the magic link to console
-    const magicLinkUrl = `http://localhost:3000/auth/verify?token=${token}`;
-    console.log('\n========================================');
-    console.log('🔐 MAGIC LINK (dev mode)');
-    console.log(`   Email: ${email}`);
-    console.log(`   Link: ${magicLinkUrl}`);
-    console.log(`   Expires: ${expiresAt.toISOString()}`);
-    console.log('========================================\n');
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('\n========================================');
+      console.log('🔐 MAGIC LINK (dev mode)');
+      console.log(`   Email: ${email}`);
+      console.log(`   Link: ${magicLinkUrl}`);
+      console.log(`   Expires: ${expiresAt.toISOString()}`);
+      console.log('========================================\n');
+    }
+
+    // TODO: In production, send email via SendGrid
+    // await this.sendMagicLinkEmail(email, magicLinkUrl);
 
     return {
       message: 'If an account exists for this email, a magic link has been sent.',
@@ -105,24 +140,40 @@ export class AuthService {
    * Returns null if token is invalid or expired.
    */
   async verifyMagicLink(token: string): Promise<AuthSession | null> {
+    const supabase = getSupabaseClient();
     const hashedToken = this.hashToken(token);
-    const magicLink = this.magicLinks.get(hashedToken);
 
-    if (!magicLink) {
+    // Find the magic link
+    const { data: magicLink, error: findError } = await supabase
+      .from('magic_links')
+      .select('*')
+      .eq('token_hash', hashedToken)
+      .is('used_at', null)
+      .single();
+
+    if (findError || !magicLink) {
+      this.logger.warn('Magic link not found or already used');
       return null;
     }
+
+    const dbMagicLink = magicLink as DbMagicLink;
 
     // Check expiry
-    if (new Date() > magicLink.expiresAt) {
-      this.magicLinks.delete(hashedToken);
+    if (new Date() > new Date(dbMagicLink.expires_at)) {
+      this.logger.warn('Magic link expired');
+      // Delete expired link
+      await supabase.from('magic_links').delete().eq('id', dbMagicLink.id);
       return null;
     }
 
-    // Magic link is valid - consume it
-    this.magicLinks.delete(hashedToken);
+    // Mark magic link as used
+    await supabase
+      .from('magic_links')
+      .update({ used_at: new Date().toISOString() })
+      .eq('id', dbMagicLink.id);
 
     // Find or create the user
-    const user = this.findOrCreateUser(magicLink.email);
+    const user = await this.findOrCreateUser(dbMagicLink.email);
 
     // Create session
     const sessionToken = this.generateToken();
@@ -130,11 +181,18 @@ export class AuthService {
     const sessionExpiresAt = new Date();
     sessionExpiresAt.setDate(sessionExpiresAt.getDate() + this.SESSION_EXPIRY_DAYS);
 
-    this.sessions.set(sessionHashedToken, {
-      userId: user.id,
-      hashedToken: sessionHashedToken,
-      expiresAt: sessionExpiresAt,
-    });
+    const { error: sessionError } = await supabase
+      .from('auth_sessions')
+      .insert({
+        user_id: user.id,
+        token_hash: sessionHashedToken,
+        expires_at: sessionExpiresAt.toISOString(),
+      });
+
+    if (sessionError) {
+      this.logger.error('Failed to create session', sessionError);
+      throw new Error('Failed to create session');
+    }
 
     return {
       user,
@@ -148,28 +206,125 @@ export class AuthService {
    * Returns null if session is invalid or expired.
    */
   async validateSession(token: string): Promise<User | null> {
+    const supabase = getSupabaseClient();
     const hashedToken = this.hashToken(token);
-    const session = this.sessions.get(hashedToken);
 
-    if (!session) {
+    // Find the session
+    const { data: session, error: findError } = await supabase
+      .from('auth_sessions')
+      .select('*')
+      .eq('token_hash', hashedToken)
+      .single();
+
+    if (findError || !session) {
       return null;
     }
+
+    const dbSession = session as DbAuthSession;
 
     // Check expiry
-    if (new Date() > session.expiresAt) {
-      this.sessions.delete(hashedToken);
+    if (new Date() > new Date(dbSession.expires_at)) {
+      // Delete expired session
+      await supabase.from('auth_sessions').delete().eq('id', dbSession.id);
       return null;
     }
 
-    const user = this.users.get(session.userId);
-    return user || null;
+    // Get the user
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', dbSession.user_id)
+      .single();
+
+    if (userError || !user) {
+      return null;
+    }
+
+    return this.dbUserToUser(user as DbUser);
   }
 
   /**
    * Invalidate a session (logout)
    */
   async logout(token: string): Promise<void> {
+    const supabase = getSupabaseClient();
     const hashedToken = this.hashToken(token);
-    this.sessions.delete(hashedToken);
+
+    await supabase
+      .from('auth_sessions')
+      .delete()
+      .eq('token_hash', hashedToken);
+  }
+
+  /**
+   * Get user by ID
+   */
+  async getUserById(userId: string): Promise<User | null> {
+    const supabase = getSupabaseClient();
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error || !user) {
+      return null;
+    }
+
+    return this.dbUserToUser(user as DbUser);
+  }
+
+  /**
+   * Get user by email
+   */
+  async getUserByEmail(email: string): Promise<User | null> {
+    const supabase = getSupabaseClient();
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (error || !user) {
+      return null;
+    }
+
+    return this.dbUserToUser(user as DbUser);
+  }
+
+  /**
+   * Update user's Stripe customer ID
+   */
+  async updateStripeCustomerId(userId: string, stripeCustomerId: string): Promise<void> {
+    const supabase = getSupabaseClient();
+
+    const { error } = await supabase
+      .from('users')
+      .update({ stripe_customer_id: stripeCustomerId })
+      .eq('id', userId);
+
+    if (error) {
+      this.logger.error('Failed to update Stripe customer ID', error);
+      throw new Error('Failed to update Stripe customer ID');
+    }
+  }
+
+  /**
+   * Update user's plan tier
+   */
+  async updatePlanTier(userId: string, planTier: 'free' | 'starter' | 'premium'): Promise<void> {
+    const supabase = getSupabaseClient();
+
+    const { error } = await supabase
+      .from('users')
+      .update({ plan_tier: planTier })
+      .eq('id', userId);
+
+    if (error) {
+      this.logger.error('Failed to update plan tier', error);
+      throw new Error('Failed to update plan tier');
+    }
   }
 }

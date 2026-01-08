@@ -27,7 +27,7 @@ export class CalendarController {
     @Param('slug') slug: string,
     @Res() res: Response,
   ): Promise<void> {
-    const wedding = this.weddingService.getWeddingBySlug(slug);
+    const wedding = await this.weddingService.getWeddingBySlug(slug);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });
@@ -83,7 +83,7 @@ export class CalendarController {
     @Param('slug') slug: string,
     @Res() res: Response,
   ): Promise<void> {
-    const wedding = this.weddingService.getWeddingBySlug(slug);
+    const wedding = await this.weddingService.getWeddingBySlug(slug);
 
     if (!wedding) {
       throw new NotFoundException({ ok: false, error: WEDDING_NOT_FOUND });

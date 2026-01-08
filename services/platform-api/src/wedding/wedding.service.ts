@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { randomBytes, scrypt, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
 import { verifyDnsRecords, generateVerificationToken } from '../utils/dns-verification';
+import { getSupabaseClient, DbWedding, DbWeddingSite } from '../utils/supabase';
 import type {
   Wedding,
   WeddingStatus,
@@ -40,7 +41,6 @@ const scryptAsync = promisify(scrypt);
 
 /**
  * Hash a passcode using scrypt
- * Format: salt:hash (both hex-encoded)
  */
 async function hashPasscode(passcode: string): Promise<string> {
   const salt = randomBytes(16).toString('hex');
@@ -49,309 +49,66 @@ async function hashPasscode(passcode: string): Promise<string> {
 }
 
 /**
- * Verify a passcode against a stored hash using timing-safe comparison
+ * Verify a passcode against a stored hash
  */
 async function verifyPasscode(passcode: string, storedHash: string): Promise<boolean> {
   const [salt, hash] = storedHash.split(':');
-  if (!salt || !hash) {
-    return false;
-  }
+  if (!salt || !hash) return false;
   const derivedKey = (await scryptAsync(passcode, salt, 64)) as Buffer;
   const storedBuffer = Buffer.from(hash, 'hex');
-
-  // Use timing-safe comparison to prevent timing attacks
-  if (derivedKey.length !== storedBuffer.length) {
-    return false;
-  }
+  if (derivedKey.length !== storedBuffer.length) return false;
   return timingSafeEqual(derivedKey, storedBuffer);
 }
 
-/**
- * Default theme for new weddings - calm, warm palette
- */
 const DEFAULT_THEME: Theme = {
-  primary: '#c9826b', // terracotta
-  accent: '#8fac8b', // sage
-  neutralLight: '#faf8f5', // warm off-white
-  neutralDark: '#2d2d2d', // soft black
+  primary: '#c9826b',
+  accent: '#8fac8b',
+  neutralLight: '#faf8f5',
+  neutralDark: '#2d2d2d',
 };
 
-const DEFAULT_ANNOUNCEMENT: Announcement = {
-  enabled: false,
-  title: '',
-  message: '',
-};
+const DEFAULT_ANNOUNCEMENT: Announcement = { enabled: false, title: '', message: '' };
+const DEFAULT_FAQ: FaqConfig = { items: [] };
+const DEFAULT_REGISTRY: RegistryConfig = { links: [] };
+const DEFAULT_GALLERY: GalleryConfig = { photos: [] };
+const DEFAULT_VIDEO: VideoConfig = { videos: [] };
+const DEFAULT_ACCOMMODATIONS: AccommodationsConfig = { hotels: [], travelInfo: {} };
 
-const DEFAULT_FAQ: FaqConfig = {
-  items: [],
-};
-
-const PHOTO_UPLOAD_SECTION_ID = 'photos';
-const FAQ_SECTION_ID = 'faq';
-
-const DEFAULT_PHOTO_SECTION_DATA = {
-  title: 'Share Photos',
-  description: 'Add your favorite moments to our shared album.',
-  ctaLabel: 'Add your photos',
-};
-
-const createPhotoUploadSection = (order: number, enabled: boolean): Section => ({
-  id: PHOTO_UPLOAD_SECTION_ID,
-  type: 'photo-upload',
-  enabled,
-  order,
-  data: { ...DEFAULT_PHOTO_SECTION_DATA },
-});
-
-const DEFAULT_FAQ_SECTION_DATA = {
-  title: 'Frequently Asked Questions',
-  description: 'Find answers to common questions about our celebration.',
-};
-
-const createFaqSection = (order: number, enabled: boolean): Section => ({
-  id: FAQ_SECTION_ID,
-  type: 'faq',
-  enabled,
-  order,
-  data: { ...DEFAULT_FAQ_SECTION_DATA },
-});
-
-const REGISTRY_SECTION_ID = 'registry';
-
-const DEFAULT_REGISTRY_SECTION_DATA = {
-  title: 'Gift Registry',
-  description: 'Your presence is our greatest gift, but if you wish to honor us, we have registered at these stores.',
-};
-
-const DEFAULT_REGISTRY: RegistryConfig = {
-  links: [],
-};
-
-const createRegistrySection = (order: number, enabled: boolean): Section => ({
-  id: REGISTRY_SECTION_ID,
-  type: 'registry',
-  enabled,
-  order,
-  data: { ...DEFAULT_REGISTRY_SECTION_DATA },
-});
-
-const ACCOMMODATIONS_SECTION_ID = 'accommodations';
-
-const DEFAULT_ACCOMMODATIONS_SECTION_DATA = {
-  title: 'Accommodations & Travel',
-  description: 'Information about lodging and getting to our celebration.',
-};
-
-const DEFAULT_ACCOMMODATIONS: AccommodationsConfig = {
-  hotels: [],
-  travelInfo: {},
-};
-
-const createAccommodationsSection = (order: number, enabled: boolean): Section => ({
-  id: ACCOMMODATIONS_SECTION_ID,
-  type: 'accommodations',
-  enabled,
-  order,
-  data: { ...DEFAULT_ACCOMMODATIONS_SECTION_DATA },
-});
-
-const GUESTBOOK_SECTION_ID = 'guestbook';
-
-const DEFAULT_GUESTBOOK_SECTION_DATA = {
-  title: 'Guestbook',
-  description: 'Leave a message for the happy couple.',
-};
-
-const createGuestbookSection = (order: number, enabled: boolean): Section => ({
-  id: GUESTBOOK_SECTION_ID,
-  type: 'guestbook',
-  enabled,
-  order,
-  data: { ...DEFAULT_GUESTBOOK_SECTION_DATA },
-});
-
-const MUSIC_REQUEST_SECTION_ID = 'music-request';
-
-const DEFAULT_MUSIC_REQUEST_SECTION_DATA = {
-  title: 'Suggest a Song',
-  description: 'Help us create the perfect playlist for our celebration.',
-};
-
-const createMusicRequestSection = (order: number, enabled: boolean): Section => ({
-  id: MUSIC_REQUEST_SECTION_ID,
-  type: 'music-request',
-  enabled,
-  order,
-  data: { ...DEFAULT_MUSIC_REQUEST_SECTION_DATA },
-});
-
-const SEATING_SECTION_ID = 'seating';
-
-const DEFAULT_SEATING_SECTION_DATA = {
-  title: 'Seating Chart',
-  description: 'Find your table assignment for the celebration.',
-};
-
-const createSeatingSection = (order: number, enabled: boolean): Section => ({
-  id: SEATING_SECTION_ID,
-  type: 'seating',
-  enabled,
-  order,
-  data: { ...DEFAULT_SEATING_SECTION_DATA },
-});
-
-const GALLERY_SECTION_ID = 'gallery';
-
-const DEFAULT_GALLERY_SECTION_DATA = {
-  title: 'Our Story',
-  description: 'Moments we cherish from our journey together.',
-};
-
-const DEFAULT_GALLERY: GalleryConfig = {
-  photos: [],
-};
-
-const createGallerySection = (order: number, enabled: boolean): Section => ({
-  id: GALLERY_SECTION_ID,
-  type: 'gallery',
-  enabled,
-  order,
-  data: { ...DEFAULT_GALLERY_SECTION_DATA },
-});
-
-const VIDEO_SECTION_ID = 'video';
-
-const DEFAULT_VIDEO_SECTION_DATA = {
-  title: 'Our Videos',
-  description: 'Watch our special moments together.',
-};
-
-const DEFAULT_VIDEO: VideoConfig = {
-  videos: [],
-};
-
-const createVideoSection = (order: number, enabled: boolean): Section => ({
-  id: VIDEO_SECTION_ID,
-  type: 'video',
-  enabled,
-  order,
-  data: { ...DEFAULT_VIDEO_SECTION_DATA },
-});
-
-/**
- * Features enabled by plan tier
- */
 const PLAN_FEATURES: Record<PlanTier, FeatureFlag[]> = {
   starter: ['RSVP', 'CALENDAR_INVITE'],
   premium: [
-    'RSVP',
-    'CALENDAR_INVITE',
-    'PHOTO_UPLOAD',
-    'ANNOUNCEMENT_BANNER',
-    'FAQ_SECTION',
-    'PASSCODE_SITE',
-    'REGISTRY',
-    'ACCOMMODATIONS',
-    'GUESTBOOK',
-    'MUSIC_REQUESTS',
-    'SEATING_CHART',
-    'VIDEO_EMBED',
+    'RSVP', 'CALENDAR_INVITE', 'PHOTO_UPLOAD', 'ANNOUNCEMENT_BANNER',
+    'FAQ_SECTION', 'PASSCODE_SITE', 'REGISTRY', 'ACCOMMODATIONS',
+    'GUESTBOOK', 'MUSIC_REQUESTS', 'SEATING_CHART', 'VIDEO_EMBED',
   ],
 };
 
-/**
- * All feature flags with default disabled state
- */
 const ALL_FEATURES: FeatureFlag[] = [
-  'RSVP',
-  'CALENDAR_INVITE',
-  'PHOTO_UPLOAD',
-  'ANNOUNCEMENT_BANNER',
-  'FAQ_SECTION',
-  'PASSCODE_SITE',
-  'REGISTRY',
-  'ACCOMMODATIONS',
-  'GUESTBOOK',
-  'MUSIC_REQUESTS',
-  'SEATING_CHART',
-  'VIDEO_EMBED',
+  'RSVP', 'CALENDAR_INVITE', 'PHOTO_UPLOAD', 'ANNOUNCEMENT_BANNER',
+  'FAQ_SECTION', 'PASSCODE_SITE', 'REGISTRY', 'ACCOMMODATIONS',
+  'GUESTBOOK', 'MUSIC_REQUESTS', 'SEATING_CHART', 'VIDEO_EMBED',
 ];
 
-/**
- * Available templates - curated set matching design system
- */
 const TEMPLATES: Template[] = [
   {
-    id: 'minimal-001',
-    name: 'Serene',
-    category: 'minimal' as TemplateCategory,
+    id: 'minimal-001', name: 'Serene', category: 'minimal' as TemplateCategory,
     description: 'Clean lines and generous whitespace for a modern, understated elegance.',
-    defaultTheme: {
-      primary: '#c9826b',
-      accent: '#8fac8b',
-      neutralLight: '#faf8f5',
-      neutralDark: '#2d2d2d',
-    },
+    defaultTheme: { primary: '#c9826b', accent: '#8fac8b', neutralLight: '#faf8f5', neutralDark: '#2d2d2d' },
   },
   {
-    id: 'minimal-002',
-    name: 'Whisper',
-    category: 'minimal' as TemplateCategory,
+    id: 'minimal-002', name: 'Whisper', category: 'minimal' as TemplateCategory,
     description: 'Soft tones and delicate typography for an intimate, romantic feel.',
-    defaultTheme: {
-      primary: '#b8a090',
-      accent: '#c9b8a8',
-      neutralLight: '#fdfcfb',
-      neutralDark: '#3d3d3d',
-    },
+    defaultTheme: { primary: '#b8a090', accent: '#c9b8a8', neutralLight: '#fdfcfb', neutralDark: '#3d3d3d' },
   },
   {
-    id: 'classic-001',
-    name: 'Heritage',
-    category: 'classic' as TemplateCategory,
+    id: 'classic-001', name: 'Heritage', category: 'classic' as TemplateCategory,
     description: 'Timeless design with traditional flourishes and refined details.',
-    defaultTheme: {
-      primary: '#8b7355',
-      accent: '#a89078',
-      neutralLight: '#f9f7f4',
-      neutralDark: '#2f2f2f',
-    },
+    defaultTheme: { primary: '#8b7355', accent: '#a89078', neutralLight: '#f9f7f4', neutralDark: '#2f2f2f' },
   },
   {
-    id: 'modern-001',
-    name: 'Edge',
-    category: 'modern' as TemplateCategory,
+    id: 'modern-001', name: 'Edge', category: 'modern' as TemplateCategory,
     description: 'Bold typography and contemporary layouts for the style-forward couple.',
-    defaultTheme: {
-      primary: '#4a5568',
-      accent: '#718096',
-      neutralLight: '#f7fafc',
-      neutralDark: '#1a202c',
-    },
-  },
-  {
-    id: 'destination-001',
-    name: 'Wanderlust',
-    category: 'destination' as TemplateCategory,
-    description: 'Inspired by travel and adventure, perfect for destination celebrations.',
-    defaultTheme: {
-      primary: '#5f8a8b',
-      accent: '#9bbec8',
-      neutralLight: '#f8fafa',
-      neutralDark: '#2c3e3f',
-    },
-  },
-  {
-    id: 'cultural-001',
-    name: 'Mosaic',
-    category: 'cultural' as TemplateCategory,
-    description: 'Rich, ceremonial details with warm tones to honor cultural traditions.',
-    defaultTheme: {
-      primary: '#9a5a4a',
-      accent: '#c79a7b',
-      neutralLight: '#f6f1ea',
-      neutralDark: '#3b2f2a',
-    },
+    defaultTheme: { primary: '#4a5568', accent: '#718096', neutralLight: '#f7fafc', neutralDark: '#1a202c' },
   },
 ];
 
@@ -359,30 +116,36 @@ const TEMPLATES: Template[] = [
 export class WeddingService {
   private readonly logger = new Logger(WeddingService.name);
 
-  // In-memory store for development
-  private weddings: Map<string, Wedding> = new Map();
-  private renderConfigs: Map<string, RenderConfig> = new Map(); // Published configs
-  private draftRenderConfigs: Map<string, RenderConfig> = new Map(); // Draft configs (unpublished changes)
-  private draftUpdatedAt: Map<string, string> = new Map(); // Track when drafts were last modified
-  private lastPublishedAt: Map<string, string> = new Map(); // Track when configs were last published
-  private processedSessions: Set<string> = new Set();
-
   /**
-   * Generate a URL-safe slug from partner names
+   * Convert database wedding to API type
    */
+  private dbWeddingToWedding(db: DbWedding): Wedding {
+    return {
+      id: db.id,
+      userId: db.user_id,
+      slug: db.slug,
+      name: `${db.partner_names[0]} & ${db.partner_names[1]}`,
+      partnerNames: db.partner_names,
+      planId: db.plan_tier as PlanTier,
+      status: db.status as WeddingStatus,
+      features: db.features as Record<FeatureFlag, boolean>,
+      eventDetails: db.event_details as unknown as EventDetailsData | undefined,
+      mealConfig: db.meal_config as unknown as MealConfig | undefined,
+      passcodeConfig: db.passcode_config as unknown as PasscodeConfigBase | undefined,
+      customDomain: db.custom_domain_config as unknown as CustomDomainConfig | undefined,
+      createdAt: db.created_at,
+      updatedAt: db.updated_at,
+    };
+  }
+
   private generateSlug(partnerNames: [string, string]): string {
     const baseSlug = partnerNames
       .map((name) => name.toLowerCase().replace(/[^a-z0-9]/g, ''))
       .join('-and-');
-
-    // Add a short random suffix for uniqueness
     const suffix = randomBytes(3).toString('hex');
     return `${baseSlug}-${suffix}`;
   }
 
-  /**
-   * Build feature flags record based on plan tier
-   */
   private buildFeatureFlags(
     planId: PlanTier,
     selectedFeatures?: Partial<Record<FeatureFlag, boolean>>,
@@ -395,78 +158,39 @@ export class WeddingService {
     for (const flag of ALL_FEATURES) {
       if (!allowedSet.has(flag)) {
         features[flag] = false;
-        continue;
-      }
-
-      if (typeof selection[flag] === 'boolean') {
+      } else if (typeof selection[flag] === 'boolean') {
         features[flag] = selection[flag] as boolean;
       } else {
         features[flag] = true;
       }
     }
-
     return features;
   }
 
-  /**
-   * Generate initial render_config for a new wedding
-   */
   private generateRenderConfig(wedding: Wedding): RenderConfig {
     const config: RenderConfig = {
-      templateId: 'minimal-001', // Default template
+      templateId: 'minimal-001',
       theme: DEFAULT_THEME,
       features: wedding.features,
-      announcement: wedding.announcement ?? { ...DEFAULT_ANNOUNCEMENT },
-      faq: wedding.faq ?? { ...DEFAULT_FAQ },
+      announcement: DEFAULT_ANNOUNCEMENT,
+      faq: DEFAULT_FAQ,
       sections: [
-        {
-          id: 'hero',
-          type: 'hero',
-          enabled: true,
-          order: 0,
-          data: {
-            headline: `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`,
-          },
-        },
-        {
-          id: 'details',
-          type: 'event-details',
-          enabled: true,
-          order: 1,
-          data: {
-            title: 'Our Wedding Day',
-            description: 'We can\'t wait to celebrate with you.',
-          },
-        },
-        {
-          id: 'rsvp',
-          type: 'rsvp',
-          enabled: wedding.features.RSVP,
-          order: 2,
-          data: {
-            title: 'RSVP',
-            description: 'Please let us know if you can join us.',
-          },
-        },
-        createPhotoUploadSection(3, wedding.features.PHOTO_UPLOAD),
-        createFaqSection(4, wedding.features.FAQ_SECTION),
-        createRegistrySection(5, wedding.features.REGISTRY),
-        createAccommodationsSection(6, wedding.features.ACCOMMODATIONS),
-        createGuestbookSection(7, wedding.features.GUESTBOOK),
-        createMusicRequestSection(8, wedding.features.MUSIC_REQUESTS),
-        createSeatingSection(9, wedding.features.SEATING_CHART),
-        // Gallery section - enabled when there are curated photos (admin-controlled, not feature-gated)
-        createGallerySection(10, (wedding.gallery?.photos.length ?? 0) > 0),
-        // Video section - enabled when VIDEO_EMBED feature is enabled and videos exist
-        createVideoSection(11, wedding.features.VIDEO_EMBED && (wedding.video?.videos.length ?? 0) > 0),
+        { id: 'hero', type: 'hero', enabled: true, order: 0, data: { headline: `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}` } },
+        { id: 'details', type: 'event-details', enabled: true, order: 1, data: { title: 'Our Wedding Day', description: "We can't wait to celebrate with you." } },
+        { id: 'rsvp', type: 'rsvp', enabled: wedding.features.RSVP, order: 2, data: { title: 'RSVP', description: 'Please let us know if you can join us.' } },
+        { id: 'photos', type: 'photo-upload', enabled: wedding.features.PHOTO_UPLOAD, order: 3, data: { title: 'Share Photos', description: 'Add your favorite moments.' } },
+        { id: 'faq', type: 'faq', enabled: wedding.features.FAQ_SECTION, order: 4, data: { title: 'FAQ', description: 'Common questions.' } },
+        { id: 'registry', type: 'registry', enabled: wedding.features.REGISTRY, order: 5, data: { title: 'Gift Registry' } },
+        { id: 'accommodations', type: 'accommodations', enabled: wedding.features.ACCOMMODATIONS, order: 6, data: { title: 'Accommodations' } },
+        { id: 'guestbook', type: 'guestbook', enabled: wedding.features.GUESTBOOK, order: 7, data: { title: 'Guestbook' } },
+        { id: 'music-request', type: 'music-request', enabled: wedding.features.MUSIC_REQUESTS, order: 8, data: { title: 'Suggest a Song' } },
+        { id: 'seating', type: 'seating', enabled: wedding.features.SEATING_CHART, order: 9, data: { title: 'Seating Chart' } },
+        { id: 'gallery', type: 'gallery', enabled: false, order: 10, data: { title: 'Our Story' } },
+        { id: 'video', type: 'video', enabled: wedding.features.VIDEO_EMBED, order: 11, data: { title: 'Our Videos' } },
       ],
-      wedding: {
-        slug: wedding.slug,
-        partnerNames: wedding.partnerNames,
-      },
+      wedding: { slug: wedding.slug, partnerNames: wedding.partnerNames },
     };
 
-    // Add eventDetails to render_config and wedding.* fields if present
     if (wedding.eventDetails) {
       config.eventDetails = wedding.eventDetails;
       config.wedding.date = wedding.eventDetails.date;
@@ -474,119 +198,95 @@ export class WeddingService {
       config.wedding.city = wedding.eventDetails.city;
     }
 
-    // Add passcode protection status (never expose the hash)
-    if (wedding.passcodeConfig?.enabled && wedding.passcodeConfig?.passcodeHash) {
-      config.passcodeProtected = true;
-    } else {
-      config.passcodeProtected = false;
-    }
+    config.passcodeProtected = !!(wedding.passcodeConfig?.enabled && wedding.passcodeConfig?.passcodeHash);
 
-    // Add meal configuration if present and enabled
-    if (wedding.mealConfig?.enabled && wedding.mealConfig.options.length > 0) {
+    if (wedding.mealConfig?.enabled && wedding.mealConfig.options?.length > 0) {
       config.mealConfig = wedding.mealConfig;
-    }
-
-    // Add registry configuration if present
-    if (wedding.registry && wedding.registry.links.length > 0) {
-      config.registry = wedding.registry;
-    }
-
-    // Add accommodations configuration if present
-    if (wedding.accommodations && (wedding.accommodations.hotels.length > 0 ||
-        wedding.accommodations.travelInfo?.airportDirections ||
-        wedding.accommodations.travelInfo?.parkingInfo ||
-        wedding.accommodations.travelInfo?.mapUrl)) {
-      config.accommodations = wedding.accommodations;
-    }
-
-    // Add gallery configuration if present (admin curated photos)
-    if (wedding.gallery && wedding.gallery.photos.length > 0) {
-      config.gallery = wedding.gallery;
-    }
-
-    // Add video configuration if present and feature enabled
-    if (wedding.features.VIDEO_EMBED && wedding.video && wedding.video.videos.length > 0) {
-      config.video = wedding.video;
-    }
-
-    // Add custom OG image URL if uploaded
-    if (wedding.socialConfig?.ogImageUrl) {
-      config.ogImageUrl = wedding.socialConfig.ogImageUrl;
     }
 
     return config;
   }
 
   /**
-   * Check if a checkout session has already been processed (idempotency)
-   */
-  isSessionProcessed(sessionId: string): boolean {
-    return this.processedSessions.has(sessionId);
-  }
-
-  /**
-   * Mark a checkout session as processed
-   */
-  markSessionProcessed(sessionId: string): void {
-    this.processedSessions.add(sessionId);
-  }
-
-  /**
    * Provision a new wedding from checkout completion
-   * This is idempotent - calling with the same sessionId will return existing wedding
    */
   async provisionWedding(payload: CreateWeddingPayload): Promise<{
     wedding: Wedding;
     renderConfig: RenderConfig;
     isNew: boolean;
   }> {
-    // Check idempotency
-    if (this.isSessionProcessed(payload.stripeSessionId)) {
-      this.logger.log(`Session ${payload.stripeSessionId} already processed, returning existing wedding`);
+    const supabase = getSupabaseClient();
 
-      // Find the existing wedding by session
-      for (const wedding of this.weddings.values()) {
-        // We need to track which session created which wedding
-        // For now, find by userId and recent creation (not perfect but works for dev)
-        if (wedding.userId === payload.userId) {
-          const renderConfig = this.renderConfigs.get(wedding.id);
-          if (renderConfig) {
-            return { wedding, renderConfig, isNew: false };
-          }
-        }
+    // Check for existing wedding by user (idempotency for same checkout session)
+    const { data: existingWeddings } = await supabase
+      .from('weddings')
+      .select('*')
+      .eq('user_id', payload.userId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    // Simple idempotency - if user recently created a wedding, return it
+    if (existingWeddings && existingWeddings.length > 0) {
+      const recent = existingWeddings[0] as DbWedding;
+      const createdAt = new Date(recent.created_at).getTime();
+      const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+
+      if (createdAt > fiveMinutesAgo) {
+        const wedding = this.dbWeddingToWedding(recent);
+        const { data: siteData } = await supabase
+          .from('wedding_sites')
+          .select('render_config')
+          .eq('wedding_id', wedding.id)
+          .single();
+
+        return {
+          wedding,
+          renderConfig: siteData?.render_config as RenderConfig,
+          isNew: false,
+        };
       }
     }
 
-    const now = new Date().toISOString();
-    const weddingId = randomBytes(16).toString('hex');
+    const features = this.buildFeatureFlags(payload.planId, payload.features);
+    const slug = this.generateSlug(payload.partnerNames);
 
-    const wedding: Wedding = {
-      id: weddingId,
-      userId: payload.userId,
-      slug: this.generateSlug(payload.partnerNames),
-      name: payload.weddingName,
-      partnerNames: payload.partnerNames,
-      planId: payload.planId,
-      status: 'active' as WeddingStatus,
-      features: this.buildFeatureFlags(payload.planId, payload.features),
-      announcement: { ...DEFAULT_ANNOUNCEMENT },
-      faq: { ...DEFAULT_FAQ },
-      registry: { ...DEFAULT_REGISTRY },
-      gallery: { ...DEFAULT_GALLERY },
-      video: { ...DEFAULT_VIDEO },
-      createdAt: now,
-      updatedAt: now,
-    };
+    // Create wedding
+    const { data: newWedding, error: weddingError } = await supabase
+      .from('weddings')
+      .insert({
+        user_id: payload.userId,
+        slug,
+        partner_names: payload.partnerNames,
+        plan_tier: payload.planId,
+        status: 'active',
+        features,
+      })
+      .select()
+      .single();
 
-    // Generate render_config
+    if (weddingError || !newWedding) {
+      this.logger.error('Failed to create wedding', weddingError);
+      throw new Error('Failed to create wedding');
+    }
+
+    const wedding = this.dbWeddingToWedding(newWedding as DbWedding);
     const renderConfig = this.generateRenderConfig(wedding);
 
-    // Store wedding and config
-    this.weddings.set(weddingId, wedding);
-    this.renderConfigs.set(weddingId, renderConfig);
-    this.markSessionProcessed(payload.stripeSessionId);
+    // Create wedding_site with render_config
+    const { error: siteError } = await supabase
+      .from('wedding_sites')
+      .insert({
+        wedding_id: wedding.id,
+        render_config: renderConfig,
+        preview_status: 'published',
+      });
 
-    this.logger.log(`Provisioned wedding ${weddingId} with slug ${wedding.slug}`);
+    if (siteError) {
+      this.logger.error('Failed to create wedding site', siteError);
+      throw new Error('Failed to create wedding site');
+    }
+
+    this.logger.log(`Provisioned wedding ${wedding.id} with slug ${slug}`);
 
     return { wedding, renderConfig, isNew: true };
   }
@@ -594,70 +294,195 @@ export class WeddingService {
   /**
    * Get a wedding by ID
    */
-  getWedding(id: string): Wedding | null {
-    return this.weddings.get(id) || null;
+  async getWedding(id: string): Promise<Wedding | null> {
+    const supabase = getSupabaseClient();
+
+    const { data, error } = await supabase
+      .from('weddings')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) return null;
+    return this.dbWeddingToWedding(data as DbWedding);
   }
 
   /**
    * Get a wedding by slug
    */
-  getWeddingBySlug(slug: string): Wedding | null {
-    for (const wedding of this.weddings.values()) {
-      if (wedding.slug === slug) {
-        return wedding;
-      }
-    }
-    return null;
+  async getWeddingBySlug(slug: string): Promise<Wedding | null> {
+    const supabase = getSupabaseClient();
+
+    const { data, error } = await supabase
+      .from('weddings')
+      .select('*')
+      .eq('slug', slug)
+      .single();
+
+    if (error || !data) return null;
+    return this.dbWeddingToWedding(data as DbWedding);
   }
 
   /**
    * Get all weddings for a user
    */
-  getWeddingsForUser(userId: string): Wedding[] {
-    const userWeddings: Wedding[] = [];
-    for (const wedding of this.weddings.values()) {
-      if (wedding.userId === userId) {
-        userWeddings.push(wedding);
-      }
-    }
-    return userWeddings;
+  async getWeddingsForUser(userId: string): Promise<Wedding[]> {
+    const supabase = getSupabaseClient();
+
+    const { data, error } = await supabase
+      .from('weddings')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+    return data.map((w) => this.dbWeddingToWedding(w as DbWedding));
   }
 
   /**
    * Get render_config for a wedding
    */
-  getRenderConfig(weddingId: string): RenderConfig | null {
-    return this.renderConfigs.get(weddingId) || null;
+  async getRenderConfig(weddingId: string): Promise<RenderConfig | null> {
+    const supabase = getSupabaseClient();
+
+    const { data, error } = await supabase
+      .from('wedding_sites')
+      .select('render_config')
+      .eq('wedding_id', weddingId)
+      .single();
+
+    if (error || !data) return null;
+    return data.render_config as RenderConfig;
   }
 
   /**
-   * Get all available templates
+   * Get draft render_config for a wedding
    */
-  getTemplates(): Template[] {
-    return TEMPLATES;
+  async getDraftRenderConfig(weddingId: string): Promise<RenderConfig | null> {
+    const supabase = getSupabaseClient();
+
+    const { data, error } = await supabase
+      .from('wedding_sites')
+      .select('draft_render_config, render_config')
+      .eq('wedding_id', weddingId)
+      .single();
+
+    if (error || !data) return null;
+
+    // Return draft if exists, otherwise return published
+    return (data.draft_render_config || data.render_config) as RenderConfig;
   }
 
   /**
-   * Get a template by ID
+   * Update render_config (saves to draft)
    */
-  getTemplate(templateId: string): Template | null {
-    return TEMPLATES.find((t) => t.id === templateId) || null;
+  async updateRenderConfig(weddingId: string, config: RenderConfig): Promise<void> {
+    const supabase = getSupabaseClient();
+
+    const { error } = await supabase
+      .from('wedding_sites')
+      .update({
+        draft_render_config: config,
+        draft_updated_at: new Date().toISOString(),
+      })
+      .eq('wedding_id', weddingId);
+
+    if (error) {
+      this.logger.error('Failed to update render config', error);
+      throw new Error('Failed to update render config');
+    }
   }
 
   /**
-   * Update feature flags for a wedding
-   * Updates both the wedding record and regenerates render_config with new flags
+   * Publish draft changes
    */
-  updateFeatures(
-    weddingId: string,
-    features: Partial<Record<FeatureFlag, boolean>>,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
+  async publishDraft(weddingId: string): Promise<{ wedding: Wedding; renderConfig: RenderConfig; message: string } | null> {
+    const supabase = getSupabaseClient();
+
+    const { data: site } = await supabase
+      .from('wedding_sites')
+      .select('draft_render_config, render_config')
+      .eq('wedding_id', weddingId)
+      .single();
+
+    if (!site) return null;
+
+    const draftConfig = site.draft_render_config as RenderConfig | null;
+    const publishedConfig = site.render_config as RenderConfig;
+
+    const wedding = await this.getWedding(weddingId);
+    if (!wedding) return null;
+
+    if (!draftConfig) {
+      return { wedding, renderConfig: publishedConfig, message: 'No changes to publish.' };
     }
 
-    // Update wedding features
+    // Publish: copy draft to render_config, clear draft
+    const { error } = await supabase
+      .from('wedding_sites')
+      .update({
+        render_config: draftConfig,
+        draft_render_config: null,
+        draft_updated_at: null,
+        last_published_at: new Date().toISOString(),
+        preview_status: 'published',
+      })
+      .eq('wedding_id', weddingId);
+
+    if (error) {
+      this.logger.error('Failed to publish draft', error);
+      throw new Error('Failed to publish draft');
+    }
+
+    return { wedding, renderConfig: draftConfig, message: 'Changes published successfully.' };
+  }
+
+  /**
+   * Discard draft changes
+   */
+  async discardDraft(weddingId: string): Promise<{ wedding: Wedding; renderConfig: RenderConfig; message: string } | null> {
+    const supabase = getSupabaseClient();
+
+    const { data: site } = await supabase
+      .from('wedding_sites')
+      .select('render_config')
+      .eq('wedding_id', weddingId)
+      .single();
+
+    if (!site) return null;
+
+    const wedding = await this.getWedding(weddingId);
+    if (!wedding) return null;
+
+    // Clear draft
+    await supabase
+      .from('wedding_sites')
+      .update({
+        draft_render_config: null,
+        draft_updated_at: null,
+      })
+      .eq('wedding_id', weddingId);
+
+    return {
+      wedding,
+      renderConfig: site.render_config as RenderConfig,
+      message: 'Changes discarded.',
+    };
+  }
+
+  /**
+   * Update wedding features
+   */
+  async updateFeatures(
+    weddingId: string,
+    features: Partial<Record<FeatureFlag, boolean>>,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const supabase = getSupabaseClient();
+
+    const wedding = await this.getWedding(weddingId);
+    if (!wedding) return null;
+
+    // Merge features
     const updatedFeatures = { ...wedding.features };
     for (const [flag, enabled] of Object.entries(features) as [FeatureFlag, boolean][]) {
       if (ALL_FEATURES.includes(flag)) {
@@ -665,610 +490,182 @@ export class WeddingService {
       }
     }
 
-    // Update wedding record
-    wedding.features = updatedFeatures;
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
+    // Update wedding
+    await supabase
+      .from('weddings')
+      .update({ features: updatedFeatures, updated_at: new Date().toISOString() })
+      .eq('id', weddingId);
 
-    // Get or create draft config for updates
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
+    // Update render config
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
 
-    const hasPhotoSection = draftConfig.sections.some((section) => section.type === 'photo-upload');
-    const hasFaqSection = draftConfig.sections.some((section) => section.type === 'faq');
-    const hasRegistrySection = draftConfig.sections.some((section) => section.type === 'registry');
-    const hasGuestbookSection = draftConfig.sections.some((section) => section.type === 'guestbook');
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      features: updatedFeatures,
-      // Also update section enabled states based on features
-      sections: draftConfig.sections.map((section) => {
-        if (section.type === 'rsvp') {
-          return { ...section, enabled: updatedFeatures.RSVP };
-        }
-        if (section.type === 'photo-upload') {
-          return { ...section, enabled: updatedFeatures.PHOTO_UPLOAD };
-        }
-        if (section.type === 'faq') {
-          return { ...section, enabled: updatedFeatures.FAQ_SECTION };
-        }
-        if (section.type === 'registry') {
-          return { ...section, enabled: updatedFeatures.REGISTRY };
-        }
-        if (section.type === 'accommodations') {
-          return { ...section, enabled: updatedFeatures.ACCOMMODATIONS };
-        }
-        if (section.type === 'guestbook') {
-          return { ...section, enabled: updatedFeatures.GUESTBOOK };
-        }
-        if (section.type === 'music-request') {
-          return { ...section, enabled: updatedFeatures.MUSIC_REQUESTS };
-        }
-        if (section.type === 'seating') {
-          return { ...section, enabled: updatedFeatures.SEATING_CHART };
-        }
-        if (section.type === 'video') {
-          // Video section is enabled only when feature is enabled AND videos exist
-          const hasVideos = (wedding.video?.videos.length ?? 0) > 0;
-          return { ...section, enabled: updatedFeatures.VIDEO_EMBED && hasVideos };
-        }
-        return section;
-      }),
-    };
-
-    if (!hasPhotoSection) {
-      const maxOrder = updatedConfig.sections.reduce((max, section) => Math.max(max, section.order), -1);
-      updatedConfig.sections = [
-        ...updatedConfig.sections,
-        createPhotoUploadSection(maxOrder + 1, updatedFeatures.PHOTO_UPLOAD),
-      ];
-    }
-
-    if (!hasFaqSection) {
-      const maxOrder = updatedConfig.sections.reduce((max, section) => Math.max(max, section.order), -1);
-      updatedConfig.sections = [
-        ...updatedConfig.sections,
-        createFaqSection(maxOrder + 1, updatedFeatures.FAQ_SECTION),
-      ];
-    }
-
-    if (!hasRegistrySection) {
-      const maxOrder = updatedConfig.sections.reduce((max, section) => Math.max(max, section.order), -1);
-      updatedConfig.sections = [
-        ...updatedConfig.sections,
-        createRegistrySection(maxOrder + 1, updatedFeatures.REGISTRY),
-      ];
-    }
-
-    const hasAccommodationsSection = updatedConfig.sections.some((section) => section.type === 'accommodations');
-    if (!hasAccommodationsSection) {
-      const maxOrder = updatedConfig.sections.reduce((max, section) => Math.max(max, section.order), -1);
-      updatedConfig.sections = [
-        ...updatedConfig.sections,
-        createAccommodationsSection(maxOrder + 1, updatedFeatures.ACCOMMODATIONS),
-      ];
-    }
-
-    if (!hasGuestbookSection) {
-      const maxOrder = updatedConfig.sections.reduce((max, section) => Math.max(max, section.order), -1);
-      updatedConfig.sections = [
-        ...updatedConfig.sections,
-        createGuestbookSection(maxOrder + 1, updatedFeatures.GUESTBOOK),
-      ];
-    }
-
-    const hasMusicRequestSection = updatedConfig.sections.some((section) => section.type === 'music-request');
-    if (!hasMusicRequestSection) {
-      const maxOrder = updatedConfig.sections.reduce((max, section) => Math.max(max, section.order), -1);
-      updatedConfig.sections = [
-        ...updatedConfig.sections,
-        createMusicRequestSection(maxOrder + 1, updatedFeatures.MUSIC_REQUESTS),
-      ];
-    }
-
-    const hasSeatingSection = updatedConfig.sections.some((section) => section.type === 'seating');
-    if (!hasSeatingSection) {
-      const maxOrder = updatedConfig.sections.reduce((max, section) => Math.max(max, section.order), -1);
-      updatedConfig.sections = [
-        ...updatedConfig.sections,
-        createSeatingSection(maxOrder + 1, updatedFeatures.SEATING_CHART),
-      ];
-    }
-
-    const hasVideoSection = updatedConfig.sections.some((section) => section.type === 'video');
-    if (!hasVideoSection) {
-      const maxOrder = updatedConfig.sections.reduce((max, section) => Math.max(max, section.order), -1);
-      const hasVideos = (wedding.video?.videos.length ?? 0) > 0;
-      updatedConfig.sections = [
-        ...updatedConfig.sections,
-        createVideoSection(maxOrder + 1, updatedFeatures.VIDEO_EMBED && hasVideos),
-      ];
-    }
-
-    // Update draft, not published
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
-
-    this.logger.log(`Updated features for wedding ${weddingId} (draft): ${JSON.stringify(updatedFeatures)}`);
-
-    return { wedding, renderConfig: updatedConfig };
-  }
-
-  /**
-   * Update announcement banner for a wedding
-   * Updates both the wedding record and DRAFT render_config announcement content
-   * Changes go to draft; call publishDraft() to make them live
-   */
-  updateAnnouncement(
-    weddingId: string,
-    announcement: Announcement,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-
-    wedding.announcement = announcement;
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
-
-    // Get or create draft config
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
-
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      announcement,
-    };
-
-    // Update draft, not published
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
-
-    this.logger.log(`Updated announcement banner for wedding ${weddingId} (draft)`);
-
-    return { wedding, renderConfig: updatedConfig };
-  }
-
-  /**
-   * Update event details for a wedding
-   * Updates both the wedding record and render_config event details
-   * Supports both single-event (legacy) and multi-event configurations
-   */
-  updateEventDetails(
-    weddingId: string,
-    eventDetails: EventDetailsData,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-
-    // If events array is provided, use first event (typically ceremony) for top-level fields
-    // This ensures backwards compatibility with calendar invites and legacy rendering
-    let normalizedEventDetails = { ...eventDetails };
-    if (eventDetails.events && eventDetails.events.length > 0) {
-      const primaryEvent = eventDetails.events[0];
-      normalizedEventDetails = {
-        date: primaryEvent.date,
-        startTime: primaryEvent.startTime,
-        endTime: primaryEvent.endTime,
-        venue: primaryEvent.venue,
-        address: primaryEvent.address,
-        city: primaryEvent.city,
-        timezone: primaryEvent.timezone,
-        events: eventDetails.events,
+    config.features = updatedFeatures;
+    config.sections = config.sections.map((section) => {
+      const featureMap: Record<string, FeatureFlag> = {
+        'rsvp': 'RSVP',
+        'photo-upload': 'PHOTO_UPLOAD',
+        'faq': 'FAQ_SECTION',
+        'registry': 'REGISTRY',
+        'accommodations': 'ACCOMMODATIONS',
+        'guestbook': 'GUESTBOOK',
+        'music-request': 'MUSIC_REQUESTS',
+        'seating': 'SEATING_CHART',
+        'video': 'VIDEO_EMBED',
       };
-    }
-
-    wedding.eventDetails = normalizedEventDetails;
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
-
-    // Get or create draft config for updates
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
-
-    // Update draft render_config with event details
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      eventDetails: normalizedEventDetails,
-      wedding: {
-        ...draftConfig.wedding,
-        date: normalizedEventDetails.date,
-        venue: normalizedEventDetails.venue,
-        city: normalizedEventDetails.city,
-      },
-    };
-
-    // Update draft, not published
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
-
-    const eventCount = normalizedEventDetails.events?.length || 1;
-    this.logger.log(`Updated event details for wedding ${weddingId} (draft, ${eventCount} event(s))`);
-
-    return { wedding, renderConfig: updatedConfig };
-  }
-
-  /**
-   * Update FAQ items for a wedding
-   * Updates both the wedding record and DRAFT render_config FAQ content
-   */
-  updateFaq(
-    weddingId: string,
-    faq: FaqConfig,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-
-    wedding.faq = faq;
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
-
-    // Get or create draft config for updates
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
-
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      faq,
-    };
-
-    // Update draft, not published
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
-
-    this.logger.log(`Updated FAQ for wedding ${weddingId} (draft, ${faq.items.length} items)`);
-
-    return { wedding, renderConfig: updatedConfig };
-  }
-
-  /**
-   * Update hero section content for a wedding
-   * Updates the hero section in DRAFT render_config with new headline and subheadline
-   */
-  updateHeroContent(
-    weddingId: string,
-    heroContent: HeroContentData,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-
-    // Get or create draft config for updates
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
-
-    // Update the hero section data in draft render_config
-    const updatedSections = draftConfig.sections.map((section) => {
-      if (section.type === 'hero') {
-        return {
-          ...section,
-          data: {
-            ...section.data,
-            headline: heroContent.headline,
-            ...(heroContent.subheadline && { subheadline: heroContent.subheadline }),
-          },
-        };
+      const feature = featureMap[section.type];
+      if (feature) {
+        return { ...section, enabled: updatedFeatures[feature] };
       }
       return section;
     });
 
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      sections: updatedSections,
-    };
+    await this.updateRenderConfig(weddingId, config);
 
-    // Update draft, not published
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
-
-    // Update wedding timestamp
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
-
-    this.logger.log(`Updated hero content for wedding ${weddingId} (draft)`);
-
-    return { wedding, renderConfig: updatedConfig };
+    wedding.features = updatedFeatures;
+    return { wedding, renderConfig: config };
   }
 
   /**
-   * Update gift registry links for a wedding
-   * PRD: "Admin can add gift registry links"
+   * Update event details
    */
-  updateRegistry(
+  async updateEventDetails(
     weddingId: string,
-    registry: RegistryConfig,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
+    eventDetails: EventDetailsData,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const supabase = getSupabaseClient();
 
-    wedding.registry = registry;
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
+    await supabase
+      .from('weddings')
+      .update({ event_details: eventDetails, updated_at: new Date().toISOString() })
+      .eq('id', weddingId);
 
-    // Get or create draft config for updates
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
 
-    // Update registry in draft render_config
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      registry: registry.links.length > 0 ? registry : undefined,
-    };
+    config.eventDetails = eventDetails;
+    config.wedding.date = eventDetails.date;
+    config.wedding.venue = eventDetails.venue;
+    config.wedding.city = eventDetails.city;
 
-    // Update draft, not published
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
+    await this.updateRenderConfig(weddingId, config);
 
-    this.logger.log(`Updated registry for wedding ${weddingId} (draft, ${registry.links.length} links)`);
-
-    return { wedding, renderConfig: updatedConfig };
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
   }
 
   /**
-   * Update accommodations and travel info for a wedding
-   * PRD: "Admin can add hotel recommendations"
+   * Update announcement
    */
-  updateAccommodations(
+  async updateAnnouncement(
     weddingId: string,
-    accommodations: AccommodationsConfig,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
+    announcement: Announcement,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
 
-    wedding.accommodations = accommodations;
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
+    config.announcement = announcement;
+    await this.updateRenderConfig(weddingId, config);
 
-    // Get or create draft config for updates
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
-
-    // Update accommodations in draft render_config
-    const hasContent = accommodations.hotels.length > 0 ||
-      accommodations.travelInfo?.airportDirections ||
-      accommodations.travelInfo?.parkingInfo ||
-      accommodations.travelInfo?.mapUrl;
-
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      accommodations: hasContent ? accommodations : undefined,
-    };
-
-    // Update draft, not published
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
-
-    this.logger.log(`Updated accommodations for wedding ${weddingId} (draft, ${accommodations.hotels.length} hotels)`);
-
-    return { wedding, renderConfig: updatedConfig };
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
   }
 
   /**
-   * Update email templates for a wedding
-   * PRD: "Admin can customize invitation email content"
-   * PRD: "Email templates support merge fields"
+   * Update FAQ
    */
-  updateEmailTemplates(
+  async updateFaq(
     weddingId: string,
-    emailTemplates: EmailTemplatesConfig,
-  ): Wedding | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
+    faq: FaqConfig,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
 
-    wedding.emailTemplates = emailTemplates;
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
+    config.faq = faq;
+    await this.updateRenderConfig(weddingId, config);
 
-    const templateCount = [
-      emailTemplates.invitation,
-      emailTemplates.reminder,
-      emailTemplates.saveTheDate,
-      emailTemplates.thankYouAttended,
-      emailTemplates.thankYouNotAttended,
-    ].filter(Boolean).length;
-
-    this.logger.log(`Updated email templates for wedding ${weddingId}: ${templateCount} templates configured`);
-
-    return wedding;
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
   }
 
   /**
-   * Update photo moderation settings for a wedding
-   * PRD: "Admin can enable photo moderation"
+   * Update meal config
    */
-  updatePhotoModeration(
+  async updateMealConfig(
     weddingId: string,
-    moderationRequired: boolean,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
+    mealConfig: MealConfig,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const supabase = getSupabaseClient();
 
-    wedding.photoModerationConfig = { moderationRequired };
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
+    await supabase
+      .from('weddings')
+      .update({ meal_config: mealConfig, updated_at: new Date().toISOString() })
+      .eq('id', weddingId);
 
-    const existingConfig = this.renderConfigs.get(weddingId);
-    if (!existingConfig) {
-      return null;
-    }
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
 
-    // Render config doesn't need moderation config - it's admin-only setting
-    this.logger.log(
-      `Updated photo moderation for wedding ${weddingId}: moderationRequired=${moderationRequired}`,
-    );
+    config.mealConfig = mealConfig.enabled ? mealConfig : undefined;
+    await this.updateRenderConfig(weddingId, config);
 
-    return { wedding, renderConfig: existingConfig };
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
   }
 
   /**
-   * Check if photo moderation is required for a wedding
-   */
-  isPhotoModerationRequired(weddingId: string): boolean {
-    const wedding = this.weddings.get(weddingId);
-    return wedding?.photoModerationConfig?.moderationRequired ?? false;
-  }
-
-  /**
-   * Change a wedding's template while preserving content
-   * This updates the DRAFT render_config with the new template and its theme,
-   * but keeps the existing sections data (content) intact.
-   */
-  changeTemplate(weddingId: string, templateId: string): RenderConfig | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-
-    const template = this.getTemplate(templateId);
-    if (!template) {
-      return null;
-    }
-
-    // Get or create draft config for updates
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
-
-    // Update draft render_config with new template while preserving content
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      templateId: template.id,
-      theme: template.defaultTheme,
-      // Sections (content) are preserved - only visual presentation changes
-    };
-
-    // Store updated draft config
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
-
-    // Update wedding timestamp
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
-
-    this.logger.log(`Changed template for wedding ${weddingId} to ${templateId} (draft)`);
-
-    return updatedConfig;
-  }
-
-  /**
-   * Update passcode settings for a wedding
-   * If enabled=true and passcode is provided, hash and store the passcode
-   * If enabled=false, disable passcode protection
+   * Update passcode
    */
   async updatePasscode(
     weddingId: string,
     enabled: boolean,
     passcode?: string,
   ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
+    const supabase = getSupabaseClient();
+    const wedding = await this.getWedding(weddingId);
+    if (!wedding) return null;
 
-    // Build the passcode config
     let passcodeConfig: PasscodeConfigBase;
-    if (enabled) {
-      // When enabling, we need a passcode to hash
-      if (!passcode) {
-        // If no new passcode and already has one, keep existing hash
-        if (wedding.passcodeConfig?.passcodeHash) {
-          passcodeConfig = {
-            enabled: true,
-            passcodeHash: wedding.passcodeConfig.passcodeHash,
-          };
-        } else {
-          // Cannot enable without a passcode
-          return null;
-        }
-      } else {
-        // Hash the new passcode
-        const passcodeHash = await hashPasscode(passcode);
-        passcodeConfig = {
-          enabled: true,
-          passcodeHash,
-        };
-      }
+
+    if (enabled && passcode) {
+      const passcodeHash = await hashPasscode(passcode);
+      passcodeConfig = { enabled: true, passcodeHash };
+    } else if (enabled && wedding.passcodeConfig?.passcodeHash) {
+      passcodeConfig = { enabled: true, passcodeHash: wedding.passcodeConfig.passcodeHash };
     } else {
-      // Disable passcode (keep the hash in case they re-enable)
-      passcodeConfig = {
-        enabled: false,
-        passcodeHash: wedding.passcodeConfig?.passcodeHash,
-      };
+      passcodeConfig = { enabled: false, passcodeHash: wedding.passcodeConfig?.passcodeHash };
     }
 
-    wedding.passcodeConfig = passcodeConfig;
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
+    await supabase
+      .from('weddings')
+      .update({ passcode_config: passcodeConfig, updated_at: new Date().toISOString() })
+      .eq('id', weddingId);
 
-    // Get or create draft config for updates
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
 
-    // Update draft render_config with passcode protection status
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      passcodeProtected: enabled && !!passcodeConfig.passcodeHash,
-    };
+    config.passcodeProtected = enabled && !!passcodeConfig.passcodeHash;
+    await this.updateRenderConfig(weddingId, config);
 
-    // Update draft, not published
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
-
-    this.logger.log(`Updated passcode settings for wedding ${weddingId} (draft): enabled=${enabled}`);
-
-    return { wedding, renderConfig: updatedConfig };
+    const updatedWedding = await this.getWedding(weddingId);
+    return updatedWedding ? { wedding: updatedWedding, renderConfig: config } : null;
   }
 
   /**
-   * Verify a passcode for a wedding (guest-facing)
-   * Returns true if the passcode matches, false otherwise
-   * Uses timing-safe comparison to prevent timing attacks
+   * Verify wedding passcode
    */
   async verifyWeddingPasscode(slug: string, passcode: string): Promise<boolean> {
-    const wedding = this.getWeddingBySlug(slug);
-    if (!wedding) {
-      return false;
-    }
-
-    // If passcode is not enabled or not configured, deny access
-    if (!wedding.passcodeConfig?.enabled || !wedding.passcodeConfig?.passcodeHash) {
-      return false;
-    }
-
+    const wedding = await this.getWeddingBySlug(slug);
+    if (!wedding) return false;
+    if (!wedding.passcodeConfig?.enabled || !wedding.passcodeConfig?.passcodeHash) return false;
     return verifyPasscode(passcode, wedding.passcodeConfig.passcodeHash);
   }
 
   /**
-   * Check if a wedding requires passcode to access
+   * Check if passcode is required
    */
-  isPasscodeRequired(slug: string): boolean {
-    const wedding = this.getWeddingBySlug(slug);
-    if (!wedding) {
-      return false;
-    }
-
+  async isPasscodeRequired(slug: string): Promise<boolean> {
+    const wedding = await this.getWeddingBySlug(slug);
+    if (!wedding) return false;
     return !!(
       wedding.features.PASSCODE_SITE &&
       wedding.passcodeConfig?.enabled &&
@@ -1276,338 +673,102 @@ export class WeddingService {
     );
   }
 
-  /**
-   * Update meal options configuration for a wedding
-   * Updates both the wedding record and regenerates render_config
-   */
-  updateMealConfig(
-    weddingId: string,
-    mealConfig: MealConfig,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
+  // Template methods (no database needed)
+  getTemplates(): Template[] {
+    return TEMPLATES;
+  }
 
-    wedding.mealConfig = mealConfig;
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
+  getTemplate(templateId: string): Template | null {
+    return TEMPLATES.find((t) => t.id === templateId) || null;
+  }
 
-    // Get or create draft config for updates
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
+  async changeTemplate(weddingId: string, templateId: string): Promise<RenderConfig | null> {
+    const template = this.getTemplate(templateId);
+    if (!template) return null;
 
-    // Update draft render_config with meal options
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      mealConfig: mealConfig.enabled && mealConfig.options.length > 0 ? mealConfig : undefined,
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
+
+    config.templateId = template.id;
+    config.theme = template.defaultTheme;
+    await this.updateRenderConfig(weddingId, config);
+
+    return config;
+  }
+
+  // Preview status
+  async getPreviewStatus(weddingId: string): Promise<PreviewStatus | null> {
+    const supabase = getSupabaseClient();
+
+    const { data } = await supabase
+      .from('wedding_sites')
+      .select('draft_render_config, render_config, draft_updated_at, last_published_at')
+      .eq('wedding_id', weddingId)
+      .single();
+
+    if (!data) return null;
+
+    const hasDraftChanges = !!data.draft_render_config &&
+      JSON.stringify(data.draft_render_config) !== JSON.stringify(data.render_config);
+
+    return {
+      hasDraftChanges,
+      draftUpdatedAt: data.draft_updated_at,
+      lastPublishedAt: data.last_published_at,
     };
-
-    // Update draft, not published
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
-
-    this.logger.log(
-      `Updated meal config for wedding ${weddingId} (draft): enabled=${mealConfig.enabled}, options=${mealConfig.options.length}`,
-    );
-
-    return { wedding, renderConfig: updatedConfig };
   }
 
-  /**
-   * Get meal configuration for a wedding
-   */
-  getMealConfig(weddingId: string): MealConfig | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-    return wedding.mealConfig || null;
+  // Language support
+  private static readonly SUPPORTED_LANGUAGES = [
+    { code: 'en', name: 'English', nativeName: 'English' },
+    { code: 'es', name: 'Spanish', nativeName: 'Español' },
+    { code: 'fr', name: 'French', nativeName: 'Français' },
+    { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
+    { code: 'de', name: 'German', nativeName: 'Deutsch' },
+  ];
+
+  getSupportedLanguages() {
+    return WeddingService.SUPPORTED_LANGUAGES;
   }
 
-  /**
-   * Update guestbook configuration in render_config
-   * Called after guestbook messages are moderated
-   * PRD: "Guestbook messages display on public site"
-   */
-  updateGuestbookConfig(
-    weddingId: string,
-    guestbook: GuestbookConfig,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
-
-    // Get or create draft config for updates
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
-
-    // Update guestbook in draft render_config (only approved messages)
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      guestbook: guestbook.messages.length > 0 ? guestbook : undefined,
-    };
-
-    // Update draft, not published
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
-
-    this.logger.log(
-      `Updated guestbook config for wedding ${weddingId} (draft): ${guestbook.messages.length} approved messages`,
-    );
-
-    return { wedding, renderConfig: updatedConfig };
+  isValidLanguage(language: string): boolean {
+    return WeddingService.SUPPORTED_LANGUAGES.some((l) => l.code === language);
   }
 
-  /**
-   * Update seating config in render_config
-   * Called after seating assignments are modified
-   * PRD: "Seating chart can be displayed on public site"
-   */
-  updateSeatingConfig(
-    weddingId: string,
-    seating: SeatingConfig,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
+  async updateLanguage(weddingId: string, language: string): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    if (!this.isValidLanguage(language)) return null;
 
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
 
-    // Get or create draft config for updates
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
+    config.language = language;
+    await this.updateRenderConfig(weddingId, config);
 
-    // Update seating in draft render_config
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      seating: seating.tables.length > 0 ? seating : undefined,
-    };
-
-    // Update draft, not published
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
-
-    this.logger.log(
-      `Updated seating config for wedding ${weddingId} (draft): ${seating.tables.length} tables`,
-    );
-
-    return { wedding, renderConfig: updatedConfig };
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
   }
 
-  /**
-   * Update gallery configuration for a wedding (admin curated photos)
-   * Updates both the wedding record and DRAFT render_config
-   * PRD: "Admin can upload curated photos"
-   */
-  updateGallery(
-    weddingId: string,
-    gallery: GalleryConfig,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-
-    wedding.gallery = gallery;
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
-
-    // Get or create draft config for updates
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
-
-    // Update gallery in draft render_config
-    const hasPhotos = gallery.photos.length > 0;
-
-    // Update the gallery section enabled state
-    const updatedSections = draftConfig.sections.map((section) => {
-      if (section.type === 'gallery') {
-        return { ...section, enabled: hasPhotos };
-      }
-      return section;
-    });
-
-    // Ensure gallery section exists
-    const hasGallerySection = updatedSections.some((s) => s.type === 'gallery');
-    if (!hasGallerySection) {
-      const maxOrder = updatedSections.reduce((max, s) => Math.max(max, s.order), -1);
-      updatedSections.push(createGallerySection(maxOrder + 1, hasPhotos));
-    }
-
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      sections: updatedSections,
-      gallery: hasPhotos ? gallery : undefined,
-    };
-
-    // Update draft, not published
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
-
-    this.logger.log(
-      `Updated gallery for wedding ${weddingId} (draft): ${gallery.photos.length} photos`,
-    );
-
-    return { wedding, renderConfig: updatedConfig };
-  }
-
-  /**
-   * Add a single photo to the gallery
-   * Returns the updated gallery configuration
-   */
-  addGalleryPhoto(
-    weddingId: string,
-    photo: GalleryPhoto,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-
-    const gallery = wedding.gallery ?? { ...DEFAULT_GALLERY };
-
-    // Set order to be last if not specified
-    const photoWithOrder: GalleryPhoto = {
-      ...photo,
-      order: photo.order ?? gallery.photos.length,
-    };
-
-    gallery.photos.push(photoWithOrder);
-
-    return this.updateGallery(weddingId, gallery);
-  }
-
-  /**
-   * Remove a photo from the gallery by ID
-   */
-  removeGalleryPhoto(
-    weddingId: string,
-    photoId: string,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-
-    if (!wedding.gallery) {
-      return null;
-    }
-
-    const updatedPhotos = wedding.gallery.photos.filter((p) => p.id !== photoId);
-
-    // Re-order remaining photos
-    const reorderedPhotos = updatedPhotos.map((p, index) => ({
-      ...p,
-      order: index,
-    }));
-
-    return this.updateGallery(weddingId, { photos: reorderedPhotos });
-  }
-
-  /**
-   * Update a photo's caption or order
-   */
-  updateGalleryPhoto(
-    weddingId: string,
-    photoId: string,
-    updates: { caption?: string; order?: number },
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding || !wedding.gallery) {
-      return null;
-    }
-
-    const photoIndex = wedding.gallery.photos.findIndex((p) => p.id === photoId);
-    if (photoIndex === -1) {
-      return null;
-    }
-
-    const updatedPhotos = [...wedding.gallery.photos];
-    updatedPhotos[photoIndex] = {
-      ...updatedPhotos[photoIndex],
-      ...updates,
-    };
-
-    // If order changed, re-sort and re-number
-    if (updates.order !== undefined) {
-      updatedPhotos.sort((a, b) => a.order - b.order);
-      updatedPhotos.forEach((p, index) => {
-        p.order = index;
-      });
-    }
-
-    return this.updateGallery(weddingId, { photos: updatedPhotos });
-  }
-
-  /**
-   * Get the gallery configuration for a wedding
-   */
-  getGallery(weddingId: string): GalleryConfig | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-    return wedding.gallery ?? { ...DEFAULT_GALLERY };
-  }
-
-  // ============================================================================
-  // Video Embed Methods
-  // ============================================================================
-
-  /**
-   * Parse a YouTube or Vimeo URL and extract the video ID
-   * Supports various URL formats:
-   * - YouTube: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID
-   * - Vimeo: vimeo.com/ID, player.vimeo.com/video/ID
-   */
+  // Video parsing helper
   parseVideoUrl(url: string): { platform: VideoEmbedPlatform; videoId: string } | null {
     try {
       const parsedUrl = new URL(url);
 
-      // YouTube URL patterns
       if (parsedUrl.hostname.includes('youtube.com') || parsedUrl.hostname.includes('youtu.be')) {
         let videoId: string | null = null;
-
         if (parsedUrl.hostname === 'youtu.be') {
-          // Short format: youtu.be/VIDEO_ID
           videoId = parsedUrl.pathname.slice(1);
         } else if (parsedUrl.pathname.includes('/watch')) {
-          // Standard format: youtube.com/watch?v=VIDEO_ID
           videoId = parsedUrl.searchParams.get('v');
         } else if (parsedUrl.pathname.includes('/embed/')) {
-          // Embed format: youtube.com/embed/VIDEO_ID
           videoId = parsedUrl.pathname.split('/embed/')[1]?.split('?')[0];
         }
-
         if (videoId && videoId.length === 11) {
           return { platform: 'youtube', videoId };
         }
       }
 
-      // Vimeo URL patterns
-      if (parsedUrl.hostname.includes('vimeo.com') || parsedUrl.hostname.includes('player.vimeo.com')) {
-        let videoId: string | null = null;
-
-        if (parsedUrl.hostname === 'player.vimeo.com') {
-          // Player format: player.vimeo.com/video/VIDEO_ID
-          videoId = parsedUrl.pathname.split('/video/')[1]?.split('?')[0];
-        } else {
-          // Standard format: vimeo.com/VIDEO_ID
-          videoId = parsedUrl.pathname.slice(1).split('/')[0];
-        }
-
-        // Vimeo IDs are numeric
+      if (parsedUrl.hostname.includes('vimeo.com')) {
+        const videoId = parsedUrl.pathname.slice(1).split('/')[0];
         if (videoId && /^\d+$/.test(videoId)) {
           return { platform: 'vimeo', videoId };
         }
@@ -1619,889 +780,577 @@ export class WeddingService {
     }
   }
 
+  // Custom domain methods
+  async getWeddingByCustomDomain(domain: string): Promise<Wedding | null> {
+    const supabase = getSupabaseClient();
+    const normalizedDomain = domain.toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
+
+    const { data } = await supabase
+      .from('weddings')
+      .select('*')
+      .contains('custom_domain_config', { domain: normalizedDomain, status: 'active' });
+
+    if (!data || data.length === 0) return null;
+    return this.dbWeddingToWedding(data[0] as DbWedding);
+  }
+
+  // Placeholder for session processing (used by billing webhook)
+  private processedSessions = new Set<string>();
+
+  isSessionProcessed(sessionId: string): boolean {
+    return this.processedSessions.has(sessionId);
+  }
+
+  markSessionProcessed(sessionId: string): void {
+    this.processedSessions.add(sessionId);
+  }
+
   /**
-   * Update video configuration for a wedding
-   * Updates both the wedding record and regenerates render_config
-   * PRD: "Admin can embed videos"
+   * Update guestbook config in render_config
    */
-  updateVideo(
+  async updateGuestbookConfig(
+    weddingId: string,
+    guestbook: GuestbookConfig,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
+
+    config.guestbook = guestbook;
+    await this.updateRenderConfig(weddingId, config);
+
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
+  }
+
+  /**
+   * Update photo moderation settings
+   */
+  async updatePhotoModeration(
+    weddingId: string,
+    moderationRequired: boolean,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const supabase = getSupabaseClient();
+
+    await supabase
+      .from('weddings')
+      .update({
+        photo_moderation_config: { moderationRequired },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', weddingId);
+
+    const wedding = await this.getWedding(weddingId);
+    if (!wedding) return null;
+
+    const config = await this.getDraftRenderConfig(weddingId);
+    return config ? { wedding, renderConfig: config } : null;
+  }
+
+  /**
+   * Check if photo moderation is required for a wedding
+   */
+  async isPhotoModerationRequired(weddingId: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+
+    const { data } = await supabase
+      .from('weddings')
+      .select('photo_moderation_config')
+      .eq('id', weddingId)
+      .single();
+
+    if (!data || !data.photo_moderation_config) return false;
+    return (data.photo_moderation_config as { moderationRequired?: boolean }).moderationRequired ?? false;
+  }
+
+  /**
+   * Update registry config
+   */
+  async updateRegistry(
+    weddingId: string,
+    registry: RegistryConfig,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
+
+    config.registry = registry;
+    await this.updateRenderConfig(weddingId, config);
+
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
+  }
+
+  /**
+   * Update accommodations config
+   */
+  async updateAccommodations(
+    weddingId: string,
+    accommodations: AccommodationsConfig,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
+
+    config.accommodations = accommodations;
+    await this.updateRenderConfig(weddingId, config);
+
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
+  }
+
+  /**
+   * Update gallery config
+   */
+  async updateGallery(
+    weddingId: string,
+    gallery: GalleryConfig,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
+
+    config.gallery = gallery;
+    await this.updateRenderConfig(weddingId, config);
+
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
+  }
+
+  /**
+   * Update video config
+   */
+  async updateVideo(
     weddingId: string,
     video: VideoConfig,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
 
-    wedding.video = video;
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
+    config.video = video;
+    await this.updateRenderConfig(weddingId, config);
 
-    // Get or create draft config for updates
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
+  }
 
-    // Update video in render_config
-    const hasVideos = video.videos.length > 0;
-    const featureEnabled = wedding.features.VIDEO_EMBED;
+  /**
+   * Update hero content
+   */
+  async updateHeroContent(
+    weddingId: string,
+    heroContent: HeroContentData,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
 
-    // Update the video section enabled state
-    const updatedSections = draftConfig.sections.map((section) => {
-      if (section.type === 'video') {
-        return { ...section, enabled: featureEnabled && hasVideos };
+    // Update hero section in sections array
+    config.sections = config.sections.map((section) => {
+      if (section.type === 'hero') {
+        return {
+          ...section,
+          data: { ...section.data, headline: heroContent.headline, subheadline: heroContent.subheadline },
+        };
       }
       return section;
     });
 
-    // Ensure video section exists
-    const hasVideoSection = updatedSections.some((s) => s.type === 'video');
-    if (!hasVideoSection) {
-      const maxOrder = updatedSections.reduce((max, s) => Math.max(max, s.order), -1);
-      updatedSections.push(createVideoSection(maxOrder + 1, featureEnabled && hasVideos));
-    }
+    await this.updateRenderConfig(weddingId, config);
 
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      sections: updatedSections,
-      video: (featureEnabled && hasVideos) ? video : undefined,
-    };
-
-    // Update draft, not published
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
-
-    this.logger.log(
-      `Updated video for wedding ${weddingId}: ${video.videos.length} videos`,
-    );
-
-    return { wedding, renderConfig: updatedConfig };
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
   }
 
   /**
-   * Add a single video embed to the wedding
-   * Validates the URL and extracts the platform/videoId
+   * Update social/OG image config
    */
-  addVideo(
-    weddingId: string,
-    url: string,
-    title?: string,
-  ): { wedding: Wedding; renderConfig: RenderConfig; video: VideoEmbed } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-
-    // Parse and validate the URL
-    const parsed = this.parseVideoUrl(url);
-    if (!parsed) {
-      return null;
-    }
-
-    const video = wedding.video ?? { ...DEFAULT_VIDEO };
-
-    // Create the new video embed
-    const newVideo: VideoEmbed = {
-      id: randomBytes(8).toString('hex'),
-      platform: parsed.platform,
-      videoId: parsed.videoId,
-      url,
-      title,
-      order: video.videos.length,
-      addedAt: new Date().toISOString(),
-    };
-
-    video.videos.push(newVideo);
-
-    const result = this.updateVideo(weddingId, video);
-    if (!result) {
-      return null;
-    }
-
-    return { ...result, video: newVideo };
-  }
-
-  /**
-   * Remove a video from the wedding by ID
-   */
-  removeVideo(
-    weddingId: string,
-    videoId: string,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding || !wedding.video) {
-      return null;
-    }
-
-    const updatedVideos = wedding.video.videos.filter((v) => v.id !== videoId);
-
-    // Re-order remaining videos
-    const reorderedVideos = updatedVideos.map((v, index) => ({
-      ...v,
-      order: index,
-    }));
-
-    return this.updateVideo(weddingId, { videos: reorderedVideos });
-  }
-
-  /**
-   * Update a video's title or order
-   */
-  updateVideoEmbed(
-    weddingId: string,
-    videoId: string,
-    updates: { title?: string; order?: number },
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding || !wedding.video) {
-      return null;
-    }
-
-    const videoIndex = wedding.video.videos.findIndex((v) => v.id === videoId);
-    if (videoIndex === -1) {
-      return null;
-    }
-
-    const updatedVideos = [...wedding.video.videos];
-    updatedVideos[videoIndex] = {
-      ...updatedVideos[videoIndex],
-      ...updates,
-    };
-
-    // If order changed, re-sort and re-number
-    if (updates.order !== undefined) {
-      updatedVideos.sort((a, b) => a.order - b.order);
-      updatedVideos.forEach((v, index) => {
-        v.order = index;
-      });
-    }
-
-    return this.updateVideo(weddingId, { videos: updatedVideos });
-  }
-
-  /**
-   * Get the video configuration for a wedding
-   */
-  getVideo(weddingId: string): VideoConfig | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-    return wedding.video ?? { ...DEFAULT_VIDEO };
-  }
-
-  // ============================================================================
-  // Social Config / OG Image Methods
-  // ============================================================================
-
-  /**
-   * Update social sharing configuration for a wedding (custom OG image)
-   * Updates both the wedding record and regenerates render_config
-   * PRD: "Admin can customize share image"
-   */
-  updateSocialConfig(
+  async updateSocialConfig(
     weddingId: string,
     socialConfig: SocialConfig,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
 
-    wedding.socialConfig = socialConfig;
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
+    config.ogImageUrl = socialConfig.ogImageUrl;
+    await this.updateRenderConfig(weddingId, config);
 
-    // Get or create draft config for updates
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
-
-    // Update draft with new OG image URL
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      ogImageUrl: socialConfig.ogImageUrl,
-    };
-
-    // Update draft, not published
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
-
-    this.logger.log(
-      `Updated social config for wedding ${weddingId}: ogImageUrl=${socialConfig.ogImageUrl ?? 'none'}`,
-    );
-
-    return { wedding, renderConfig: updatedConfig };
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
   }
 
   /**
-   * Get social config for a wedding
+   * Update theme
    */
-  getSocialConfig(weddingId: string): SocialConfig | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-    return wedding.socialConfig ?? {};
-  }
-
-// ============================================================================
-  // Language / i18n Methods
-  // PRD: "Admin can set site language"
-  // ============================================================================
-
-  /**
-   * Supported languages for wedding sites
-   */
-  private static readonly SUPPORTED_LANGUAGES = [
-    { code: 'en', name: 'English', nativeName: 'English' },
-    { code: 'es', name: 'Spanish', nativeName: 'Español' },
-    { code: 'fr', name: 'French', nativeName: 'Français' },
-    { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
-    { code: 'de', name: 'German', nativeName: 'Deutsch' },
-    { code: 'it', name: 'Italian', nativeName: 'Italiano' },
-    { code: 'nl', name: 'Dutch', nativeName: 'Nederlands' },
-    { code: 'ja', name: 'Japanese', nativeName: '日本語' },
-    { code: 'zh', name: 'Chinese (Simplified)', nativeName: '简体中文' },
-    { code: 'ko', name: 'Korean', nativeName: '한국어' },
-  ] as const;
-
-  /**
-   * Get list of supported languages for admin UI
-   */
-  getSupportedLanguages(): { code: string; name: string; nativeName: string }[] {
-    return [...WeddingService.SUPPORTED_LANGUAGES];
-  }
-
-  /**
-   * Check if a language code is valid/supported
-   */
-  isValidLanguage(language: string): boolean {
-    return WeddingService.SUPPORTED_LANGUAGES.some((l) => l.code === language);
-  }
-
-  /**
-   * Update site language for a wedding
-   * Updates both the wedding record and DRAFT render_config language setting
-   * PRD: "Admin can set site language"
-   */
-  updateLanguage(
+  async updateTheme(
     weddingId: string,
-    language: string,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
+    theme: Theme,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
 
-    // Validate language code
-    if (!this.isValidLanguage(language)) {
-      return null;
-    }
+    config.theme = theme;
+    await this.updateRenderConfig(weddingId, config);
 
-    wedding.language = language;
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
-
-    // Get or create draft config for updates
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
-
-    // Update draft with new language
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      language,
-    };
-
-    // Update draft, not published
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
-
-    this.logger.log(`Updated language for wedding ${weddingId} (draft): ${language}`);
-
-    return { wedding, renderConfig: updatedConfig };
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
   }
 
   /**
-   * Get current language for a wedding (defaults to 'en')
+   * Update seating config
    */
-  getLanguage(weddingId: string): string {
-    const wedding = this.weddings.get(weddingId);
-    return wedding?.language ?? 'en';
-  }
-
-  /**
-   * Remove the custom OG image from a wedding
-   */
-  removeSocialOgImage(
+  async updateSeating(
     weddingId: string,
-  ): { wedding: Wedding; renderConfig: RenderConfig } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
+    seating: SeatingConfig,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
 
-    // Clear the OG image fields but keep other social config
-    wedding.socialConfig = {
-      ...wedding.socialConfig,
-      ogImageUrl: undefined,
-      ogImageFileName: undefined,
-      ogImageContentType: undefined,
-      ogImageUploadedAt: undefined,
-    };
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
+    config.seating = seating;
+    await this.updateRenderConfig(weddingId, config);
 
-    // Get or create draft config for updates
-    const draftConfig = this.getOrCreateDraft(weddingId);
-    if (!draftConfig) {
-      return null;
-    }
-
-    // Update draft without OG image
-    const updatedConfig: RenderConfig = {
-      ...draftConfig,
-      ogImageUrl: undefined,
-    };
-
-    // Update draft, not published
-    this.updateDraftRenderConfig(weddingId, updatedConfig);
-
-    this.logger.log(`Removed OG image for wedding ${weddingId}`);
-
-    return { wedding, renderConfig: updatedConfig };
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
   }
 
-  // ============================================================================
-  // Preview / Draft Workflow Methods
-  // PRD: "Admin can preview site before publishing"
-  // PRD: "Admin can publish or discard changes"
-  // ============================================================================
-
-  /**
-   * Get the draft render_config for a wedding (creates one if doesn't exist)
-   * The draft starts as a copy of the published config
-   */
-  getDraftRenderConfig(weddingId: string): RenderConfig | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-
-    // If no draft exists, return a copy of the published config
-    if (!this.draftRenderConfigs.has(weddingId)) {
-      const publishedConfig = this.renderConfigs.get(weddingId);
-      if (publishedConfig) {
-        // Deep clone the published config as the initial draft
-        const draftConfig = JSON.parse(JSON.stringify(publishedConfig)) as RenderConfig;
-        this.draftRenderConfigs.set(weddingId, draftConfig);
-        this.draftUpdatedAt.set(weddingId, new Date().toISOString());
-      }
-    }
-
-    return this.draftRenderConfigs.get(weddingId) ?? null;
+  // Alias for backwards compatibility
+  async updateSeatingConfig(
+    weddingId: string,
+    seating: SeatingConfig,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    return this.updateSeating(weddingId, seating);
   }
 
   /**
-   * Get the published render_config for a wedding
-   * This is what the public wedding site renders from
+   * Check if wedding has unpublished draft changes
    */
-  getPublishedRenderConfig(weddingId: string): RenderConfig | null {
-    return this.renderConfigs.get(weddingId) ?? null;
+  async hasDraftChanges(weddingId: string): Promise<boolean> {
+    const status = await this.getPreviewStatus(weddingId);
+    return status?.hasDraftChanges ?? false;
   }
 
   /**
-   * Check if a wedding has unpublished draft changes
+   * Update email templates for a wedding
    */
-  hasDraftChanges(weddingId: string): boolean {
-    const draftConfig = this.draftRenderConfigs.get(weddingId);
-    const publishedConfig = this.renderConfigs.get(weddingId);
+  async updateEmailTemplates(
+    weddingId: string,
+    emailTemplates: EmailTemplatesConfig,
+  ): Promise<{ wedding: Wedding } | null> {
+    const supabase = getSupabaseClient();
 
-    if (!draftConfig || !publishedConfig) {
-      return false;
-    }
+    await supabase
+      .from('weddings')
+      .update({
+        email_templates: emailTemplates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', weddingId);
 
-    // Compare by JSON serialization (simple but effective for this use case)
-    return JSON.stringify(draftConfig) !== JSON.stringify(publishedConfig);
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding } : null;
   }
 
   /**
-   * Get preview status for a wedding
+   * Get custom domain config for a wedding
    */
-  getPreviewStatus(weddingId: string): PreviewStatus | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
+  async getCustomDomain(weddingId: string): Promise<{
+    customDomain: CustomDomainConfig | null;
+    defaultDomainUrl: string;
+    customDomainUrl?: string;
+  } | null> {
+    const wedding = await this.getWedding(weddingId);
+    if (!wedding) return null;
+
+    const baseDomain = process.env.NETLIFY_SITE_DOMAIN || 'wedding-bestie.netlify.app';
+    const defaultDomainUrl = `https://${baseDomain}/w/${wedding.slug}`;
 
     return {
-      hasDraftChanges: this.hasDraftChanges(weddingId),
-      draftUpdatedAt: this.draftUpdatedAt.get(weddingId),
-      lastPublishedAt: this.lastPublishedAt.get(weddingId),
+      customDomain: wedding.customDomain ?? null,
+      defaultDomainUrl,
+      customDomainUrl: wedding.customDomain?.status === 'active'
+        ? `https://${wedding.customDomain.domain}`
+        : undefined,
     };
-  }
-
-  /**
-   * Update the draft render_config for a wedding
-   * This is called by all content update methods to update draft instead of published
-   */
-  private updateDraftRenderConfig(weddingId: string, config: RenderConfig): void {
-    this.draftRenderConfigs.set(weddingId, config);
-    this.draftUpdatedAt.set(weddingId, new Date().toISOString());
-  }
-
-  /**
-   * Publish draft changes - copy draft to published
-   * Returns the updated wedding and render_config
-   */
-  publishDraft(weddingId: string): { wedding: Wedding; renderConfig: RenderConfig; message: string } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-
-    const draftConfig = this.draftRenderConfigs.get(weddingId);
-    if (!draftConfig) {
-      // No draft exists, return current published config
-      const publishedConfig = this.renderConfigs.get(weddingId);
-      if (!publishedConfig) {
-        return null;
-      }
-      return {
-        wedding,
-        renderConfig: publishedConfig,
-        message: 'No changes to publish.',
-      };
-    }
-
-    // Check if there are actual changes
-    if (!this.hasDraftChanges(weddingId)) {
-      const publishedConfig = this.renderConfigs.get(weddingId);
-      if (!publishedConfig) {
-        return null;
-      }
-      return {
-        wedding,
-        renderConfig: publishedConfig,
-        message: 'No changes to publish.',
-      };
-    }
-
-    // Copy draft to published
-    const publishedConfig = JSON.parse(JSON.stringify(draftConfig)) as RenderConfig;
-    this.renderConfigs.set(weddingId, publishedConfig);
-
-    // Update timestamps
-    const now = new Date().toISOString();
-    this.lastPublishedAt.set(weddingId, now);
-    wedding.updatedAt = now;
-    this.weddings.set(weddingId, wedding);
-
-    // Clear the draft (it now matches published)
-    this.draftRenderConfigs.delete(weddingId);
-    this.draftUpdatedAt.delete(weddingId);
-
-    this.logger.log(`Published draft for wedding ${weddingId}`);
-
-    return {
-      wedding,
-      renderConfig: publishedConfig,
-      message: 'Changes published successfully. Your site is now updated.',
-    };
-  }
-
-  /**
-   * Discard draft changes - delete draft and revert to published
-   * Returns the wedding and published render_config
-   */
-  discardDraft(weddingId: string): { wedding: Wedding; renderConfig: RenderConfig; message: string } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
-
-    const publishedConfig = this.renderConfigs.get(weddingId);
-    if (!publishedConfig) {
-      return null;
-    }
-
-    // Check if there was a draft
-    const hadDraft = this.hasDraftChanges(weddingId);
-
-    // Delete the draft
-    this.draftRenderConfigs.delete(weddingId);
-    this.draftUpdatedAt.delete(weddingId);
-
-    this.logger.log(`Discarded draft for wedding ${weddingId}`);
-
-    return {
-      wedding,
-      renderConfig: publishedConfig,
-      message: hadDraft
-        ? 'Changes discarded. Your site has been reverted to the published version.'
-        : 'No changes to discard.',
-    };
-  }
-
-  /**
-   * Helper method to get the working config for updates
-   * Returns draft if exists, otherwise creates a draft from published
-   * All content update methods should update draft, not published directly
-   */
-  private getOrCreateDraft(weddingId: string): RenderConfig | null {
-    // Get existing draft or create from published
-    let draftConfig = this.draftRenderConfigs.get(weddingId);
-
-    if (!draftConfig) {
-      const publishedConfig = this.renderConfigs.get(weddingId);
-      if (!publishedConfig) {
-        return null;
-      }
-      // Clone published as initial draft
-      draftConfig = JSON.parse(JSON.stringify(publishedConfig)) as RenderConfig;
-      this.draftRenderConfigs.set(weddingId, draftConfig);
-      this.draftUpdatedAt.set(weddingId, new Date().toISOString());
-    }
-
-    return draftConfig;
-  }
-
-  // ============================================================================
-  // Custom Domain Methods
-  // PRD: "Admin can connect custom domain"
-  // PRD: "SSL certificate is provisioned for custom domain"
-  // PRD: "Site works on both default and custom domain"
-  // ============================================================================
-
-  /**
-   * The target host for CNAME records (wedding sites hosted on Netlify)
-   * In production, this would be the actual Netlify site domain
-   */
-  private static readonly CUSTOM_DOMAIN_CNAME_TARGET =
-    process.env.CUSTOM_DOMAIN_CNAME_TARGET || 'everbloom-wedding.netlify.app';
-
-  /**
-   * Validate a domain format
-   * Accepts: example.com, sub.example.com, wedding.my-domain.co.uk
-   * Rejects: http://, spaces, invalid characters
-   */
-  private isValidDomainFormat(domain: string): boolean {
-    // Remove any protocol if accidentally included
-    const cleanDomain = domain.replace(/^https?:\/\//i, '').replace(/\/.*$/, '').trim();
-
-    // Domain regex: allows subdomains, letters, numbers, hyphens, dots
-    // Must have at least one dot and valid TLD
-    const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i;
-
-    if (!domainRegex.test(cleanDomain)) {
-      return false;
-    }
-
-    // Additional checks
-    if (cleanDomain.includes('..')) return false;
-    if (cleanDomain.length > 253) return false;
-
-    return true;
-  }
-
-  /**
-   * Normalize a domain (lowercase, no protocol, no trailing slash)
-   */
-  private normalizeDomain(domain: string): string {
-    return domain
-      .toLowerCase()
-      .replace(/^https?:\/\//i, '')
-      .replace(/\/.*$/, '')
-      .trim();
-  }
-
-  /**
-   * Generate DNS records that need to be configured for a custom domain
-   */
-  private generateDnsRecords(domain: string): DnsRecord[] {
-    const records: DnsRecord[] = [];
-
-    // Primary CNAME record pointing to our hosting
-    records.push({
-      type: 'CNAME',
-      name: domain,
-      value: WeddingService.CUSTOM_DOMAIN_CNAME_TARGET,
-      verified: false,
-    });
-
-    // TXT record for domain ownership verification
-    const verificationToken = randomBytes(16).toString('hex');
-    records.push({
-      type: 'TXT',
-      name: `_everbloom.${domain}`,
-      value: `everbloom-verify=${verificationToken}`,
-      verified: false,
-    });
-
-    return records;
   }
 
   /**
    * Add a custom domain to a wedding
-   * Creates the domain configuration with DNS records that need to be configured
-   * PRD: "Admin can connect custom domain"
    */
-  addCustomDomain(
+  async addCustomDomain(
     weddingId: string,
     domain: string,
-  ): { customDomain: CustomDomainConfig; instructions: string } | { error: string } {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return { error: 'WEDDING_NOT_FOUND' };
-    }
+  ): Promise<{ customDomain: CustomDomainConfig; instructions: string } | null> {
+    const supabase = getSupabaseClient();
+    const normalizedDomain = domain.toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
 
-    // Normalize and validate the domain
-    const normalizedDomain = this.normalizeDomain(domain);
-    if (!this.isValidDomainFormat(normalizedDomain)) {
-      return { error: 'INVALID_DOMAIN_FORMAT' };
-    }
-
-    // Check if this wedding already has a custom domain
-    if (wedding.customDomain) {
-      return { error: 'CUSTOM_DOMAIN_ALREADY_EXISTS' };
-    }
-
-    // Check if this domain is already in use by another wedding
-    for (const w of this.weddings.values()) {
-      if (w.id !== weddingId && w.customDomain?.domain === normalizedDomain) {
-        return { error: 'CUSTOM_DOMAIN_ALREADY_EXISTS' };
-      }
-    }
-
-    // Generate DNS records
-    const dnsRecords = this.generateDnsRecords(normalizedDomain);
-
-    // Create the custom domain configuration
+    const verificationToken = generateVerificationToken(weddingId, normalizedDomain);
     const customDomain: CustomDomainConfig = {
       domain: normalizedDomain,
       status: 'pending',
-      dnsRecords,
+      verificationToken,
+      dnsRecords: [
+        { type: 'CNAME', name: normalizedDomain, value: process.env.CUSTOM_DOMAIN_CNAME_TARGET || 'wedding-bestie.netlify.app', verified: false },
+        { type: 'TXT', name: `_everbloom.${normalizedDomain}`, value: verificationToken, verified: false },
+      ],
       addedAt: new Date().toISOString(),
     };
 
-    // Store on the wedding
-    wedding.customDomain = customDomain;
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
+    await supabase
+      .from('weddings')
+      .update({
+        custom_domain_config: customDomain,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', weddingId);
 
-    // Generate instructions
-    const cnameRecord = dnsRecords.find((r) => r.type === 'CNAME');
-    const txtRecord = dnsRecords.find((r) => r.type === 'TXT');
-
-    const instructions = `To connect your domain, add these DNS records with your domain registrar:
-
-1. CNAME Record:
-   Name: ${cnameRecord?.name}
-   Value: ${cnameRecord?.value}
-
-2. TXT Record (for verification):
-   Name: ${txtRecord?.name}
-   Value: ${txtRecord?.value}
-
-After adding these records, click "Verify domain" to check the configuration.
-DNS changes can take up to 48 hours to propagate.`;
-
-    this.logger.log(`Added custom domain ${normalizedDomain} for wedding ${weddingId}`);
-
-    return { customDomain, instructions };
+    return {
+      customDomain,
+      instructions: `Add the following DNS records to verify domain ownership:\n1. CNAME record: ${normalizedDomain} -> ${customDomain.dnsRecords[0].value}\n2. TXT record: _verify.${normalizedDomain} -> ${verificationToken}`,
+    };
   }
 
   /**
-   * Verify DNS records for a custom domain
-   * Uses actual DNS lookups in production, simulates in development
-   * PRD: "Admin can connect custom domain"
+   * Verify custom domain DNS records
    */
-  async verifyCustomDomain(
-    weddingId: string,
-  ): Promise<{ customDomain: CustomDomainConfig; allRecordsVerified: boolean; message: string } | { error: string }> {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return { error: 'WEDDING_NOT_FOUND' };
-    }
+  async verifyCustomDomain(weddingId: string): Promise<{
+    customDomain: CustomDomainConfig;
+    allRecordsVerified: boolean;
+    message: string;
+  } | null> {
+    const supabase = getSupabaseClient();
+    const wedding = await this.getWedding(weddingId);
 
-    if (!wedding.customDomain) {
-      return { error: 'CUSTOM_DOMAIN_NOT_CONFIGURED' };
-    }
+    if (!wedding?.customDomain) return null;
 
-    const customDomain = wedding.customDomain;
-    const isDevelopment = process.env.NODE_ENV !== 'production';
+    const customDomain = { ...wedding.customDomain };
+    const expectedTxtValue = customDomain.verificationToken || generateVerificationToken(weddingId, customDomain.domain);
 
-    if (isDevelopment) {
-      // In development, auto-verify all records after 5 seconds of being added
-      const addedTime = new Date(customDomain.addedAt).getTime();
-      const now = Date.now();
-      const fiveSecondsAgo = now - 5000;
+    // Check DNS records
+    const verificationResult = await verifyDnsRecords(customDomain.domain, expectedTxtValue);
 
-      if (addedTime < fiveSecondsAgo) {
-        // Mark all records as verified
-        customDomain.dnsRecords = customDomain.dnsRecords.map((record) => ({
-          ...record,
-          verified: true,
-        }));
+    // Update individual record statuses
+    customDomain.dnsRecords = customDomain.dnsRecords.map((record) => {
+      if (record.type === 'CNAME') {
+        return { ...record, verified: verificationResult.cnameVerified };
       }
-    } else {
-      // Production: Perform actual DNS lookups
-      try {
-        // Get the expected TXT verification value
-        const txtRecord = customDomain.dnsRecords.find((r) => r.type === 'TXT');
-        const expectedTxtValue = txtRecord?.value || generateVerificationToken(weddingId, customDomain.domain);
-
-        this.logger.log(`Verifying DNS for ${customDomain.domain}...`);
-
-        const dnsResult = await verifyDnsRecords(customDomain.domain, expectedTxtValue);
-
-        // Update CNAME record verification status
-        customDomain.dnsRecords = customDomain.dnsRecords.map((record) => {
-          if (record.type === 'CNAME') {
-            return {
-              ...record,
-              verified: dnsResult.cnameVerified,
-            };
-          }
-          if (record.type === 'TXT') {
-            return {
-              ...record,
-              verified: dnsResult.txtVerified,
-            };
-          }
-          return record;
-        });
-
-        this.logger.log(
-          `DNS verification result for ${customDomain.domain}: CNAME=${dnsResult.cnameVerified}, TXT=${dnsResult.txtVerified}`,
-        );
-
-        if (dnsResult.cnameError) {
-          this.logger.warn(`CNAME error: ${dnsResult.cnameError}`);
-        }
-        if (dnsResult.txtError) {
-          this.logger.warn(`TXT error: ${dnsResult.txtError}`);
-        }
-      } catch (error) {
-        this.logger.error(`DNS verification failed for ${customDomain.domain}: ${error}`);
-        // Don't fail the request, just leave records as unverified
+      if (record.type === 'TXT') {
+        return { ...record, verified: verificationResult.txtVerified };
       }
-    }
+      return record;
+    });
 
-    // Check if all records are verified
-    const allRecordsVerified = customDomain.dnsRecords.every((r) => r.verified);
+    const allVerified = verificationResult.cnameVerified && verificationResult.txtVerified;
 
-    // Update status based on verification
-    if (allRecordsVerified) {
-      if (customDomain.status === 'pending' || customDomain.status === 'verifying') {
-        customDomain.status = 'ssl_pending';
-        customDomain.verifiedAt = new Date().toISOString();
-
-        // In development, immediately provision SSL (simulate)
-        if (isDevelopment) {
-          customDomain.status = 'active';
-          customDomain.sslProvisionedAt = new Date().toISOString();
-        }
-      }
-    } else {
+    if (allVerified && customDomain.status === 'pending') {
       customDomain.status = 'verifying';
+      customDomain.verifiedAt = new Date().toISOString();
     }
 
-    // Save updates
-    wedding.customDomain = customDomain;
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
-
-    // Generate message
-    let message: string;
-    if (allRecordsVerified && customDomain.status === 'active') {
-      message = 'Your domain is verified and active! SSL certificate has been provisioned.';
-    } else if (allRecordsVerified) {
-      message = 'DNS records verified. SSL certificate is being provisioned. This may take a few minutes.';
-    } else {
-      const unverifiedCount = customDomain.dnsRecords.filter((r) => !r.verified).length;
-      message = `${unverifiedCount} DNS record(s) not yet detected. Please ensure all records are configured correctly. DNS changes can take up to 48 hours to propagate.`;
+    if (allVerified && customDomain.status === 'verifying') {
+      customDomain.status = 'active';
+      customDomain.sslProvisionedAt = new Date().toISOString();
     }
 
-    this.logger.log(`Verified custom domain for wedding ${weddingId}: status=${customDomain.status}`);
-
-    return { customDomain, allRecordsVerified, message };
-  }
-
-  /**
-   * Remove a custom domain from a wedding
-   * PRD: "Admin can connect custom domain" (includes ability to disconnect)
-   */
-  removeCustomDomain(weddingId: string): { success: boolean; message: string } | { error: string } {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return { error: 'WEDDING_NOT_FOUND' };
-    }
-
-    if (!wedding.customDomain) {
-      return { error: 'CUSTOM_DOMAIN_NOT_CONFIGURED' };
-    }
-
-    const removedDomain = wedding.customDomain.domain;
-
-    // Remove the custom domain
-    delete wedding.customDomain;
-    wedding.updatedAt = new Date().toISOString();
-    this.weddings.set(weddingId, wedding);
-
-    this.logger.log(`Removed custom domain ${removedDomain} from wedding ${weddingId}`);
+    await supabase
+      .from('weddings')
+      .update({
+        custom_domain_config: customDomain,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', weddingId);
 
     return {
-      success: true,
-      message: `Custom domain ${removedDomain} has been disconnected. Your site is still accessible at the default URL.`,
+      customDomain,
+      allRecordsVerified: allVerified,
+      message: allVerified ? 'Domain verified and active.' : 'DNS records not yet verified. Please check your DNS configuration.',
     };
   }
 
   /**
-   * Get custom domain configuration for a wedding
+   * Remove custom domain from a wedding
    */
-  getCustomDomain(weddingId: string): {
-    customDomain: CustomDomainConfig | null;
-    defaultDomainUrl: string;
-    customDomainUrl?: string;
-  } | null {
-    const wedding = this.weddings.get(weddingId);
-    if (!wedding) {
-      return null;
-    }
+  async removeCustomDomain(weddingId: string): Promise<{ success: boolean; message: string }> {
+    const supabase = getSupabaseClient();
 
-    const siteBaseUrl = process.env.WEDDING_SITE_URL || 'http://localhost:4321';
-    const defaultDomainUrl = `${siteBaseUrl}/w/${wedding.slug}`;
+    await supabase
+      .from('weddings')
+      .update({
+        custom_domain_config: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', weddingId);
 
-    let customDomainUrl: string | undefined;
-    if (wedding.customDomain?.status === 'active') {
-      customDomainUrl = `https://${wedding.customDomain.domain}`;
-    }
-
-    return {
-      customDomain: wedding.customDomain || null,
-      defaultDomainUrl,
-      customDomainUrl,
-    };
+    return { success: true, message: 'Custom domain removed.' };
   }
 
   /**
-   * Find a wedding by custom domain
-   * Used by the wedding site to route custom domain requests
+   * Get gallery config from render_config
    */
-  getWeddingByCustomDomain(domain: string): Wedding | null {
-    const normalizedDomain = this.normalizeDomain(domain);
+  async getGallery(weddingId: string): Promise<GalleryConfig | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    return config?.gallery ?? { photos: [] };
+  }
 
-    for (const wedding of this.weddings.values()) {
-      if (
-        wedding.customDomain?.domain === normalizedDomain &&
-        wedding.customDomain?.status === 'active'
-      ) {
-        return wedding;
-      }
-    }
+  /**
+   * Add a photo to the gallery
+   */
+  async addGalleryPhoto(
+    weddingId: string,
+    photo: GalleryPhoto,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
 
-    return null;
+    const gallery = config.gallery ?? { photos: [] };
+    gallery.photos.push(photo);
+    config.gallery = gallery;
+
+    await this.updateRenderConfig(weddingId, config);
+
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
+  }
+
+  /**
+   * Update a gallery photo
+   */
+  async updateGalleryPhoto(
+    weddingId: string,
+    photoId: string,
+    updates: Partial<GalleryPhoto>,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
+
+    const gallery = config.gallery ?? { photos: [] };
+    const photoIndex = gallery.photos.findIndex((p) => p.id === photoId);
+    if (photoIndex === -1) return null;
+
+    gallery.photos[photoIndex] = { ...gallery.photos[photoIndex], ...updates };
+    config.gallery = gallery;
+
+    await this.updateRenderConfig(weddingId, config);
+
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
+  }
+
+  /**
+   * Remove a photo from the gallery
+   */
+  async removeGalleryPhoto(
+    weddingId: string,
+    photoId: string,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
+
+    const gallery = config.gallery ?? { photos: [] };
+    gallery.photos = gallery.photos.filter((p) => p.id !== photoId);
+    config.gallery = gallery;
+
+    await this.updateRenderConfig(weddingId, config);
+
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
+  }
+
+  /**
+   * Get video config from render_config
+   */
+  async getVideo(weddingId: string): Promise<VideoConfig | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    return config?.video ?? { videos: [] };
+  }
+
+  /**
+   * Add a video embed
+   */
+  async addVideo(
+    weddingId: string,
+    video: VideoEmbed,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
+
+    const videoConfig = config.video ?? { videos: [] };
+    videoConfig.videos.push(video);
+    config.video = videoConfig;
+
+    await this.updateRenderConfig(weddingId, config);
+
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
+  }
+
+  /**
+   * Update a video embed
+   */
+  async updateVideoEmbed(
+    weddingId: string,
+    videoId: string,
+    updates: Partial<VideoEmbed>,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
+
+    const videoConfig = config.video ?? { videos: [] };
+    const videoIndex = videoConfig.videos.findIndex((v) => v.id === videoId);
+    if (videoIndex === -1) return null;
+
+    videoConfig.videos[videoIndex] = { ...videoConfig.videos[videoIndex], ...updates };
+    config.video = videoConfig;
+
+    await this.updateRenderConfig(weddingId, config);
+
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
+  }
+
+  /**
+   * Remove a video embed
+   */
+  async removeVideo(
+    weddingId: string,
+    videoId: string,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
+
+    const videoConfig = config.video ?? { videos: [] };
+    videoConfig.videos = videoConfig.videos.filter((v) => v.id !== videoId);
+    config.video = videoConfig;
+
+    await this.updateRenderConfig(weddingId, config);
+
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
+  }
+
+  /**
+   * Get social/OG config from render_config
+   */
+  async getSocialConfig(weddingId: string): Promise<SocialConfig | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
+    return { ogImageUrl: config.ogImageUrl };
+  }
+
+  /**
+   * Remove OG image from social config
+   */
+  async removeSocialOgImage(
+    weddingId: string,
+  ): Promise<{ wedding: Wedding; renderConfig: RenderConfig } | null> {
+    const config = await this.getDraftRenderConfig(weddingId);
+    if (!config) return null;
+
+    config.ogImageUrl = undefined;
+    await this.updateRenderConfig(weddingId, config);
+
+    const wedding = await this.getWedding(weddingId);
+    return wedding ? { wedding, renderConfig: config } : null;
+  }
+
+  /**
+   * Get the published (not draft) render_config
+   */
+  async getPublishedRenderConfig(weddingId: string): Promise<RenderConfig | null> {
+    return this.getRenderConfig(weddingId);
   }
 }

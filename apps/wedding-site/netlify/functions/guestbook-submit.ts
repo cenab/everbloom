@@ -7,11 +7,22 @@ import {
   ErrorCodes,
   getQueryParam,
 } from './utils/response';
-import { getSupabaseClient } from './utils/supabase';
+import { apiPost, getStatusFromResponse } from './utils/platform-api';
 
 interface GuestbookSubmitRequest {
   guestName: string;
   message: string;
+}
+
+interface GuestbookMessageResponse {
+  message: {
+    id: string;
+    weddingId: string;
+    guestName: string;
+    message: string;
+    status: string;
+    createdAt: string;
+  };
 }
 
 // Max message length
@@ -58,55 +69,16 @@ export default async function handler(request: Request, _context: Context): Prom
     return errorResponse(ErrorCodes.VALIDATION_ERROR, 400);
   }
 
-  try {
-    const supabase = getSupabaseClient();
+  // Call Platform API to submit guestbook message
+  const response = await apiPost<GuestbookMessageResponse>(`/guestbook/${slug}/submit`, {
+    guestName: body.guestName,
+    message: body.message,
+  });
 
-    // Get wedding by slug
-    const { data: wedding, error: weddingError } = await supabase
-      .from('weddings')
-      .select('id, features')
-      .eq('slug', slug)
-      .eq('status', 'active')
-      .single();
-
-    if (weddingError || !wedding) {
-      return errorResponse(ErrorCodes.WEDDING_NOT_FOUND, 404);
-    }
-
-    // Check if guestbook feature is enabled
-    if (!wedding.features?.GUESTBOOK) {
-      return errorResponse(ErrorCodes.FEATURE_DISABLED, 403);
-    }
-
-    // Create guestbook message (pending by default for moderation)
-    const { data: message, error: messageError } = await supabase
-      .from('guestbook_messages')
-      .insert({
-        wedding_id: wedding.id,
-        guest_name: body.guestName.trim(),
-        message: body.message.trim(),
-        status: 'pending',
-      })
-      .select()
-      .single();
-
-    if (messageError) {
-      console.error('Error creating guestbook message:', messageError);
-      return errorResponse(ErrorCodes.INTERNAL_ERROR, 500);
-    }
-
-    return successResponse({
-      message: {
-        id: message.id,
-        weddingId: message.wedding_id,
-        guestName: message.guest_name,
-        message: message.message,
-        status: message.status,
-        createdAt: message.created_at,
-      },
-    });
-  } catch (error) {
-    console.error('Error submitting guestbook message:', error);
-    return errorResponse(ErrorCodes.INTERNAL_ERROR, 500);
+  if (!response.ok) {
+    const status = getStatusFromResponse(response);
+    return errorResponse(response.error || ErrorCodes.INTERNAL_ERROR, status);
   }
+
+  return successResponse(response.data);
 }

@@ -184,6 +184,38 @@ export class PhotosService {
     return Date.now() > upload.expiresAt;
   }
 
+  /**
+   * Complete a photo upload by confirming it and returning photo metadata
+   * This endpoint is called after the file upload to get the final photo record
+   * @param uploadId The upload session ID
+   * @returns Photo metadata if the upload was completed, null if not found or not uploaded
+   */
+  completeUpload(uploadId: string): PhotoMetadata | null {
+    const upload = this.uploads.get(uploadId);
+
+    if (!upload) {
+      this.logger.warn(`Complete upload called for non-existent upload: ${uploadId}`);
+      return null;
+    }
+
+    if (!upload.uploadedAt) {
+      this.logger.warn(`Complete upload called for upload not yet uploaded: ${uploadId}`);
+      return null;
+    }
+
+    // Find the photo record that was created during storeUpload
+    const photos = this.photosByWedding.get(upload.weddingId) ?? [];
+    const photo = photos.find((p) => p.id === uploadId);
+
+    if (!photo) {
+      this.logger.warn(`Photo record not found for completed upload: ${uploadId}`);
+      return null;
+    }
+
+    const { storagePath: _sp, weddingId: _wid, ...result } = photo;
+    return result;
+  }
+
   verifySignature(
     uploadId: string,
     expiresAt: number,
