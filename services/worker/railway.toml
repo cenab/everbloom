@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm install -g pnpm && pnpm install && pnpm build"
+buildCommand = "corepack enable && pnpm install && pnpm build"
 
 [deploy]
 startCommand = "node dist/main.js"
