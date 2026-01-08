@@ -10,20 +10,18 @@ import {
   Res,
   BadRequestException,
   NotFoundException,
-  UnauthorizedException,
   Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { MusicService } from './music.service';
 import { WeddingService } from '../wedding/wedding.service';
-import { AuthService } from '../auth/auth.service';
+import { AdminAuthService } from '../auth/admin-auth.service';
 import {
   SubmitSongRequestRequest,
   SongRequestListResponse,
   FEATURE_DISABLED,
   VALIDATION_ERROR,
   WEDDING_NOT_FOUND,
-  UNAUTHORIZED,
 } from '../types';
 
 /**
@@ -37,7 +35,7 @@ export class MusicAdminController {
   constructor(
     private readonly musicService: MusicService,
     private readonly weddingService: WeddingService,
-    private readonly authService: AuthService,
+    private readonly adminAuthService: AdminAuthService,
   ) {}
 
   /**
@@ -145,15 +143,7 @@ export class MusicAdminController {
    * Validate auth token and verify user owns the wedding
    */
   private async requireWeddingOwner(authHeader: string | undefined, weddingId: string) {
-    const token = this.extractBearerToken(authHeader);
-    if (!token) {
-      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
-    }
-
-    const user = await this.authService.validateSession(token);
-    if (!user) {
-      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
-    }
+    const user = await this.adminAuthService.requireAdmin(authHeader);
 
     const wedding = await this.weddingService.getWedding(weddingId);
     if (!wedding || wedding.userId !== user.id) {
@@ -161,22 +151,6 @@ export class MusicAdminController {
     }
 
     return { user, wedding };
-  }
-
-  /**
-   * Extract Bearer token from Authorization header
-   */
-  private extractBearerToken(authHeader: string | undefined): string | null {
-    if (!authHeader) {
-      return null;
-    }
-
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      return null;
-    }
-
-    return parts[1];
   }
 }
 

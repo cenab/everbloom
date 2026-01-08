@@ -11,7 +11,6 @@ import {
   Query,
   ForbiddenException,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import type {
   ApiResponse,
@@ -24,18 +23,17 @@ import type {
 import {
   FEATURE_DISABLED,
   WEDDING_NOT_FOUND,
-  UNAUTHORIZED,
   PHOTO_NOT_FOUND,
   VALIDATION_ERROR,
 } from '../types';
-import { AuthService } from '../auth/auth.service';
+import { AdminAuthService } from '../auth/admin-auth.service';
 import { WeddingService } from '../wedding/wedding.service';
 import { PhotosService } from './photos.service';
 
 @Controller('weddings')
 export class PhotosAdminController {
   constructor(
-    private readonly authService: AuthService,
+    private readonly adminAuthService: AdminAuthService,
     private readonly weddingService: WeddingService,
     private readonly photosService: PhotosService,
   ) {}
@@ -220,32 +218,6 @@ export class PhotosAdminController {
    * Extract and validate auth token
    */
   private async requireAuth(authHeader: string | undefined) {
-    const token = this.extractBearerToken(authHeader);
-    if (!token) {
-      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
-    }
-
-    const user = await this.authService.validateSession(token);
-    if (!user) {
-      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
-    }
-
-    return user;
-  }
-
-  /**
-   * Extract Bearer token from Authorization header
-   */
-  private extractBearerToken(authHeader: string | undefined): string | null {
-    if (!authHeader) {
-      return null;
-    }
-
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      return null;
-    }
-
-    return parts[1];
+    return this.adminAuthService.requireAdmin(authHeader);
   }
 }

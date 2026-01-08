@@ -12,11 +12,10 @@ CREATE INDEX IF NOT EXISTS idx_guests_rsvp_token_expires_at
   ON guests(rsvp_token_expires_at)
   WHERE rsvp_token_hash IS NOT NULL;
 
--- Index for active, non-expired tokens
+-- Index for active tokens (expiration checked at query time)
 CREATE INDEX IF NOT EXISTS idx_guests_active_rsvp_tokens
-  ON guests(rsvp_token_hash)
-  WHERE rsvp_token_hash IS NOT NULL
-    AND (rsvp_token_expires_at IS NULL OR rsvp_token_expires_at > NOW());
+  ON guests(rsvp_token_hash, rsvp_token_expires_at)
+  WHERE rsvp_token_hash IS NOT NULL;
 
 -- Comment for documentation
 COMMENT ON COLUMN guests.rsvp_token_expires_at IS 'When the RSVP token expires. NULL means no expiration.';

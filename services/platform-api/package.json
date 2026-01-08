@@ -13,7 +13,10 @@
     "test:watch": "jest --watch",
     "db:migrate": "cd ../.. && supabase db push",
     "db:generate": "cd ../.. && supabase migration new",
-    "db:seed": "echo 'Run seed SQL via supabase SQL editor or psql'"
+    "db:seed": "echo 'Run seed SQL via supabase SQL editor or psql'",
+    "db:reset": "cd ../.. && supabase db reset",
+    "db:reset:remote": "cd ../.. && bash scripts/db-reset-remote.sh",
+    "db:reset:prod": "cd ../.. && bash scripts/db-reset-remote.sh"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

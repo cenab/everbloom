@@ -7,13 +7,12 @@ import {
   Param,
   Body,
   Headers,
-  UnauthorizedException,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
 import { WeddingService } from './wedding.service';
-import { AuthService } from '../auth/auth.service';
+import { AdminAuthService } from '../auth/admin-auth.service';
 import type {
   ApiResponse,
   Wedding,
@@ -62,7 +61,6 @@ import {
   FEATURE_DISABLED,
   WEDDING_NOT_FOUND,
   VALIDATION_ERROR,
-  UNAUTHORIZED,
   NOT_FOUND,
   GALLERY_PHOTO_NOT_FOUND,
   VIDEO_URL_INVALID,
@@ -86,7 +84,7 @@ import type {
 export class WeddingController {
   constructor(
     private readonly weddingService: WeddingService,
-    private readonly authService: AuthService,
+    private readonly adminAuthService: AdminAuthService,
   ) {}
 
   /**
@@ -1744,32 +1742,6 @@ export class WeddingController {
    * Extract and validate auth token
    */
   private async requireAuth(authHeader: string | undefined) {
-    const token = this.extractBearerToken(authHeader);
-    if (!token) {
-      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
-    }
-
-    const user = await this.authService.validateSession(token);
-    if (!user) {
-      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
-    }
-
-    return user;
-  }
-
-  /**
-   * Extract Bearer token from Authorization header
-   */
-  private extractBearerToken(authHeader: string | undefined): string | null {
-    if (!authHeader) {
-      return null;
-    }
-
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      return null;
-    }
-
-    return parts[1];
+    return this.adminAuthService.requireAdmin(authHeader);
   }
 }

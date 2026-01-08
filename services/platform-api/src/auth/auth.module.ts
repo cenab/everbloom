@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { JwtVerifyService } from './jwt-verify.service';
 import { AdminService } from './admin.service';
 import { AdminAuthGuard } from './admin-auth.guard';
+import { AdminAuthService } from './admin-auth.service';
 
 @Module({
   controllers: [AuthController],
@@ -12,12 +13,14 @@ import { AdminAuthGuard } from './admin-auth.guard';
     JwtVerifyService,
     AdminService,
     AdminAuthGuard,
+    AdminAuthService,
   ],
   exports: [
     AuthService,
     JwtVerifyService,
     AdminService,
     AdminAuthGuard,
+    AdminAuthService,
   ],
 })
 export class AuthModule {}

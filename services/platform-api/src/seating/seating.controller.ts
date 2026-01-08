@@ -7,14 +7,13 @@ import {
   Param,
   Body,
   Headers,
-  UnauthorizedException,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
 import { SeatingService } from './seating.service';
 import { WeddingService } from '../wedding/wedding.service';
-import { AuthService } from '../auth/auth.service';
+import { AdminAuthService } from '../auth/admin-auth.service';
 import type {
   ApiResponse,
   SeatingTable,
@@ -29,7 +28,6 @@ import type {
 import {
   TABLE_NOT_FOUND,
   TABLE_CAPACITY_EXCEEDED,
-  UNAUTHORIZED,
   WEDDING_NOT_FOUND,
   FEATURE_DISABLED,
   VALIDATION_ERROR,
@@ -40,7 +38,7 @@ export class SeatingController {
   constructor(
     private readonly seatingService: SeatingService,
     private readonly weddingService: WeddingService,
-    private readonly authService: AuthService,
+    private readonly adminAuthService: AdminAuthService,
   ) {}
 
   /**
@@ -377,15 +375,7 @@ export class SeatingController {
     authHeader: string | undefined,
     weddingId: string,
   ) {
-    const token = this.extractBearerToken(authHeader);
-    if (!token) {
-      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
-    }
-
-    const user = await this.authService.validateSession(token);
-    if (!user) {
-      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
-    }
+    const user = await this.adminAuthService.requireAdmin(authHeader);
 
     const wedding = await this.weddingService.getWedding(weddingId);
     if (!wedding || wedding.userId !== user.id) {
@@ -398,21 +388,5 @@ export class SeatingController {
     }
 
     return { user, wedding };
-  }
-
-  /**
-   * Extract Bearer token from Authorization header
-   */
-  private extractBearerToken(authHeader: string | undefined): string | null {
-    if (!authHeader) {
-      return null;
-    }
-
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      return null;
-    }
-
-    return parts[1];
   }
 }

@@ -8,14 +8,13 @@ import {
   Body,
   Query,
   Headers,
-  UnauthorizedException,
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
 import { TagService } from './tag.service';
 import { GuestService } from './guest.service';
 import { WeddingService } from '../wedding/wedding.service';
-import { AuthService } from '../auth/auth.service';
+import { AdminAuthService } from '../auth/admin-auth.service';
 import type {
   ApiResponse,
   GuestTag,
@@ -26,7 +25,7 @@ import type {
   Guest,
   GuestListResponse,
 } from '../types';
-import { TAG_NOT_FOUND, TAG_ALREADY_EXISTS, UNAUTHORIZED, WEDDING_NOT_FOUND } from '../types';
+import { TAG_NOT_FOUND, TAG_ALREADY_EXISTS, WEDDING_NOT_FOUND } from '../types';
 
 @Controller('weddings/:weddingId/tags')
 export class TagController {
@@ -34,7 +33,7 @@ export class TagController {
     private readonly tagService: TagService,
     private readonly guestService: GuestService,
     private readonly weddingService: WeddingService,
-    private readonly authService: AuthService,
+    private readonly adminAuthService: AdminAuthService,
   ) {}
 
   /**
@@ -331,15 +330,7 @@ export class TagController {
     authHeader: string | undefined,
     weddingId: string,
   ) {
-    const token = this.extractBearerToken(authHeader);
-    if (!token) {
-      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
-    }
-
-    const user = await this.authService.validateSession(token);
-    if (!user) {
-      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
-    }
+    const user = await this.adminAuthService.requireAdmin(authHeader);
 
     const wedding = await this.weddingService.getWedding(weddingId);
     if (!wedding || wedding.userId !== user.id) {
@@ -347,21 +338,5 @@ export class TagController {
     }
 
     return { user, wedding };
-  }
-
-  /**
-   * Extract Bearer token from Authorization header
-   */
-  private extractBearerToken(authHeader: string | undefined): string | null {
-    if (!authHeader) {
-      return null;
-    }
-
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      return null;
-    }
-
-    return parts[1];
   }
 }

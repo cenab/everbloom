@@ -7,7 +7,7 @@ import {
   type ReminderJobData,
   type ScheduledEmailJobData,
   type UpdateOutboxStatusRequest,
-} from './types';
+} from './types.js';
 
 describe('Worker Types', () => {
   describe('Queue Names', () => {

@@ -8,7 +8,6 @@ import {
   Body,
   Headers,
   Res,
-  UnauthorizedException,
   NotFoundException,
   ConflictException,
   ForbiddenException,
@@ -17,7 +16,7 @@ import {
 import { Response } from 'express';
 import { GuestService } from './guest.service';
 import { WeddingService } from '../wedding/wedding.service';
-import { AuthService } from '../auth/auth.service';
+import { AdminAuthService } from '../auth/admin-auth.service';
 import type {
   ApiResponse,
   Guest,
@@ -33,14 +32,14 @@ import type {
   EventAssignmentsResponse,
   RsvpSummary,
 } from '../types';
-import { GUEST_NOT_FOUND, GUEST_ALREADY_EXISTS, CSV_IMPORT_VALIDATION_ERROR, UNAUTHORIZED, WEDDING_NOT_FOUND, FEATURE_DISABLED, EVENT_NOT_FOUND } from '../types';
+import { GUEST_NOT_FOUND, GUEST_ALREADY_EXISTS, CSV_IMPORT_VALIDATION_ERROR, WEDDING_NOT_FOUND, FEATURE_DISABLED, EVENT_NOT_FOUND } from '../types';
 
 @Controller('weddings/:weddingId/guests')
 export class GuestController {
   constructor(
     private readonly guestService: GuestService,
     private readonly weddingService: WeddingService,
-    private readonly authService: AuthService,
+    private readonly adminAuthService: AdminAuthService,
   ) {}
 
   /**
@@ -731,15 +730,7 @@ export class GuestController {
     authHeader: string | undefined,
     weddingId: string,
   ) {
-    const token = this.extractBearerToken(authHeader);
-    if (!token) {
-      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
-    }
-
-    const user = await this.authService.validateSession(token);
-    if (!user) {
-      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
-    }
+    const user = await this.adminAuthService.requireAdmin(authHeader);
 
     const wedding = await this.weddingService.getWedding(weddingId);
     if (!wedding || wedding.userId !== user.id) {
@@ -747,21 +738,5 @@ export class GuestController {
     }
 
     return { user, wedding };
-  }
-
-  /**
-   * Extract Bearer token from Authorization header
-   */
-  private extractBearerToken(authHeader: string | undefined): string | null {
-    if (!authHeader) {
-      return null;
-    }
-
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      return null;
-    }
-
-    return parts[1];
   }
 }

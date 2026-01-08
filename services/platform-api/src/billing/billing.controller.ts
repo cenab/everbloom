@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { BillingService } from './billing.service';
-import { AuthService } from '../auth/auth.service';
+import { AdminAuthService } from '../auth/admin-auth.service';
 import { WeddingService } from '../wedding/wedding.service';
 import type {
   ApiResponse,
@@ -23,13 +23,13 @@ import type {
   Plan,
   WeddingProvisionResponse,
 } from '../types';
-import { CHECKOUT_SESSION_FAILED, WEBHOOK_SIGNATURE_INVALID, VALIDATION_ERROR, UNAUTHORIZED } from '../types';
+import { CHECKOUT_SESSION_FAILED, WEBHOOK_SIGNATURE_INVALID, VALIDATION_ERROR } from '../types';
 
 @Controller('billing')
 export class BillingController {
   constructor(
     private readonly billingService: BillingService,
-    private readonly authService: AuthService,
+    private readonly adminAuthService: AdminAuthService,
     private readonly weddingService: WeddingService,
   ) {}
 
@@ -53,15 +53,7 @@ export class BillingController {
     @Body() body: CreateCheckoutSessionRequest,
   ): Promise<ApiResponse<CreateCheckoutSessionResponse>> {
     // Validate authentication
-    const token = this.extractBearerToken(authHeader);
-    if (!token) {
-      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
-    }
-
-    const user = await this.authService.validateSession(token);
-    if (!user) {
-      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
-    }
+    const user = await this.adminAuthService.requireAdmin(authHeader);
 
     // Validate request body
     if (!body.planId || !['starter', 'premium'].includes(body.planId)) {
@@ -166,19 +158,4 @@ export class BillingController {
     return { ok: true, data: { received: true } };
   }
 
-  /**
-   * Extract Bearer token from Authorization header
-   */
-  private extractBearerToken(authHeader: string | undefined): string | null {
-    if (!authHeader) {
-      return null;
-    }
-
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      return null;
-    }
-
-    return parts[1];
-  }
 }

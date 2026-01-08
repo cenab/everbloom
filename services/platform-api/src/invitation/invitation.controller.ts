@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { InvitationService } from './invitation.service';
 import { WeddingService } from '../wedding/wedding.service';
-import { AuthService } from '../auth/auth.service';
+import { AdminAuthService } from '../auth/admin-auth.service';
 import type {
   SendInvitationsRequest,
   SendInvitationsResponse,
@@ -49,7 +49,7 @@ export class InvitationController {
   constructor(
     private readonly invitationService: InvitationService,
     private readonly weddingService: WeddingService,
-    private readonly authService: AuthService,
+    private readonly adminAuthService: AdminAuthService,
   ) {}
 
   /**
@@ -499,15 +499,7 @@ export class InvitationController {
     authHeader: string | undefined,
     weddingId: string,
   ) {
-    const token = this.extractBearerToken(authHeader);
-    if (!token) {
-      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
-    }
-
-    const user = await this.authService.validateSession(token);
-    if (!user) {
-      throw new UnauthorizedException({ ok: false, error: UNAUTHORIZED });
-    }
+    const user = await this.adminAuthService.requireAdmin(authHeader);
 
     const wedding = await this.weddingService.getWedding(weddingId);
     if (!wedding || wedding.userId !== user.id) {
@@ -515,22 +507,6 @@ export class InvitationController {
     }
 
     return { user, wedding };
-  }
-
-  /**
-   * Extract Bearer token from Authorization header
-   */
-  private extractBearerToken(authHeader: string | undefined): string | null {
-    if (!authHeader) {
-      return null;
-    }
-
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      return null;
-    }
-
-    return parts[1];
   }
 
   /**

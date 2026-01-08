@@ -3,8 +3,8 @@ import type {
   ReminderJobData,
   ScheduledEmailJobData,
   UpdateOutboxStatusRequest,
-} from './types';
-import { REMINDER_QUEUE_NAME, SCHEDULED_EMAIL_QUEUE_NAME } from './types';
+} from './types.js';
+import { REMINDER_QUEUE_NAME, SCHEDULED_EMAIL_QUEUE_NAME } from './types.js';
 
 type RedisConnection = {
   host: string;
@@ -23,6 +23,15 @@ interface SendEmailResult {
 
 const DEFAULT_REDIS_PORT = 6379;
 const DEFAULT_CONCURRENCY = 5;
+const DEFAULT_REQUEST_TIMEOUT_MS = 15000;
+
+function getRequestTimeoutMs(): number {
+  const timeoutMs = Number(process.env.WORKER_REQUEST_TIMEOUT_MS);
+  if (Number.isFinite(timeoutMs) && timeoutMs > 0) {
+    return timeoutMs;
+  }
+  return DEFAULT_REQUEST_TIMEOUT_MS;
+}
 
 function getRedisConnection(): RedisConnection {
   const redisUrl = process.env.REDIS_URL;
@@ -72,8 +81,15 @@ async function sendEmail(data: ReminderJobData): Promise<SendEmailResult> {
   const sendgridApiKey = process.env.SENDGRID_API_KEY;
   const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'invites@everbloom.wedding';
   const fromName = process.env.SENDGRID_FROM_NAME || 'Everbloom Weddings';
+  const isProduction = process.env.NODE_ENV === 'production';
 
   if (!sendgridApiKey) {
+    if (isProduction) {
+      const errorMessage = 'SENDGRID_API_KEY is missing in production.';
+      console.error(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+
     console.log('DEVELOPMENT MODE - Reminder email would be sent.');
     console.log(`To: ${data.toName} <${data.toEmail}>`);
     console.log(`Subject: ${data.subject}`);
@@ -84,12 +100,14 @@ async function sendEmail(data: ReminderJobData): Promise<SendEmailResult> {
   }
 
   try {
+    const timeoutSignal = AbortSignal.timeout(getRequestTimeoutMs());
     const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${sendgridApiKey}`,
         'Content-Type': 'application/json',
       },
+      signal: timeoutSignal,
       body: JSON.stringify({
         personalizations: [
           {
@@ -145,6 +163,7 @@ async function reportOutboxStatus(
       {
         method: 'POST',
         headers,
+        signal: AbortSignal.timeout(getRequestTimeoutMs()),
         body: JSON.stringify(payload),
       },
     );
@@ -161,7 +180,16 @@ async function reportOutboxStatus(
   }
 }
 
-const concurrency = Number(process.env.REMINDER_WORKER_CONCURRENCY || DEFAULT_CONCURRENCY);
+const rawConcurrencyEnv = process.env.REMINDER_WORKER_CONCURRENCY;
+const rawConcurrency = Number(rawConcurrencyEnv);
+const concurrency = Number.isFinite(rawConcurrency) && rawConcurrency > 0
+  ? rawConcurrency
+  : DEFAULT_CONCURRENCY;
+if (rawConcurrencyEnv && (!Number.isFinite(rawConcurrency) || rawConcurrency <= 0)) {
+  console.warn(
+    `Invalid REMINDER_WORKER_CONCURRENCY="${rawConcurrencyEnv}". Falling back to ${DEFAULT_CONCURRENCY}.`,
+  );
+}
 
 const reminderWorker = new Worker<ReminderJobData>(
   REMINDER_QUEUE_NAME,
@@ -224,6 +252,7 @@ async function executeScheduledEmail(
       {
         method: 'POST',
         headers,
+        signal: AbortSignal.timeout(getRequestTimeoutMs()),
         body: JSON.stringify({
           scheduledEmailId: data.scheduledEmailId,
           guestIds: data.guestIds,
@@ -293,8 +322,22 @@ scheduledEmailWorker.on('failed', (job, error) => {
   console.error(`Scheduled email job ${job?.id} failed: ${error.message}`);
 });
 
-process.on('SIGINT', async () => {
+let shuttingDown = false;
+const handleShutdown = async (signal: string) => {
+  if (shuttingDown) {
+    return;
+  }
+  shuttingDown = true;
+  console.log(`Received ${signal}. Closing workers...`);
   await reminderWorker.close();
   await scheduledEmailWorker.close();
   process.exit(0);
+};
+
+process.on('SIGINT', () => {
+  void handleShutdown('SIGINT');
+});
+
+process.on('SIGTERM', () => {
+  void handleShutdown('SIGTERM');
 });

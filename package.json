@@ -20,7 +20,10 @@
     "lint": "pnpm -r lint",
     "db:migrate": "pnpm --filter @wedding-bestie/platform-api db:migrate",
     "db:generate": "pnpm --filter @wedding-bestie/platform-api db:generate",
-    "db:seed": "pnpm --filter @wedding-bestie/platform-api db:seed"
+    "db:seed": "pnpm --filter @wedding-bestie/platform-api db:seed",
+    "db:reset": "pnpm --filter @wedding-bestie/platform-api db:reset",
+    "db:reset:remote": "pnpm --filter @wedding-bestie/platform-api db:reset:remote",
+    "db:reset:prod": "pnpm --filter @wedding-bestie/platform-api db:reset:prod"
   },
   "devDependencies": {
     "typescript": "^5.3.3"
