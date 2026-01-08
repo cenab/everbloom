@@ -14,13 +14,17 @@ import type {
   Template,
   TemplateCategory,
   Announcement,
+  FaqItem,
   Section,
   EventDetailsData,
   FaqConfig,
   PasscodeConfigBase,
   HeroContentData,
   MealConfig,
+  RegistryLink,
   RegistryConfig,
+  Hotel,
+  TravelInfo,
   AccommodationsConfig,
   GuestbookConfig,
   SeatingConfig,
@@ -35,6 +39,7 @@ import type {
   CustomDomainConfig,
   CustomDomainStatus,
   DnsRecord,
+  PhotoModerationConfig,
 } from '../types';
 
 const scryptAsync = promisify(scrypt);
@@ -73,6 +78,275 @@ const DEFAULT_REGISTRY: RegistryConfig = { links: [] };
 const DEFAULT_GALLERY: GalleryConfig = { photos: [] };
 const DEFAULT_VIDEO: VideoConfig = { videos: [] };
 const DEFAULT_ACCOMMODATIONS: AccommodationsConfig = { hotels: [], travelInfo: {} };
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function asNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function asBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
+}
+
+function isPresent<T>(value: T | null): value is T {
+  return value !== null;
+}
+
+function parseAnnouncement(value: UnknownRecord | null): Announcement | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  return {
+    enabled: asBoolean(value.enabled) ?? DEFAULT_ANNOUNCEMENT.enabled,
+    title: asString(value.title) ?? DEFAULT_ANNOUNCEMENT.title,
+    message: asString(value.message) ?? DEFAULT_ANNOUNCEMENT.message,
+  };
+}
+
+function parseFaqItem(value: unknown): FaqItem | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const id = asString(value.id);
+  const question = asString(value.question);
+  const answer = asString(value.answer);
+  const order = asNumber(value.order);
+
+  if (!id || !question || !answer || order === undefined) {
+    return null;
+  }
+
+  return { id, question, answer, order };
+}
+
+function parseFaq(value: UnknownRecord | null): FaqConfig | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const itemsValue = Array.isArray(value.items) ? value.items : [];
+  const items = itemsValue
+    .map(parseFaqItem)
+    .filter(isPresent);
+
+  return { items };
+}
+
+function parseRegistryLink(value: unknown): RegistryLink | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const id = asString(value.id);
+  const name = asString(value.name);
+  const url = asString(value.url);
+  const order = asNumber(value.order);
+
+  if (!id || !name || !url || order === undefined) {
+    return null;
+  }
+
+  return { id, name, url, order };
+}
+
+function parseRegistry(value: UnknownRecord | null): RegistryConfig | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const linksValue = Array.isArray(value.links) ? value.links : [];
+  const links = linksValue
+    .map(parseRegistryLink)
+    .filter(isPresent);
+
+  return { links };
+}
+
+function parseHotel(value: unknown): Hotel | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const id = asString(value.id);
+  const name = asString(value.name);
+  const address = asString(value.address);
+  const order = asNumber(value.order);
+
+  if (!id || !name || !address || order === undefined) {
+    return null;
+  }
+
+  const bookingUrl = asString(value.bookingUrl);
+  const roomBlockCode = asString(value.roomBlockCode);
+  const notes = asString(value.notes);
+
+  return {
+    id,
+    name,
+    address,
+    order,
+    ...(bookingUrl ? { bookingUrl } : {}),
+    ...(roomBlockCode ? { roomBlockCode } : {}),
+    ...(notes ? { notes } : {}),
+  };
+}
+
+function parseTravelInfo(value: unknown): TravelInfo | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const airportDirections = asString(value.airportDirections);
+  const parkingInfo = asString(value.parkingInfo);
+  const mapUrl = asString(value.mapUrl);
+
+  const info: TravelInfo = {};
+  if (airportDirections) {
+    info.airportDirections = airportDirections;
+  }
+  if (parkingInfo) {
+    info.parkingInfo = parkingInfo;
+  }
+  if (mapUrl) {
+    info.mapUrl = mapUrl;
+  }
+
+  return Object.keys(info).length > 0 ? info : undefined;
+}
+
+function parseAccommodations(value: UnknownRecord | null): AccommodationsConfig | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const hotelsValue = Array.isArray(value.hotels) ? value.hotels : [];
+  const hotels = hotelsValue
+    .map(parseHotel)
+    .filter(isPresent);
+  const travelInfo = parseTravelInfo(value.travelInfo);
+
+  if (travelInfo) {
+    return { hotels, travelInfo };
+  }
+
+  return { hotels };
+}
+
+function parseGalleryPhoto(value: unknown): GalleryPhoto | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const id = asString(value.id);
+  const fileName = asString(value.fileName);
+  const contentType = asString(value.contentType);
+  const fileSize = asNumber(value.fileSize);
+  const order = asNumber(value.order);
+  const uploadedAt = asString(value.uploadedAt);
+
+  if (!id || !fileName || !contentType || fileSize === undefined || order === undefined || !uploadedAt) {
+    return null;
+  }
+
+  const caption = asString(value.caption);
+  const url = asString(value.url);
+
+  return {
+    id,
+    fileName,
+    contentType,
+    fileSize,
+    order,
+    uploadedAt,
+    ...(caption ? { caption } : {}),
+    ...(url ? { url } : {}),
+  };
+}
+
+function parseGallery(value: UnknownRecord | null): GalleryConfig | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const photosValue = Array.isArray(value.photos) ? value.photos : [];
+  const photos = photosValue
+    .map(parseGalleryPhoto)
+    .filter(isPresent);
+
+  return { photos };
+}
+
+function asVideoPlatform(value: unknown): VideoEmbedPlatform | undefined {
+  return value === 'youtube' || value === 'vimeo' ? value : undefined;
+}
+
+function parseVideoEmbed(value: unknown): VideoEmbed | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const id = asString(value.id);
+  const platform = asVideoPlatform(value.platform);
+  const videoId = asString(value.videoId);
+  const url = asString(value.url);
+  const order = asNumber(value.order);
+  const addedAt = asString(value.addedAt);
+
+  if (!id || !platform || !videoId || !url || order === undefined || !addedAt) {
+    return null;
+  }
+
+  const title = asString(value.title);
+
+  return {
+    id,
+    platform,
+    videoId,
+    url,
+    order,
+    addedAt,
+    ...(title ? { title } : {}),
+  };
+}
+
+function parseVideo(value: UnknownRecord | null): VideoConfig | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const videosValue = Array.isArray(value.videos) ? value.videos : [];
+  const videos = videosValue
+    .map(parseVideoEmbed)
+    .filter(isPresent);
+
+  return { videos };
+}
+
+function parsePhotoModerationConfig(
+  value: UnknownRecord | null,
+): PhotoModerationConfig | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const moderationRequired = asBoolean(value.moderationRequired);
+  if (moderationRequired === undefined) {
+    return undefined;
+  }
+
+  return { moderationRequired };
+}
 
 const PLAN_FEATURES: Record<PlanTier, FeatureFlag[]> = {
   starter: ['RSVP', 'CALENDAR_INVITE'],
@@ -129,20 +403,20 @@ export class WeddingService {
       planId: db.plan_tier as PlanTier,
       status: db.status as WeddingStatus,
       features: db.features as Record<FeatureFlag, boolean>,
-      announcement: db.announcement as Announcement | undefined,
+      announcement: parseAnnouncement(db.announcement),
       eventDetails: db.event_details as unknown as EventDetailsData | undefined,
-      faq: db.faq as FaqConfig | undefined,
+      faq: parseFaq(db.faq),
       mealConfig: db.meal_config as unknown as MealConfig | undefined,
       passcodeConfig: db.passcode_config as unknown as PasscodeConfigBase | undefined,
-      registry: db.registry as RegistryConfig | undefined,
-      accommodations: db.accommodations as AccommodationsConfig | undefined,
+      registry: parseRegistry(db.registry),
+      accommodations: parseAccommodations(db.accommodations),
       emailTemplates: db.email_templates as EmailTemplatesConfig | undefined,
-      gallery: db.gallery as GalleryConfig | undefined,
+      gallery: parseGallery(db.gallery),
       customDomain: db.custom_domain_config as unknown as CustomDomainConfig | undefined,
       createdAt: db.created_at,
       updatedAt: db.updated_at,
-      photoModerationConfig: db.photo_moderation_config as PhotoModerationConfig | undefined,
-      video: db.video as VideoConfig | undefined,
+      photoModerationConfig: parsePhotoModerationConfig(db.photo_moderation_config),
+      video: parseVideo(db.video),
       socialConfig: db.social_config as SocialConfig | undefined,
       language: db.language || undefined,
     };
