@@ -105,7 +105,14 @@ export class BillingService {
         sessionId: session.id,
       };
     } catch (error) {
-      this.logger.error(`Failed to create checkout session: ${error}`);
+      if (error instanceof Error) {
+        this.logger.error(
+          `Failed to create checkout session: ${error.message}`,
+          error.stack,
+        );
+      } else {
+        this.logger.error(`Failed to create checkout session: ${String(error)}`);
+      }
       throw error;
     }
   }
