@@ -36,6 +36,11 @@ const PLANS: Record<PlanTier, { name: string; priceId: string; features: string[
 export class BillingService {
   private readonly stripe: Stripe;
   private readonly logger = new Logger(BillingService.name);
+  private readonly priceTypeCache = new Map<
+    string,
+    { type: 'one_time' | 'recurring'; cachedAt: number }
+  >();
+  private readonly PRICE_CACHE_TTL_MS = 5 * 60 * 1000;
 
   constructor() {
     const secretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder';
@@ -66,6 +71,10 @@ export class BillingService {
       throw new Error(`Invalid plan: ${request.planId}`);
     }
 
+    const priceType = await this.getPriceType(plan.priceId);
+    const mode: Stripe.Checkout.SessionCreateParams.Mode =
+      priceType === 'recurring' ? 'subscription' : 'payment';
+
     // Store pending wedding data in metadata for webhook processing
     const metadata: Record<string, string> = {
       userId,
@@ -84,7 +93,7 @@ export class BillingService {
 
     try {
       const session = await this.stripe.checkout.sessions.create({
-        mode: 'payment',
+        mode,
         payment_method_types: ['card'],
         line_items: [
           {
@@ -115,6 +124,22 @@ export class BillingService {
       }
       throw error;
     }
+  }
+
+  private async getPriceType(
+    priceId: string,
+  ): Promise<'one_time' | 'recurring'> {
+    const cached = this.priceTypeCache.get(priceId);
+    const now = Date.now();
+
+    if (cached && now - cached.cachedAt < this.PRICE_CACHE_TTL_MS) {
+      return cached.type;
+    }
+
+    const price = await this.stripe.prices.retrieve(priceId);
+    const type = price.type === 'recurring' ? 'recurring' : 'one_time';
+    this.priceTypeCache.set(priceId, { type, cachedAt: now });
+    return type;
   }
 
   /**
