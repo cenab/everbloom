@@ -499,7 +499,7 @@ export class InvitationController {
     authHeader: string | undefined,
     weddingId: string,
   ) {
-    const user = await this.adminAuthService.requireAdmin(authHeader);
+    const user = await this.adminAuthService.requireUser(authHeader);
 
     const wedding = await this.weddingService.getWedding(weddingId);
     if (!wedding || wedding.userId !== user.id) {

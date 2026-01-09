@@ -53,7 +53,7 @@ export class BillingController {
     @Body() body: CreateCheckoutSessionRequest,
   ): Promise<ApiResponse<CreateCheckoutSessionResponse>> {
     // Validate authentication
-    const user = await this.adminAuthService.requireAdmin(authHeader);
+    const user = await this.adminAuthService.requireUser(authHeader);
 
     // Validate request body
     if (!body.planId || !['starter', 'premium'].includes(body.planId)) {

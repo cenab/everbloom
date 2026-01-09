@@ -147,7 +147,7 @@ export class GuestbookAdminController {
    * Validate auth token and verify user owns the wedding
    */
   private async requireWeddingOwner(authHeader: string | undefined, weddingId: string) {
-    const user = await this.adminAuthService.requireAdmin(authHeader);
+    const user = await this.adminAuthService.requireUser(authHeader);
 
     const wedding = await this.weddingService.getWedding(weddingId);
     if (!wedding || wedding.userId !== user.id) {

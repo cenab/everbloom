@@ -3,25 +3,10 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
-  ForbiddenException,
   Logger,
-  SetMetadata,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { JwtVerifyService, AuthContext } from './jwt-verify.service';
-import { AdminService, AdminRole } from './admin.service';
-
-/**
- * Metadata key for required admin role
- */
-export const ADMIN_ROLE_KEY = 'adminRole';
-
-/**
- * Decorator to set required admin role for an endpoint
- * @param role - Minimum role required (owner, admin, readonly)
- */
-export const RequireAdminRole = (role: AdminRole) => SetMetadata(ADMIN_ROLE_KEY, role);
 
 /**
  * Extend Express Request to include auth context
@@ -35,11 +20,10 @@ declare global {
 }
 
 /**
- * Guard that verifies Supabase JWT and checks admin authorization
+ * Guard that verifies Supabase JWT for authenticated requests.
  *
  * Usage:
  * @UseGuards(AdminAuthGuard)
- * @RequireAdminRole('admin') // optional, defaults to 'readonly'
  */
 @Injectable()
 export class AdminAuthGuard implements CanActivate {
@@ -47,8 +31,6 @@ export class AdminAuthGuard implements CanActivate {
 
   constructor(
     private readonly jwtVerifyService: JwtVerifyService,
-    private readonly adminService: AdminService,
-    private readonly reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -88,63 +70,19 @@ export class AdminAuthGuard implements CanActivate {
       });
     }
 
-    // Get required role from decorator (default to 'readonly')
-    const requiredRole = this.reflector.get<AdminRole>(
-      ADMIN_ROLE_KEY,
-      context.getHandler(),
-    ) || 'readonly';
-
-    // Check admin authorization
-    const adminResult = await this.adminService.checkAdmin(
-      jwtResult.payload.sub,
-      requiredRole,
-    );
-
-    if (!adminResult.authorized) {
-      this.logger.warn(`Admin auth failed: ${adminResult.reason}`, {
-        path: request.path,
-        method: request.method,
-        ip: request.ip,
-        sub: jwtResult.payload.sub,
-        reason: adminResult.reason,
-      });
-
-      if (adminResult.reason === 'admin_not_found') {
-        throw new ForbiddenException({
-          ok: false,
-          error: 'FORBIDDEN',
-          message: 'Access denied',
-        });
-      }
-
-      if (adminResult.reason === 'admin_disabled') {
-        throw new ForbiddenException({
-          ok: false,
-          error: 'FORBIDDEN',
-          message: 'Account disabled',
-        });
-      }
-
-      if (adminResult.reason === 'admin_insufficient_role') {
-        throw new ForbiddenException({
-          ok: false,
-          error: 'FORBIDDEN',
-          message: 'Insufficient permissions',
-        });
-      }
-
-      throw new ForbiddenException({
+    if (!jwtResult.payload.sub) {
+      throw new UnauthorizedException({
         ok: false,
-        error: 'FORBIDDEN',
-        message: 'Access denied',
+        error: 'UNAUTHORIZED',
+        message: 'Authentication required',
       });
     }
 
     // Attach auth context to request (simple: sub, email, role)
     request.auth = {
       sub: jwtResult.payload.sub,
-      email: jwtResult.payload.email || adminResult.admin.email,
-      role: adminResult.admin.role,
+      email: jwtResult.payload.email || '',
+      role: jwtResult.payload.role || 'authenticated',
     };
 
     this.logger.debug('Auth success', {

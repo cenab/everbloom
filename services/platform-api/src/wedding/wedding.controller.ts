@@ -1742,6 +1742,6 @@ export class WeddingController {
    * Extract and validate auth token
    */
   private async requireAuth(authHeader: string | undefined) {
-    return this.adminAuthService.requireAdmin(authHeader);
+    return this.adminAuthService.requireUser(authHeader);
   }
 }
