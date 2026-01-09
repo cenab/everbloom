@@ -56,7 +56,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Sends an email with a sign-in link.
    */
   const signInWithMagicLink = useCallback(async (email: string) => {
-    const redirectUrl = `${window.location.origin}/auth/callback`;
+    const redirectBase = import.meta.env.VITE_PLATFORM_URL;
+    let redirectUrl = `${window.location.origin}/auth/callback`;
+    if (redirectBase) {
+      try {
+        redirectUrl = new URL('/auth/callback', redirectBase).toString();
+      } catch {
+        // Fall back to current origin if VITE_PLATFORM_URL is invalid.
+      }
+    }
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
