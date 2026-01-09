@@ -14,13 +14,16 @@ async function bootstrap() {
   // Set global API prefix
   app.setGlobalPrefix('api');
 
-  // Enable CORS for platform-ui dev server
+  const corsOrigins = [
+    'http://localhost:3000',
+    'http://localhost:4321',
+    'http://localhost:8888',
+    process.env.PLATFORM_URL,
+    process.env.WEDDING_SITE_URL,
+  ].filter((origin): origin is string => Boolean(origin));
+
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:4321',
-      'http://localhost:8888',
-    ],
+    origin: corsOrigins,
     credentials: true,
   });
 

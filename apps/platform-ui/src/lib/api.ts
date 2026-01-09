@@ -1,6 +1,57 @@
 import { getAccessToken } from './supabase';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
+const EXTERNAL_API_BASE = import.meta.env.VITE_API_URL || '';
+
+function normalizeBaseUrl(baseUrl: string): string {
+  return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+}
+
+function isApiPath(path: string): boolean {
+  return path === '/api' || path.startsWith('/api/');
+}
+
+export function resolveApiUrl(path: string): string {
+  if (!EXTERNAL_API_BASE || !isApiPath(path)) {
+    return path;
+  }
+
+  const base = normalizeBaseUrl(EXTERNAL_API_BASE);
+
+  if (base.endsWith('/api')) {
+    return `${base}${path.slice(4)}`;
+  }
+
+  return `${base}${path}`;
+}
+
+export function setupApiBaseFetch(): void {
+  if (!EXTERNAL_API_BASE || typeof window === 'undefined') {
+    return;
+  }
+
+  const originalFetch = window.fetch.bind(window);
+
+  window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+    if (typeof input === 'string') {
+      return originalFetch(resolveApiUrl(input), init);
+    }
+
+    if (input instanceof URL) {
+      return originalFetch(resolveApiUrl(input.toString()), init);
+    }
+
+    if (input instanceof Request) {
+      const updatedUrl = resolveApiUrl(input.url);
+      if (updatedUrl === input.url) {
+        return originalFetch(input, init);
+      }
+      return originalFetch(new Request(updatedUrl, input), init);
+    }
+
+    return originalFetch(input, init);
+  };
+}
 
 /**
  * Authenticated fetch wrapper that automatically attaches the Bearer token.

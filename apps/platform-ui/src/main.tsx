@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { routeTree } from './routes/__root';
 import { AuthProvider } from './lib/auth';
+import { setupApiBaseFetch } from './lib/api';
 import './index.css';
 
 const queryClient = new QueryClient({
@@ -22,6 +23,8 @@ declare module '@tanstack/react-router' {
     router: typeof router;
   }
 }
+
+setupApiBaseFetch();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Root element not found');
