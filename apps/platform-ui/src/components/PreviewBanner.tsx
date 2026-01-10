@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getAuthToken } from '../lib/auth';
+import { getWeddingSiteUrl } from '../lib/urls';
 import type { ApiResponse, PreviewStatus, PublishDraftResponse, DiscardDraftResponse } from '../types';
 
 interface PreviewBannerProps {
@@ -123,7 +124,7 @@ export function PreviewBanner({ weddingId, weddingSlug }: PreviewBannerProps) {
 
   const handlePreview = () => {
     // Open preview in a new tab with a preview query param
-    window.open(`/w/${weddingSlug}?preview=true`, '_blank');
+    window.open(getWeddingSiteUrl(weddingSlug, { preview: true }), '_blank');
   };
 
   // Don't show anything while loading or if no draft changes

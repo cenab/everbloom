@@ -27,6 +27,7 @@ import { LanguageSettings } from './LanguageSettings';
 import { PreviewBanner } from './PreviewBanner';
 import { DomainSettings } from './DomainSettings';
 import { getAuthToken } from '../lib/auth';
+import { getWeddingSiteUrl } from '../lib/urls';
 import type { Wedding, ApiResponse, RenderConfig } from '../types';
 
 type View = 'dashboard' | 'create-wedding' | 'guests' | 'rsvp' | 'template' | 'features' | 'announcement' | 'event-details' | 'faq' | 'passcode' | 'hero' | 'meal-options' | 'registry' | 'accommodations' | 'email-stats' | 'photo-stats' | 'guestbook' | 'music' | 'seating' | 'communications' | 'email-templates' | 'gallery' | 'photo-moderation' | 'video' | 'social' | 'language' | 'domain';
@@ -604,7 +605,7 @@ function WeddingDashboard({
               title="Your site"
               description="View your wedding website"
               icon={<GlobeIcon className="w-6 h-6" />}
-              href={`/w/${wedding.slug}`}
+              href={getWeddingSiteUrl(wedding.slug)}
               external
             />
           </div>
@@ -694,6 +695,7 @@ function WeddingSidebar({
   onNavigateToDomain,
   onBack,
 }: WeddingSidebarProps) {
+  const weddingSiteUrl = getWeddingSiteUrl(wedding.slug);
   const sections: { title: string; items: SidebarNavItemConfig[] }[] = [
     {
       title: 'Overview',
@@ -707,7 +709,7 @@ function WeddingSidebar({
         {
           label: 'Your site',
           icon: <GlobeIcon className="w-4 h-4" />,
-          href: `/w/${wedding.slug}`,
+          href: weddingSiteUrl,
           external: true,
         },
       ],

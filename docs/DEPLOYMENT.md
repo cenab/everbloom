@@ -191,6 +191,7 @@ WORKER_TOKEN=xxx
 **Environment Variables:**
 ```bash
 VITE_API_URL=https://api.yourdomain.com/api
+VITE_WEDDING_SITE_URL=https://yourdomain.com
 ```
 
 ### Step 6: Wedding Site (Netlify)
