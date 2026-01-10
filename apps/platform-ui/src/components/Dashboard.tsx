@@ -86,7 +86,7 @@ export function Dashboard() {
   if (view === 'create-wedding') {
     return (
       <div className="bg-neutral-50">
-        <div className="max-w-7xl mx-auto px-6 pt-12 pb-8">
+        <div className="max-w-7xl mx-auto px-6 pt-4 pb-8">
           <CreateWedding onCancel={() => setView('dashboard')} />
         </div>
       </div>
@@ -360,7 +360,7 @@ export function Dashboard() {
   if (isLoading) {
     return (
       <div className="bg-neutral-50">
-        <div className="max-w-7xl mx-auto px-6 pt-12 pb-8">
+        <div className="max-w-7xl mx-auto px-6 pt-8 pb-8">
           <div className="text-center py-16">
             <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <p className="text-neutral-500">Loading...</p>
@@ -373,7 +373,7 @@ export function Dashboard() {
   if (!selectedWedding) {
     return (
       <div className="bg-neutral-50">
-        <div className="max-w-7xl mx-auto px-6 pt-12 pb-8">
+        <div className="max-w-7xl mx-auto px-6 pt-8 pb-8">
           <EmptyState
             hasWeddings={hasWeddings}
             weddings={weddings}
@@ -387,7 +387,7 @@ export function Dashboard() {
 
   return (
     <div className="bg-neutral-50">
-      <div className="max-w-7xl mx-auto px-6 pt-12 pb-8">
+      <div className="max-w-7xl mx-auto px-6 pt-8 pb-8">
         <div className="flex flex-col lg:flex-row gap-6">
           <WeddingSidebar
             wedding={selectedWedding}
