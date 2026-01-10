@@ -231,14 +231,6 @@ export function VideoSettings({
   if (!featureEnabled) {
     return (
       <div>
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-neutral-600 hover:text-neutral-800 mb-6"
-        >
-          <ChevronLeftIcon className="w-4 h-4" />
-          Back to dashboard
-        </button>
-
         <div className="text-center py-16">
           <VideoIcon className="w-16 h-16 text-neutral-300 mx-auto mb-4" />
           <h2 className="text-xl text-neutral-700 mb-2">Video embeds</h2>
@@ -261,14 +253,6 @@ export function VideoSettings({
 
   return (
     <div>
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-neutral-600 hover:text-neutral-800 mb-6"
-      >
-        <ChevronLeftIcon className="w-4 h-4" />
-        Back to dashboard
-      </button>
-
       <div className="mb-8">
         <h1 className="text-2xl text-neutral-800">Video embeds</h1>
         <p className="text-neutral-500 mt-1">
@@ -422,7 +406,7 @@ export function VideoSettings({
       </div>
 
       {videos.length > 0 && hasChanges && (
-        <div className="flex gap-4">
+      <div className="flex justify-end gap-4">
           <button
             onClick={handleSave}
             disabled={isSaving}

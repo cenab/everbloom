@@ -556,13 +556,6 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-neutral-600 hover:text-neutral-800 mb-4"
-        >
-          <ChevronLeftIcon className="w-4 h-4" />
-          Back to dashboard
-        </button>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl text-neutral-800">Your guests</h1>

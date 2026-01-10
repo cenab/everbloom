@@ -236,14 +236,6 @@ export function DomainSettings({
 
   return (
     <div>
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-neutral-600 hover:text-neutral-800 mb-6"
-      >
-        <ChevronLeftIcon className="w-4 h-4" />
-        Back to dashboard
-      </button>
-
       <div className="mb-8">
         <h1 className="text-2xl text-neutral-800">Custom domain</h1>
         <p className="text-neutral-500 mt-1">
@@ -436,11 +428,6 @@ export function DomainSettings({
         </div>
       )}
 
-      <div className="mt-8">
-        <button onClick={onBack} className="btn-secondary">
-          Back to dashboard
-        </button>
-      </div>
     </div>
   );
 }

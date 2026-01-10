@@ -105,13 +105,6 @@ export function MusicRequests({ weddingId, wedding, onBack }: MusicRequestsProps
   if (!wedding.features.MUSIC_REQUESTS) {
     return (
       <div className="max-w-4xl mx-auto">
-        <button
-          onClick={onBack}
-          className="mb-6 text-neutral-500 hover:text-neutral-700 flex items-center gap-1"
-        >
-          <BackIcon className="w-4 h-4" />
-          Back to dashboard
-        </button>
         <div className="text-center py-12 bg-neutral-50 border border-neutral-200 rounded-lg">
           <MusicNoteIcon className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
           <h3 className="text-lg text-neutral-800 mb-2">Music requests not enabled</h3>
@@ -126,13 +119,6 @@ export function MusicRequests({ weddingId, wedding, onBack }: MusicRequestsProps
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto">
-        <button
-          onClick={onBack}
-          className="mb-6 text-neutral-500 hover:text-neutral-700 flex items-center gap-1"
-        >
-          <BackIcon className="w-4 h-4" />
-          Back to dashboard
-        </button>
         <div className="text-center py-12">
           <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-neutral-500">Loading song requests...</p>
@@ -144,13 +130,6 @@ export function MusicRequests({ weddingId, wedding, onBack }: MusicRequestsProps
   if (error) {
     return (
       <div className="max-w-4xl mx-auto">
-        <button
-          onClick={onBack}
-          className="mb-6 text-neutral-500 hover:text-neutral-700 flex items-center gap-1"
-        >
-          <BackIcon className="w-4 h-4" />
-          Back to dashboard
-        </button>
         <div className="text-center py-12 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-red-700">{error}</p>
           <button
@@ -170,14 +149,6 @@ export function MusicRequests({ weddingId, wedding, onBack }: MusicRequestsProps
 
   return (
     <div className="max-w-4xl mx-auto">
-      <button
-        onClick={onBack}
-        className="mb-6 text-neutral-500 hover:text-neutral-700 flex items-center gap-1"
-      >
-        <BackIcon className="w-4 h-4" />
-        Back to dashboard
-      </button>
-
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl text-neutral-800 mb-1">Song Requests</h2>

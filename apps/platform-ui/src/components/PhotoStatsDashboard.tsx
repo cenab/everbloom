@@ -58,13 +58,6 @@ export function PhotoStatsDashboard({ weddingId, onBack }: PhotoStatsDashboardPr
   if (error) {
     return (
       <div>
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-neutral-600 hover:text-neutral-800 mb-6"
-        >
-          <ChevronLeftIcon className="w-4 h-4" />
-          Back to dashboard
-        </button>
         <div className="text-center py-16">
           <p className="text-neutral-500">{error}</p>
           <button
@@ -80,14 +73,6 @@ export function PhotoStatsDashboard({ weddingId, onBack }: PhotoStatsDashboardPr
 
   return (
     <div>
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-neutral-600 hover:text-neutral-800 mb-6"
-      >
-        <ChevronLeftIcon className="w-4 h-4" />
-        Back to dashboard
-      </button>
-
       <div className="mb-8">
         <h1 className="text-2xl text-neutral-800">Photo uploads</h1>
         <p className="text-neutral-500 mt-1">

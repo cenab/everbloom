@@ -84,8 +84,10 @@ export function Dashboard() {
 
   if (view === 'create-wedding') {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <CreateWedding onCancel={() => setView('dashboard')} />
+      <div className="bg-neutral-50">
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <CreateWedding onCancel={() => setView('dashboard')} />
+        </div>
       </div>
     );
   }
@@ -356,10 +358,12 @@ export function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="text-center py-16">
-          <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-neutral-500">Loading...</p>
+      <div className="bg-neutral-50">
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <div className="text-center py-16">
+            <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-neutral-500">Loading...</p>
+          </div>
         </div>
       </div>
     );
@@ -367,53 +371,57 @@ export function Dashboard() {
 
   if (!selectedWedding) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <EmptyState
-          hasWeddings={hasWeddings}
-          weddings={weddings}
-          onCreateWedding={() => setView('create-wedding')}
-          onSelectWedding={handleSelectWedding}
-        />
+      <div className="bg-neutral-50">
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <EmptyState
+            hasWeddings={hasWeddings}
+            weddings={weddings}
+            onCreateWedding={() => setView('create-wedding')}
+            onSelectWedding={handleSelectWedding}
+          />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
-      <div className="flex flex-col lg:flex-row gap-6">
-        <WeddingSidebar
-          wedding={selectedWedding}
-          activeView={view}
-          onNavigateToDashboard={() => setView('dashboard')}
-          onNavigateToGuests={() => setView('guests')}
-          onNavigateToRsvp={() => setView('rsvp')}
-          onNavigateToTemplate={() => setView('template')}
-          onNavigateToFeatures={() => setView('features')}
-          onNavigateToAnnouncement={() => setView('announcement')}
-          onNavigateToEventDetails={() => setView('event-details')}
-          onNavigateToFaq={() => setView('faq')}
-          onNavigateToRegistry={() => setView('registry')}
-          onNavigateToAccommodations={() => setView('accommodations')}
-          onNavigateToPasscode={() => setView('passcode')}
-          onNavigateToHero={() => setView('hero')}
-          onNavigateToMealOptions={() => setView('meal-options')}
-          onNavigateToEmailStats={() => setView('email-stats')}
-          onNavigateToPhotoStats={() => setView('photo-stats')}
-          onNavigateToGuestbook={() => setView('guestbook')}
-          onNavigateToMusic={() => setView('music')}
-          onNavigateToSeating={() => setView('seating')}
-          onNavigateToCommunications={() => setView('communications')}
-          onNavigateToEmailTemplates={() => setView('email-templates')}
-          onNavigateToGallery={() => setView('gallery')}
-          onNavigateToPhotoModeration={() => setView('photo-moderation')}
-          onNavigateToVideo={() => setView('video')}
-          onNavigateToSocial={() => setView('social')}
-          onNavigateToLanguage={() => setView('language')}
-          onNavigateToDomain={() => setView('domain')}
-          onBack={weddings.length > 1 ? handleBackToWeddings : undefined}
-        />
-        <div className="flex-1 min-w-0">
-          {renderWeddingContent()}
+    <div className="bg-neutral-50">
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="flex flex-col lg:flex-row gap-6">
+          <WeddingSidebar
+            wedding={selectedWedding}
+            activeView={view}
+            onNavigateToDashboard={() => setView('dashboard')}
+            onNavigateToGuests={() => setView('guests')}
+            onNavigateToRsvp={() => setView('rsvp')}
+            onNavigateToTemplate={() => setView('template')}
+            onNavigateToFeatures={() => setView('features')}
+            onNavigateToAnnouncement={() => setView('announcement')}
+            onNavigateToEventDetails={() => setView('event-details')}
+            onNavigateToFaq={() => setView('faq')}
+            onNavigateToRegistry={() => setView('registry')}
+            onNavigateToAccommodations={() => setView('accommodations')}
+            onNavigateToPasscode={() => setView('passcode')}
+            onNavigateToHero={() => setView('hero')}
+            onNavigateToMealOptions={() => setView('meal-options')}
+            onNavigateToEmailStats={() => setView('email-stats')}
+            onNavigateToPhotoStats={() => setView('photo-stats')}
+            onNavigateToGuestbook={() => setView('guestbook')}
+            onNavigateToMusic={() => setView('music')}
+            onNavigateToSeating={() => setView('seating')}
+            onNavigateToCommunications={() => setView('communications')}
+            onNavigateToEmailTemplates={() => setView('email-templates')}
+            onNavigateToGallery={() => setView('gallery')}
+            onNavigateToPhotoModeration={() => setView('photo-moderation')}
+            onNavigateToVideo={() => setView('video')}
+            onNavigateToSocial={() => setView('social')}
+            onNavigateToLanguage={() => setView('language')}
+            onNavigateToDomain={() => setView('domain')}
+            onBack={weddings.length > 1 ? handleBackToWeddings : undefined}
+          />
+          <div className="flex-1 min-w-0 bg-white border border-neutral-200 rounded-xl p-6">
+            {renderWeddingContent()}
+          </div>
         </div>
       </div>
     </div>
@@ -892,7 +900,7 @@ function WeddingSidebar({
     .filter((section) => section.items.length > 0);
 
   return (
-    <aside className="w-full lg:w-72 bg-neutral-50 border border-neutral-200 rounded-xl p-4">
+    <aside className="w-full lg:w-72 bg-white border border-neutral-200 rounded-xl p-4">
       <div className="mb-4">
         <p className="text-xs uppercase tracking-wide text-neutral-500">Wedding</p>
         <h2 className="text-sm font-medium text-neutral-800">{wedding.name}</h2>
