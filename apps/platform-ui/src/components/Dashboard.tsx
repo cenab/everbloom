@@ -73,6 +73,14 @@ export function Dashboard() {
   }, [fetchWeddings]);
 
   const hasWeddings = weddings.length > 0;
+  const handleSelectWedding = (wedding: Wedding) => {
+    setSelectedWedding(wedding);
+    setView('dashboard');
+  };
+  const handleBackToWeddings = () => {
+    setSelectedWedding(null);
+    setView('dashboard');
+  };
 
   if (view === 'create-wedding') {
     return (
@@ -82,296 +90,269 @@ export function Dashboard() {
     );
   }
 
-  if (view === 'guests' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <Guests
-          weddingId={selectedWedding.id}
-          onBack={() => setView('dashboard')}
-        />
-      </div>
-    );
-  }
+  const renderWeddingContent = () => {
+    if (!selectedWedding) {
+      return null;
+    }
 
-  if (view === 'rsvp' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <RsvpDashboard
-          weddingId={selectedWedding.id}
-          onBack={() => setView('dashboard')}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'template' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <TemplateSelectorWrapper
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'features' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <FeatureSettings
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-          onFeaturesChanged={fetchWeddings}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'announcement' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <AnnouncementSettings
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-          onAnnouncementChanged={fetchWeddings}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'event-details' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <EventSettings
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-          onEventDetailsChanged={fetchWeddings}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'faq' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <FaqSettings
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-          onFaqChanged={fetchWeddings}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'registry' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <RegistrySettings
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-          onRegistryChanged={fetchWeddings}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'accommodations' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <AccommodationsSettings
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-          onAccommodationsChanged={fetchWeddings}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'passcode' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <PasscodeSettings
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-          onPasscodeChanged={fetchWeddings}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'hero' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <HeroSettings
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-          onHeroChanged={fetchWeddings}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'meal-options' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <MealSettings
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-          onMealConfigChanged={fetchWeddings}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'email-stats' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <EmailStatisticsDashboard
-          weddingId={selectedWedding.id}
-          onBack={() => setView('dashboard')}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'photo-stats' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <PhotoStatsDashboard
-          weddingId={selectedWedding.id}
-          onBack={() => setView('dashboard')}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'guestbook' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <GuestbookManager
-          weddingId={selectedWedding.id}
-          onBack={() => setView('dashboard')}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'music' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <MusicRequests
-          weddingId={selectedWedding.id}
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'seating' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <SeatingManager
-          weddingId={selectedWedding.id}
-          onBack={() => setView('dashboard')}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'communications' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <Communications
-          weddingId={selectedWedding.id}
-          onBack={() => setView('dashboard')}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'email-templates' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <EmailTemplateSettings
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-          onTemplatesChanged={fetchWeddings}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'gallery' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <GallerySettings
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-          onGalleryChanged={fetchWeddings}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'photo-moderation' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <PhotoModerationSettings
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-          onWeddingChanged={fetchWeddings}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'video' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <VideoSettings
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-          onVideoChanged={fetchWeddings}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'social' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <SocialSettings
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-          onSocialConfigChanged={fetchWeddings}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'language' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <LanguageSettings
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-          onLanguageChanged={fetchWeddings}
-        />
-      </div>
-    );
-  }
-
-  if (view === 'domain' && selectedWedding) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <DomainSettings
-          wedding={selectedWedding}
-          onBack={() => setView('dashboard')}
-        />
-      </div>
-    );
-  }
+    switch (view) {
+      case 'dashboard':
+        return (
+          <WeddingDashboard
+            wedding={selectedWedding}
+            onNavigateToGuests={() => setView('guests')}
+            onNavigateToRsvp={() => setView('rsvp')}
+            onNavigateToTemplate={() => setView('template')}
+            onNavigateToFeatures={() => setView('features')}
+            onNavigateToAnnouncement={() => setView('announcement')}
+            onNavigateToEventDetails={() => setView('event-details')}
+            onNavigateToFaq={() => setView('faq')}
+            onNavigateToRegistry={() => setView('registry')}
+            onNavigateToAccommodations={() => setView('accommodations')}
+            onNavigateToPasscode={() => setView('passcode')}
+            onNavigateToHero={() => setView('hero')}
+            onNavigateToMealOptions={() => setView('meal-options')}
+            onNavigateToEmailStats={() => setView('email-stats')}
+            onNavigateToPhotoStats={() => setView('photo-stats')}
+            onNavigateToGuestbook={() => setView('guestbook')}
+            onNavigateToMusic={() => setView('music')}
+            onNavigateToSeating={() => setView('seating')}
+            onNavigateToCommunications={() => setView('communications')}
+            onNavigateToEmailTemplates={() => setView('email-templates')}
+            onNavigateToGallery={() => setView('gallery')}
+            onNavigateToPhotoModeration={() => setView('photo-moderation')}
+            onNavigateToVideo={() => setView('video')}
+            onNavigateToSocial={() => setView('social')}
+            onNavigateToLanguage={() => setView('language')}
+            onNavigateToDomain={() => setView('domain')}
+            onBack={weddings.length > 1 ? handleBackToWeddings : undefined}
+          />
+        );
+      case 'guests':
+        return (
+          <Guests
+            weddingId={selectedWedding.id}
+            onBack={() => setView('dashboard')}
+          />
+        );
+      case 'rsvp':
+        return (
+          <RsvpDashboard
+            weddingId={selectedWedding.id}
+            onBack={() => setView('dashboard')}
+          />
+        );
+      case 'template':
+        return (
+          <TemplateSelectorWrapper
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+          />
+        );
+      case 'features':
+        return (
+          <FeatureSettings
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+            onFeaturesChanged={fetchWeddings}
+          />
+        );
+      case 'announcement':
+        return (
+          <AnnouncementSettings
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+            onAnnouncementChanged={fetchWeddings}
+          />
+        );
+      case 'event-details':
+        return (
+          <EventSettings
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+            onEventDetailsChanged={fetchWeddings}
+          />
+        );
+      case 'faq':
+        return (
+          <FaqSettings
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+            onFaqChanged={fetchWeddings}
+          />
+        );
+      case 'registry':
+        return (
+          <RegistrySettings
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+            onRegistryChanged={fetchWeddings}
+          />
+        );
+      case 'accommodations':
+        return (
+          <AccommodationsSettings
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+            onAccommodationsChanged={fetchWeddings}
+          />
+        );
+      case 'passcode':
+        return (
+          <PasscodeSettings
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+            onPasscodeChanged={fetchWeddings}
+          />
+        );
+      case 'hero':
+        return (
+          <HeroSettings
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+            onHeroChanged={fetchWeddings}
+          />
+        );
+      case 'meal-options':
+        return (
+          <MealSettings
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+            onMealConfigChanged={fetchWeddings}
+          />
+        );
+      case 'email-stats':
+        return (
+          <EmailStatisticsDashboard
+            weddingId={selectedWedding.id}
+            onBack={() => setView('dashboard')}
+          />
+        );
+      case 'photo-stats':
+        return (
+          <PhotoStatsDashboard
+            weddingId={selectedWedding.id}
+            onBack={() => setView('dashboard')}
+          />
+        );
+      case 'guestbook':
+        return (
+          <GuestbookManager
+            weddingId={selectedWedding.id}
+            onBack={() => setView('dashboard')}
+          />
+        );
+      case 'music':
+        return (
+          <MusicRequests
+            weddingId={selectedWedding.id}
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+          />
+        );
+      case 'seating':
+        return (
+          <SeatingManager
+            weddingId={selectedWedding.id}
+            onBack={() => setView('dashboard')}
+          />
+        );
+      case 'communications':
+        return (
+          <Communications
+            weddingId={selectedWedding.id}
+            onBack={() => setView('dashboard')}
+          />
+        );
+      case 'email-templates':
+        return (
+          <EmailTemplateSettings
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+            onTemplatesChanged={fetchWeddings}
+          />
+        );
+      case 'gallery':
+        return (
+          <GallerySettings
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+            onGalleryChanged={fetchWeddings}
+          />
+        );
+      case 'photo-moderation':
+        return (
+          <PhotoModerationSettings
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+            onWeddingChanged={fetchWeddings}
+          />
+        );
+      case 'video':
+        return (
+          <VideoSettings
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+            onVideoChanged={fetchWeddings}
+          />
+        );
+      case 'social':
+        return (
+          <SocialSettings
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+            onSocialConfigChanged={fetchWeddings}
+          />
+        );
+      case 'language':
+        return (
+          <LanguageSettings
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+            onLanguageChanged={fetchWeddings}
+          />
+        );
+      case 'domain':
+        return (
+          <DomainSettings
+            wedding={selectedWedding}
+            onBack={() => setView('dashboard')}
+          />
+        );
+      default:
+        return (
+          <WeddingDashboard
+            wedding={selectedWedding}
+            onNavigateToGuests={() => setView('guests')}
+            onNavigateToRsvp={() => setView('rsvp')}
+            onNavigateToTemplate={() => setView('template')}
+            onNavigateToFeatures={() => setView('features')}
+            onNavigateToAnnouncement={() => setView('announcement')}
+            onNavigateToEventDetails={() => setView('event-details')}
+            onNavigateToFaq={() => setView('faq')}
+            onNavigateToRegistry={() => setView('registry')}
+            onNavigateToAccommodations={() => setView('accommodations')}
+            onNavigateToPasscode={() => setView('passcode')}
+            onNavigateToHero={() => setView('hero')}
+            onNavigateToMealOptions={() => setView('meal-options')}
+            onNavigateToEmailStats={() => setView('email-stats')}
+            onNavigateToPhotoStats={() => setView('photo-stats')}
+            onNavigateToGuestbook={() => setView('guestbook')}
+            onNavigateToMusic={() => setView('music')}
+            onNavigateToSeating={() => setView('seating')}
+            onNavigateToCommunications={() => setView('communications')}
+            onNavigateToEmailTemplates={() => setView('email-templates')}
+            onNavigateToGallery={() => setView('gallery')}
+            onNavigateToPhotoModeration={() => setView('photo-moderation')}
+            onNavigateToVideo={() => setView('video')}
+            onNavigateToSocial={() => setView('social')}
+            onNavigateToLanguage={() => setView('language')}
+            onNavigateToDomain={() => setView('domain')}
+            onBack={weddings.length > 1 ? handleBackToWeddings : undefined}
+          />
+        );
+    }
+  };
 
   if (isLoading) {
     return (
@@ -384,18 +365,26 @@ export function Dashboard() {
     );
   }
 
-  return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
-      {!selectedWedding ? (
+  if (!selectedWedding) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
         <EmptyState
           hasWeddings={hasWeddings}
           weddings={weddings}
           onCreateWedding={() => setView('create-wedding')}
-          onSelectWedding={setSelectedWedding}
+          onSelectWedding={handleSelectWedding}
         />
-      ) : (
-        <WeddingDashboard
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="flex flex-col lg:flex-row gap-6">
+        <WeddingSidebar
           wedding={selectedWedding}
+          activeView={view}
+          onNavigateToDashboard={() => setView('dashboard')}
           onNavigateToGuests={() => setView('guests')}
           onNavigateToRsvp={() => setView('rsvp')}
           onNavigateToTemplate={() => setView('template')}
@@ -421,9 +410,12 @@ export function Dashboard() {
           onNavigateToSocial={() => setView('social')}
           onNavigateToLanguage={() => setView('language')}
           onNavigateToDomain={() => setView('domain')}
-          onBack={weddings.length > 1 ? () => setSelectedWedding(null) : undefined}
+          onBack={weddings.length > 1 ? handleBackToWeddings : undefined}
         />
-      )}
+        <div className="flex-1 min-w-0">
+          {renderWeddingContent()}
+        </div>
+      </div>
     </div>
   );
 }
@@ -573,192 +565,411 @@ function WeddingDashboard({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <DashboardCard
-          title="Hero section"
-          description="Edit your site's headline"
-          icon={<SparklesIcon className="w-6 h-6" />}
-          onClick={onNavigateToHero}
-        />
-        <DashboardCard
-          title="Photo gallery"
-          description="Upload curated photos to your site"
-          icon={<ImageIcon className="w-6 h-6" />}
-          onClick={onNavigateToGallery}
-        />
-        {wedding.features.VIDEO_EMBED && (
-          <DashboardCard
-            title="Video embeds"
-            description="Add YouTube or Vimeo videos"
-            icon={<VideoIcon className="w-6 h-6" />}
-            onClick={onNavigateToVideo}
-          />
-        )}
-        <DashboardCard
-          title="Your guests"
-          description="Add and manage your guest list"
-          icon={<UsersIcon className="w-6 h-6" />}
-          onClick={onNavigateToGuests}
-        />
-        {wedding.features.RSVP && (
-          <DashboardCard
-            title="RSVP responses"
-            description="Track who's coming to your celebration"
-            icon={<ClipboardIcon className="w-6 h-6" />}
-            onClick={onNavigateToRsvp}
-          />
-        )}
-        {wedding.features.RSVP && (
-          <DashboardCard
-            title="Meal options"
-            description="Configure meal choices for your guests"
-            icon={<ForkKnifeIcon className="w-6 h-6" />}
-            onClick={onNavigateToMealOptions}
-          />
-        )}
-        <DashboardCard
-          title="Event details"
-          description="Set date, time, and venue for calendar invites"
-          icon={<CalendarIcon className="w-6 h-6" />}
-          onClick={onNavigateToEventDetails}
-        />
-        <DashboardCard
-          title="Site template"
-          description="Choose your visual style"
-          icon={<PaletteIcon className="w-6 h-6" />}
-          onClick={onNavigateToTemplate}
-        />
-        <DashboardCard
-          title="Site features"
-          description="Enable or disable features"
-          icon={<ToggleIcon className="w-6 h-6" />}
-          onClick={onNavigateToFeatures}
-        />
-        {wedding.features.ANNOUNCEMENT_BANNER && (
-          <DashboardCard
-            title="Announcement banner"
-            description="Share an update at the top of your site"
-            icon={<BellIcon className="w-6 h-6" />}
-            onClick={onNavigateToAnnouncement}
-          />
-        )}
-        {wedding.features.FAQ_SECTION && (
-          <DashboardCard
-            title="FAQ"
-            description="Answer common questions for your guests"
-            icon={<QuestionMarkIcon className="w-6 h-6" />}
-            onClick={onNavigateToFaq}
-          />
-        )}
-        {wedding.features.REGISTRY && (
-          <DashboardCard
-            title="Gift registry"
-            description="Add links to your registries"
-            icon={<GiftIcon className="w-6 h-6" />}
-            onClick={onNavigateToRegistry}
-          />
-        )}
-        {wedding.features.ACCOMMODATIONS && (
-          <DashboardCard
-            title="Accommodations"
-            description="Add hotel and travel information"
-            icon={<BuildingIcon className="w-6 h-6" />}
-            onClick={onNavigateToAccommodations}
-          />
-        )}
-        {wedding.features.PASSCODE_SITE && (
-          <DashboardCard
-            title="Site protection"
-            description="Protect your site with a passcode"
-            icon={<LockIcon className="w-6 h-6" />}
-            onClick={onNavigateToPasscode}
-          />
-        )}
-        <DashboardCard
-          title="Email statistics"
-          description="Track invitation and reminder delivery"
-          icon={<EnvelopeIcon className="w-6 h-6" />}
-          onClick={onNavigateToEmailStats}
-        />
-        <DashboardCard
-          title="Communications"
-          description="Send save-the-dates and thank-you messages"
-          icon={<PaperAirplaneIcon className="w-6 h-6" />}
-          onClick={onNavigateToCommunications}
-        />
-        <DashboardCard
-          title="Email templates"
-          description="Customize invitation and reminder emails"
-          icon={<DocumentTextIcon className="w-6 h-6" />}
-          onClick={onNavigateToEmailTemplates}
-        />
-        {wedding.features.PHOTO_UPLOAD && (
-          <DashboardCard
-            title="Photo uploads"
-            description="View photos shared by your guests"
-            icon={<CameraIcon className="w-6 h-6" />}
-            onClick={onNavigateToPhotoStats}
-          />
-        )}
-        {wedding.features.PHOTO_UPLOAD && (
-          <DashboardCard
-            title="Photo moderation"
-            description="Review and approve guest photo uploads"
-            icon={<ShieldCheckIcon className="w-6 h-6" />}
-            onClick={onNavigateToPhotoModeration}
-          />
-        )}
-        {wedding.features.GUESTBOOK && (
-          <DashboardCard
-            title="Guestbook"
-            description="Moderate messages from your guests"
-            icon={<MessageSquareIcon className="w-6 h-6" />}
-            onClick={onNavigateToGuestbook}
-          />
-        )}
-        {wedding.features.MUSIC_REQUESTS && (
-          <DashboardCard
-            title="Song requests"
-            description="View songs suggested by your guests"
-            icon={<MusicNoteIcon className="w-6 h-6" />}
-            onClick={onNavigateToMusic}
-          />
-        )}
-        {wedding.features.SEATING_CHART && (
-          <DashboardCard
-            title="Seating chart"
-            description="Assign guests to tables"
-            icon={<TableIcon className="w-6 h-6" />}
-            onClick={onNavigateToSeating}
-          />
-        )}
-        <DashboardCard
-          title="Social sharing"
-          description="Customize link preview image"
-          icon={<ShareIcon className="w-6 h-6" />}
-          onClick={onNavigateToSocial}
-        />
-        <DashboardCard
-          title="Site language"
-          description="Change your site's display language"
-          icon={<LanguageIcon className="w-6 h-6" />}
-          onClick={onNavigateToLanguage}
-        />
-        <DashboardCard
-          title="Custom domain"
-          description="Connect your own domain name"
-          icon={<LinkIcon className="w-6 h-6" />}
-          onClick={onNavigateToDomain}
-        />
-        <DashboardCard
-          title="Your site"
-          description="View your wedding website"
-          icon={<GlobeIcon className="w-6 h-6" />}
-          href={`/w/${wedding.slug}`}
-          external
-        />
+      <div className="space-y-8">
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg text-neutral-800 font-medium">Quick actions</h2>
+              <p className="text-sm text-neutral-500">Jump into the most-used edits.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <DashboardCard
+              title="Hero section"
+              description="Edit your site's headline"
+              icon={<SparklesIcon className="w-6 h-6" />}
+              onClick={onNavigateToHero}
+            />
+            <DashboardCard
+              title="Event details"
+              description="Set date, time, and venue"
+              icon={<CalendarIcon className="w-6 h-6" />}
+              onClick={onNavigateToEventDetails}
+            />
+            <DashboardCard
+              title="Site template"
+              description="Choose your visual style"
+              icon={<PaletteIcon className="w-6 h-6" />}
+              onClick={onNavigateToTemplate}
+            />
+            <DashboardCard
+              title="Your site"
+              description="View your wedding website"
+              icon={<GlobeIcon className="w-6 h-6" />}
+              href={`/w/${wedding.slug}`}
+              external
+            />
+          </div>
+        </section>
+        <section className="bg-white border border-neutral-200 rounded-xl p-6">
+          <h2 className="text-lg text-neutral-800 font-medium">Explore your workspace</h2>
+          <p className="text-sm text-neutral-500 mt-1">
+            Use the sidebar to jump between site edits, guest tools, and communications. We keep your
+            progress as you move.
+          </p>
+        </section>
       </div>
     </div>
+  );
+}
+
+interface WeddingSidebarProps {
+  wedding: Wedding;
+  activeView: View;
+  onNavigateToDashboard: () => void;
+  onNavigateToGuests: () => void;
+  onNavigateToRsvp: () => void;
+  onNavigateToTemplate: () => void;
+  onNavigateToFeatures: () => void;
+  onNavigateToAnnouncement: () => void;
+  onNavigateToEventDetails: () => void;
+  onNavigateToFaq: () => void;
+  onNavigateToRegistry: () => void;
+  onNavigateToAccommodations: () => void;
+  onNavigateToPasscode: () => void;
+  onNavigateToHero: () => void;
+  onNavigateToMealOptions: () => void;
+  onNavigateToEmailStats: () => void;
+  onNavigateToPhotoStats: () => void;
+  onNavigateToGuestbook: () => void;
+  onNavigateToMusic: () => void;
+  onNavigateToSeating: () => void;
+  onNavigateToCommunications: () => void;
+  onNavigateToEmailTemplates: () => void;
+  onNavigateToGallery: () => void;
+  onNavigateToPhotoModeration: () => void;
+  onNavigateToVideo: () => void;
+  onNavigateToSocial: () => void;
+  onNavigateToLanguage: () => void;
+  onNavigateToDomain: () => void;
+  onBack?: () => void;
+}
+
+interface SidebarNavItemConfig {
+  label: string;
+  icon: React.ReactNode;
+  view?: View;
+  onClick?: () => void;
+  href?: string;
+  external?: boolean;
+  visible?: boolean;
+}
+
+function WeddingSidebar({
+  wedding,
+  activeView,
+  onNavigateToDashboard,
+  onNavigateToGuests,
+  onNavigateToRsvp,
+  onNavigateToTemplate,
+  onNavigateToFeatures,
+  onNavigateToAnnouncement,
+  onNavigateToEventDetails,
+  onNavigateToFaq,
+  onNavigateToRegistry,
+  onNavigateToAccommodations,
+  onNavigateToPasscode,
+  onNavigateToHero,
+  onNavigateToMealOptions,
+  onNavigateToEmailStats,
+  onNavigateToPhotoStats,
+  onNavigateToGuestbook,
+  onNavigateToMusic,
+  onNavigateToSeating,
+  onNavigateToCommunications,
+  onNavigateToEmailTemplates,
+  onNavigateToGallery,
+  onNavigateToPhotoModeration,
+  onNavigateToVideo,
+  onNavigateToSocial,
+  onNavigateToLanguage,
+  onNavigateToDomain,
+  onBack,
+}: WeddingSidebarProps) {
+  const sections: { title: string; items: SidebarNavItemConfig[] }[] = [
+    {
+      title: 'Overview',
+      items: [
+        {
+          label: 'Dashboard',
+          icon: <HeartIcon className="w-4 h-4" />,
+          view: 'dashboard',
+          onClick: onNavigateToDashboard,
+        },
+        {
+          label: 'Your site',
+          icon: <GlobeIcon className="w-4 h-4" />,
+          href: `/w/${wedding.slug}`,
+          external: true,
+        },
+      ],
+    },
+    {
+      title: 'Site',
+      items: [
+        {
+          label: 'Hero section',
+          icon: <SparklesIcon className="w-4 h-4" />,
+          view: 'hero',
+          onClick: onNavigateToHero,
+        },
+        {
+          label: 'Event details',
+          icon: <CalendarIcon className="w-4 h-4" />,
+          view: 'event-details',
+          onClick: onNavigateToEventDetails,
+        },
+        {
+          label: 'Photo gallery',
+          icon: <ImageIcon className="w-4 h-4" />,
+          view: 'gallery',
+          onClick: onNavigateToGallery,
+        },
+        {
+          label: 'Video embeds',
+          icon: <VideoIcon className="w-4 h-4" />,
+          view: 'video',
+          onClick: onNavigateToVideo,
+          visible: wedding.features.VIDEO_EMBED,
+        },
+        {
+          label: 'Announcement banner',
+          icon: <BellIcon className="w-4 h-4" />,
+          view: 'announcement',
+          onClick: onNavigateToAnnouncement,
+          visible: wedding.features.ANNOUNCEMENT_BANNER,
+        },
+        {
+          label: 'FAQ',
+          icon: <QuestionMarkIcon className="w-4 h-4" />,
+          view: 'faq',
+          onClick: onNavigateToFaq,
+          visible: wedding.features.FAQ_SECTION,
+        },
+        {
+          label: 'Gift registry',
+          icon: <GiftIcon className="w-4 h-4" />,
+          view: 'registry',
+          onClick: onNavigateToRegistry,
+          visible: wedding.features.REGISTRY,
+        },
+        {
+          label: 'Accommodations',
+          icon: <BuildingIcon className="w-4 h-4" />,
+          view: 'accommodations',
+          onClick: onNavigateToAccommodations,
+          visible: wedding.features.ACCOMMODATIONS,
+        },
+        {
+          label: 'Site template',
+          icon: <PaletteIcon className="w-4 h-4" />,
+          view: 'template',
+          onClick: onNavigateToTemplate,
+        },
+        {
+          label: 'Site features',
+          icon: <ToggleIcon className="w-4 h-4" />,
+          view: 'features',
+          onClick: onNavigateToFeatures,
+        },
+        {
+          label: 'Site protection',
+          icon: <LockIcon className="w-4 h-4" />,
+          view: 'passcode',
+          onClick: onNavigateToPasscode,
+          visible: wedding.features.PASSCODE_SITE,
+        },
+        {
+          label: 'Social sharing',
+          icon: <ShareIcon className="w-4 h-4" />,
+          view: 'social',
+          onClick: onNavigateToSocial,
+        },
+        {
+          label: 'Site language',
+          icon: <LanguageIcon className="w-4 h-4" />,
+          view: 'language',
+          onClick: onNavigateToLanguage,
+        },
+        {
+          label: 'Custom domain',
+          icon: <LinkIcon className="w-4 h-4" />,
+          view: 'domain',
+          onClick: onNavigateToDomain,
+        },
+      ],
+    },
+    {
+      title: 'Guests',
+      items: [
+        {
+          label: 'Your guests',
+          icon: <UsersIcon className="w-4 h-4" />,
+          view: 'guests',
+          onClick: onNavigateToGuests,
+        },
+        {
+          label: 'RSVP responses',
+          icon: <ClipboardIcon className="w-4 h-4" />,
+          view: 'rsvp',
+          onClick: onNavigateToRsvp,
+          visible: wedding.features.RSVP,
+        },
+        {
+          label: 'Meal options',
+          icon: <ForkKnifeIcon className="w-4 h-4" />,
+          view: 'meal-options',
+          onClick: onNavigateToMealOptions,
+          visible: wedding.features.RSVP,
+        },
+        {
+          label: 'Seating chart',
+          icon: <TableIcon className="w-4 h-4" />,
+          view: 'seating',
+          onClick: onNavigateToSeating,
+          visible: wedding.features.SEATING_CHART,
+        },
+        {
+          label: 'Guestbook',
+          icon: <MessageSquareIcon className="w-4 h-4" />,
+          view: 'guestbook',
+          onClick: onNavigateToGuestbook,
+          visible: wedding.features.GUESTBOOK,
+        },
+        {
+          label: 'Song requests',
+          icon: <MusicNoteIcon className="w-4 h-4" />,
+          view: 'music',
+          onClick: onNavigateToMusic,
+          visible: wedding.features.MUSIC_REQUESTS,
+        },
+      ],
+    },
+    {
+      title: 'Communications',
+      items: [
+        {
+          label: 'Email statistics',
+          icon: <EnvelopeIcon className="w-4 h-4" />,
+          view: 'email-stats',
+          onClick: onNavigateToEmailStats,
+        },
+        {
+          label: 'Communications',
+          icon: <PaperAirplaneIcon className="w-4 h-4" />,
+          view: 'communications',
+          onClick: onNavigateToCommunications,
+        },
+        {
+          label: 'Email templates',
+          icon: <DocumentTextIcon className="w-4 h-4" />,
+          view: 'email-templates',
+          onClick: onNavigateToEmailTemplates,
+        },
+        {
+          label: 'Photo uploads',
+          icon: <CameraIcon className="w-4 h-4" />,
+          view: 'photo-stats',
+          onClick: onNavigateToPhotoStats,
+          visible: wedding.features.PHOTO_UPLOAD,
+        },
+        {
+          label: 'Photo moderation',
+          icon: <ShieldCheckIcon className="w-4 h-4" />,
+          view: 'photo-moderation',
+          onClick: onNavigateToPhotoModeration,
+          visible: wedding.features.PHOTO_UPLOAD,
+        },
+      ],
+    },
+  ];
+
+  const visibleSections = sections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => item.visible !== false),
+    }))
+    .filter((section) => section.items.length > 0);
+
+  return (
+    <aside className="w-full lg:w-72 bg-neutral-50 border border-neutral-200 rounded-xl p-4">
+      <div className="mb-4">
+        <p className="text-xs uppercase tracking-wide text-neutral-500">Wedding</p>
+        <h2 className="text-sm font-medium text-neutral-800">{wedding.name}</h2>
+        <p className="text-xs text-neutral-500">
+          {wedding.partnerNames[0]} &amp; {wedding.partnerNames[1]}
+        </p>
+      </div>
+
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-800 mb-4"
+        >
+          <ChevronLeftIcon className="w-4 h-4" />
+          All weddings
+        </button>
+      )}
+
+      <nav className="space-y-6">
+        {visibleSections.map((section) => (
+          <div key={section.title}>
+            <p className="text-xs uppercase tracking-wide text-neutral-500">
+              {section.title}
+            </p>
+            <div className="mt-2 space-y-1">
+              {section.items.map((item) => (
+                <SidebarNavItem
+                  key={item.label}
+                  item={item}
+                  active={item.view === activeView}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </nav>
+    </aside>
+  );
+}
+
+interface SidebarNavItemProps {
+  item: SidebarNavItemConfig;
+  active: boolean;
+}
+
+function SidebarNavItem({ item, active }: SidebarNavItemProps) {
+  const baseClass =
+    'flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm transition-colors';
+  const stateClass = active
+    ? 'bg-primary-50 text-primary-700'
+    : 'text-neutral-700 hover:bg-primary-50 hover:text-primary-700';
+  const className = `${baseClass} ${stateClass}`;
+
+  if (item.href) {
+    return (
+      <a
+        href={item.href}
+        target={item.external ? '_blank' : undefined}
+        rel={item.external ? 'noopener noreferrer' : undefined}
+        className={className}
+      >
+        {item.icon}
+        <span>{item.label}</span>
+      </a>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={item.onClick}
+      aria-current={active ? 'page' : undefined}
+      className={className}
+    >
+      {item.icon}
+      <span>{item.label}</span>
+    </button>
   );
 }
 
