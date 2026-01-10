@@ -2,9 +2,8 @@
 # https://docs.netlify.com/configure-builds/file-based-configuration/
 
 [build]
-  command = "pnpm --filter @wedding-bestie/wedding-site build"
-  publish = "apps/wedding-site/dist"
-  functions = "apps/wedding-site/netlify/functions"
+  command = "pnpm build"
+  publish = "dist"
 
 [build.environment]
   NODE_VERSION = "20"
