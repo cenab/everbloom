@@ -7,10 +7,56 @@ interface HeroSettingsProps {
   onHeroChanged: () => void;
 }
 
-const INVITATION_STYLE_OPTIONS = [
-  { value: 'classic', label: 'Classic' },
-  { value: 'modern', label: 'Modern' },
-  { value: 'minimal', label: 'Minimal' },
+type InvitationStyleOption = {
+  value: string;
+  label: string;
+  description: string;
+  preview: {
+    containerClassName: string;
+    accentClassName: string;
+    headingClassName: string;
+    lineClassName: string;
+    detailClassName: string;
+  };
+};
+
+const INVITATION_STYLE_OPTIONS: InvitationStyleOption[] = [
+  {
+    value: 'classic',
+    label: 'Classic',
+    description: 'Soft serif with warm tones.',
+    preview: {
+      containerClassName: 'bg-[#F9F4EE] border-[#E6D8C8]',
+      accentClassName: 'bg-[#C6A46A]',
+      headingClassName: 'font-serif text-[#3C2F2A]',
+      lineClassName: 'bg-[#D7C2A9]',
+      detailClassName: 'text-[#7A6556]',
+    },
+  },
+  {
+    value: 'modern',
+    label: 'Modern',
+    description: 'Clean lines with a bold accent.',
+    preview: {
+      containerClassName: 'bg-[#F2F5F9] border-[#D5DCE6]',
+      accentClassName: 'bg-[#2F80ED]',
+      headingClassName: 'font-sans uppercase tracking-[0.2em] text-[#1F2933] text-xs',
+      lineClassName: 'bg-[#2F80ED]',
+      detailClassName: 'text-[#415A77]',
+    },
+  },
+  {
+    value: 'minimal',
+    label: 'Minimal',
+    description: 'Quiet, airy layout.',
+    preview: {
+      containerClassName: 'bg-white border-neutral-200',
+      accentClassName: 'bg-neutral-800',
+      headingClassName: 'font-sans text-neutral-800',
+      lineClassName: 'bg-neutral-300',
+      detailClassName: 'text-neutral-500',
+    },
+  },
 ];
 
 /**
@@ -197,19 +243,51 @@ export function HeroSettings({
           <label className="block text-sm font-medium text-neutral-700 mb-1">
             Invitation style
           </label>
-          <select
-            value={invitationStyle}
-            onChange={(e) => setInvitationStyle(e.target.value)}
-            className="w-full px-4 py-3 border border-neutral-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          <div
+            role="radiogroup"
+            aria-label="Invitation style"
+            className="grid grid-cols-1 md:grid-cols-3 gap-4"
           >
-            {INVITATION_STYLE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <p className="text-sm text-neutral-500 mt-1">
-            We will add visual designs for these styles soon.
+            {INVITATION_STYLE_OPTIONS.map((option) => {
+              const isSelected = invitationStyle === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setInvitationStyle(option.value)}
+                  className={`
+                    text-left rounded-lg border p-3 transition-all
+                    ${isSelected ? 'border-primary-500 ring-2 ring-primary-200' : 'border-neutral-200 hover:border-primary-300'}
+                  `}
+                  aria-pressed={isSelected}
+                >
+                  <div
+                    className={`
+                      aspect-[4/3] rounded-md border p-3
+                      ${option.preview.containerClassName}
+                    `}
+                  >
+                    <div className="h-full flex flex-col items-center justify-center text-center">
+                      <div className={`h-1 w-10 rounded-full ${option.preview.accentClassName}`} />
+                      <p className={`mt-3 text-sm ${option.preview.headingClassName}`}>
+                        Alex &amp; Jordan
+                      </p>
+                      <div className={`mt-2 h-px w-12 ${option.preview.lineClassName}`} />
+                      <p className={`mt-2 text-[10px] uppercase tracking-[0.2em] ${option.preview.detailClassName}`}>
+                        June 20, 2026
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <p className="text-sm font-medium text-neutral-800">{option.label}</p>
+                    <p className="text-xs text-neutral-500 mt-1">{option.description}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-sm text-neutral-500 mt-2">
+            Select a style preview. More designs are coming soon.
           </p>
         </div>
 
@@ -348,23 +426,5 @@ export function HeroSettings({
         )}
       </div>
     </div>
-  );
-}
-
-function ChevronLeftIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2}
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M15.75 19.5L8.25 12l7.5-7.5"
-      />
-    </svg>
   );
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getAuthToken } from '../lib/auth';
 import type {
   Guest,
+  GuestListResponse,
   ApiResponse,
   ScheduledEmail,
   ScheduledEmailsListResponse,
@@ -37,6 +38,39 @@ export function ScheduledEmails({ weddingId }: ScheduledEmailsProps) {
   // Cancel confirmation state
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
+  const parseGuests = (
+    payload:
+      | ApiResponse<Guest[]>
+      | ApiResponse<GuestListResponse>
+      | GuestListResponse
+      | Guest[],
+  ): Guest[] | null => {
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+
+    if (payload && typeof payload === 'object') {
+      if ('ok' in payload) {
+        if (!payload.ok) {
+          return null;
+        }
+        if (Array.isArray(payload.data)) {
+          return payload.data;
+        }
+        if (payload.data && Array.isArray((payload.data as GuestListResponse).guests)) {
+          return (payload.data as GuestListResponse).guests;
+        }
+        return null;
+      }
+
+      if (Array.isArray((payload as GuestListResponse).guests)) {
+        return (payload as GuestListResponse).guests;
+      }
+    }
+
+    return null;
+  };
+
   const fetchGuests = useCallback(async () => {
     try {
       const token = getAuthToken();
@@ -46,10 +80,15 @@ export function ScheduledEmails({ weddingId }: ScheduledEmailsProps) {
         },
       });
 
-      const data: ApiResponse<Guest[]> = await response.json();
+      const data:
+        | ApiResponse<Guest[]>
+        | ApiResponse<GuestListResponse>
+        | GuestListResponse
+        | Guest[] = await response.json();
+      const parsedGuests = response.ok ? parseGuests(data) : null;
 
-      if (data.ok) {
-        setGuests(data.data);
+      if (parsedGuests !== null) {
+        setGuests(parsedGuests);
       }
     } catch {
       // Ignore - we'll show empty guest list

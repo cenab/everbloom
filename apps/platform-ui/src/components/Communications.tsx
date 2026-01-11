@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getAuthToken } from '../lib/auth';
 import type {
   Guest,
+  GuestListResponse,
   ApiResponse,
   SendSaveTheDateResponse,
   SendThankYouResponse,
@@ -25,6 +26,39 @@ export function Communications({ weddingId }: CommunicationsProps) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [sendResult, setSendResult] = useState<{ sent: number; failed: number } | null>(null);
 
+  const parseGuests = (
+    payload:
+      | ApiResponse<Guest[]>
+      | ApiResponse<GuestListResponse>
+      | GuestListResponse
+      | Guest[],
+  ): Guest[] | null => {
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+
+    if (payload && typeof payload === 'object') {
+      if ('ok' in payload) {
+        if (!payload.ok) {
+          return null;
+        }
+        if (Array.isArray(payload.data)) {
+          return payload.data;
+        }
+        if (payload.data && Array.isArray((payload.data as GuestListResponse).guests)) {
+          return (payload.data as GuestListResponse).guests;
+        }
+        return null;
+      }
+
+      if (Array.isArray((payload as GuestListResponse).guests)) {
+        return (payload as GuestListResponse).guests;
+      }
+    }
+
+    return null;
+  };
+
   const fetchGuests = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -36,10 +70,16 @@ export function Communications({ weddingId }: CommunicationsProps) {
         },
       });
 
-      const data: ApiResponse<Guest[]> = await response.json();
+      const data:
+        | ApiResponse<Guest[]>
+        | ApiResponse<GuestListResponse>
+        | GuestListResponse
+        | Guest[] = await response.json();
+      const parsedGuests = response.ok ? parseGuests(data) : null;
 
-      if (data.ok) {
-        setGuests(data.data);
+      if (parsedGuests !== null) {
+        setGuests(parsedGuests);
+        setError(null);
       } else {
         setError('Unable to load guests');
       }

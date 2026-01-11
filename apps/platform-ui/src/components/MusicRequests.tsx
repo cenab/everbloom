@@ -17,6 +17,23 @@ export function MusicRequests({ weddingId, wedding }: MusicRequestsProps) {
   const [error, setError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
+  const parseSongRequests = (
+    payload: ApiResponse<SongRequestListResponse> | SongRequestListResponse,
+  ): SongRequest[] | null => {
+    if ('ok' in payload) {
+      if (payload.ok) {
+        return payload.data.songRequests ?? [];
+      }
+      return null;
+    }
+
+    if (Array.isArray(payload.songRequests)) {
+      return payload.songRequests;
+    }
+
+    return null;
+  };
+
   const fetchSongRequests = useCallback(async () => {
     try {
       const token = getAuthToken();
@@ -26,10 +43,12 @@ export function MusicRequests({ weddingId, wedding }: MusicRequestsProps) {
         },
       });
 
-      const data: ApiResponse<SongRequestListResponse> = await response.json();
+      const data: ApiResponse<SongRequestListResponse> | SongRequestListResponse = await response.json();
+      const parsedRequests = response.ok ? parseSongRequests(data) : null;
 
-      if (data.ok) {
-        setSongRequests(data.data.songRequests);
+      if (parsedRequests !== null) {
+        setSongRequests(parsedRequests);
+        setError(null);
       } else {
         setError('Unable to load song requests');
       }
