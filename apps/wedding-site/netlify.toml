@@ -9,9 +9,7 @@
 [build.environment]
   NODE_VERSION = "20"
 
-[functions]
-  directory = "netlify/functions"
-  # API functions only - Astro SSR is handled automatically
+# Functions: Netlify auto-detects from netlify/functions/ (API) and .netlify/v1/functions/ (Astro SSR)
 
 # Development settings
 [dev]
