@@ -1,0 +1,255 @@
+[
+  {
+    "category": "functional",
+    "description": "Calendar invite feature flag gates all calendar UX and API access",
+    "steps": [
+      "Locate the CALENDAR_INVITE flag in the render config at apps/wedding-site/src/types.ts and confirm it is already part of FeatureFlag so the UI can gate on config.features.CALENDAR_INVITE.",
+      "In apps/wedding-site/src/lib/render.ts, update renderEventDetails to check config.features.CALENDAR_INVITE and eventDetails presence before rendering any calendar controls, so the UI mirrors platform feature settings.",
+      "Add a dedicated calendar action container under the event details card so the user sees calendar options only when the feature is enabled.",
+      "Ensure the calendar UI does not appear for weddings that have the flag disabled or missing eventDetails, matching platform behavior.",
+      "Add inline comments only if the gating logic is not immediately obvious (avoid over-commenting per repo guidelines).",
+      "Validate that the calendar UI still renders correctly when only top-level eventDetails are populated (single-event weddings).",
+      "Confirm that the calendar UI is suppressed on the invitation-only landing page if event details are missing but still shown on the full wedding page when present.",
+      "Keep the calendar UI within the wedding page markup so it remains part of the normal sections flow.",
+      "Update styles in apps/wedding-site/src/styles/main.css to align the calendar controls with existing button styles.",
+      "Record any additional dependencies (new API endpoints or Netlify redirects) in the implementation notes inside this PRD so future work has the full map."
+    ],
+    "passes": false
+  },
+  {
+    "category": "integration",
+    "description": "Proxy calendar ICS downloads through Netlify functions and wire redirects",
+    "steps": [
+      "Create a Netlify function in apps/wedding-site/netlify/functions (for example calendar-download.ts) that accepts a slug from the URL and calls the Platform API /api/calendar/:slug/download.ics endpoint.",
+      "Extend apps/wedding-site/netlify/functions/utils/platform-api.ts with a helper to fetch raw (non-JSON) responses so the ICS content can be streamed through without JSON parsing errors.",
+      "Have the Netlify function set Content-Type to text/calendar and pass through the Content-Disposition header so the browser downloads the .ics file with the expected filename.",
+      "Add a redirect rule to apps/wedding-site/netlify.toml that maps /api/calendar/:slug/download.ics to the new Netlify function path.",
+      "Confirm the function uses PLATFORM_API_URL / PUBLIC_PLATFORM_API_URL just like other functions so it works in local dev and production.",
+      "Implement safe error handling: if the platform API returns FEATURE_DISABLED, EVENT_DETAILS_NOT_CONFIGURED, or WEDDING_NOT_FOUND, return the corresponding status code and error message for the frontend to display.",
+      "Ensure the function handles OPTIONS preflight if the browser initiates a CORS preflight (match the existing CORS patterns in response utils).",
+      "Update documentation if needed to mention the new API route in apps/wedding-site/ARCHITECTURE.md and apps/wedding-site/netlify.toml comments.",
+      "Verify that the Netlify function remains in the apps/wedding-site/netlify/functions directory so the build system deploys it.",
+      "Add or update tests in apps/wedding-site/netlify/functions/utils/response.spec.ts if you introduce new response helpers.",
+      "Confirm that the download link works in local dev (pnpm dev) and in production by simulating the fetch through the redirect.",
+      "Keep the slug parsing strict to avoid unexpected file writes or injection in headers."
+    ],
+    "passes": false
+  },
+  {
+    "category": "ui",
+    "description": "Expose Add to Calendar controls (ICS + Google) in event details",
+    "steps": [
+      "Design a calendar action group in apps/wedding-site/src/lib/render.ts inside renderEventDetails that appears below the event info when CALENDAR_INVITE is enabled.",
+      "Add two actions: one anchor that hits /api/calendar/:slug/download.ics and another that opens /api/calendar/:slug/google in a new tab.",
+      "Make the links visually distinct but consistent with the existing button styles (btn-primary and btn-secondary) in apps/wedding-site/src/styles/main.css.",
+      "Use rel=\"noopener noreferrer\" and target=\"_blank\" on external calendar links to avoid security issues.",
+      "Ensure the calendar actions are accessible via keyboard focus and have clear focus-visible styles.",
+      "If only one action is desired, keep the second action behind a configuration toggle to avoid future UI changes; document this in the PRD notes.",
+      "Verify the action labels are localized via i18n (see language task items) and that the labels stay short on mobile.",
+      "Add responsive styles so the buttons stack vertically on narrow screens, preventing overflow.",
+      "Confirm the calendar action block does not appear in the invitation-only landing view unless the event details section is intentionally included there.",
+      "Check that the generated slug matches config.wedding.slug so the link resolves for custom domains and default domains."
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "RSVP page consumes full RsvpViewData (events, meal options, plus-ones, photo opt-out)",
+    "steps": [
+      "Update apps/wedding-site/src/types.ts so RsvpGuestView includes eventRsvps, invitedEventIds, and any other fields returned by the platform API (compare to services/platform-api/src/types/index.ts).",
+      "Update apps/wedding-site/src/types.ts so RsvpViewData includes events (array of WeddingEvent) and language if the API is extended to provide it.",
+      "Adjust apps/wedding-site/src/lib/api.ts types to match the expanded RsvpViewData shape so TypeScript enforces correct usage.",
+      "In apps/wedding-site/src/main.ts, refactor renderRsvpPage to render dynamic sections based on data.guest plusOneAllowance, data.mealConfig, and data.events.",
+      "Add form controls for party size and plus-one names only when rsvpStatus is attending and plusOneAllowance > 0.",
+      "Add meal option selection controls only when mealConfig.enabled is true and rsvpStatus is attending.",
+      "Add a photo opt-out checkbox if data.guest.photoOptOut is supported in the API (default false).",
+      "Add per-event RSVP toggles when data.events is present, keyed by eventId, and default the toggles using data.guest.eventRsvps when available.",
+      "Implement client-side validation for required fields: names, meal selection (if required), and event attendance selection.",
+      "Ensure that switching rsvpStatus to not_attending hides or disables all attending-only inputs and clears their values in the payload.",
+      "Keep the form layout mobile friendly by stacking all controls in a single column for small screens.",
+      "Use t(...) for labels, helper text, and placeholders, so language settings are respected.",
+      "Make sure the UI uses the existing theme variables and typography, avoiding new fonts.",
+      "Add a read-only summary of the guest name and email (from data.guest) at the top so the invitee knows which guest record is being updated.",
+      "Include an explicit privacy note for photo opt-out if product requires it, and ensure it is translatable.",
+      "Add form ids and data attributes consistent with current patterns to keep future test selectors stable."
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "RSVP submission uses submitRsvp helper and sends complete payload",
+    "steps": [
+      "Replace the direct fetch('/api/rsvp-submit') call in apps/wedding-site/src/main.ts with submitRsvp from apps/wedding-site/src/lib/api.ts to standardize request behavior.",
+      "Construct a payload that includes token, rsvpStatus, partySize, dietaryNotes, plusOneGuests, mealOptionId, eventRsvps, and photoOptOut based on the current form state.",
+      "When multi-event responses are present, prefer sending eventRsvps and omit single-event rsvpStatus fields if the API expects multi-event only; mirror services/platform-api/src/rsvp/rsvp.controller.ts logic.",
+      "Map plus-one guest fields to the API schema (name, dietaryNotes, mealOptionId) and enforce the plusOneAllowance limit before submission.",
+      "If meal selection is enabled, validate that the selected option IDs exist in data.mealConfig.options before sending to avoid INVALID_MEAL_OPTION responses.",
+      "Normalize empty strings to undefined so the API receives clean payloads.",
+      "Display a loading state that disables submit and indicates progress while the request is in flight.",
+      "On success, render a success panel with the server message and a summary of the submitted selections.",
+      "On success, render an 'Edit your RSVP' link that points to /rsvp?token=... so guests can return later.",
+      "If the response includes updated guest data, update the UI state with any normalized values from the API.",
+      "If the submission fails, surface error messages that map to known codes (PLUS_ONE_LIMIT_EXCEEDED, INVALID_MEAL_OPTION, GUEST_NOT_INVITED_TO_EVENT) and fall back to a generic error.",
+      "Keep the error message region in an aria-live container so screen readers announce status changes.",
+      "Ensure the form can be re-submitted after an error and that error states are cleared on subsequent input changes."
+    ],
+    "passes": false
+  },
+  {
+    "category": "ui",
+    "description": "RSVP success view includes seating assignment and event response summary",
+    "steps": [
+      "After a successful RSVP submission, hide the form and show a success panel in apps/wedding-site/src/main.ts.",
+      "If data.guest.tableAssignment is present, render a 'Your table' card with tableName and seatNumber.",
+      "If data.guest.tableAssignment is not present, render a neutral message like 'Seating information will be shared later.'",
+      "If multi-event responses were sent, render a list of event names with attending/declined status so the guest can confirm each selection.",
+      "Include a secondary button to return to the invitation landing page (/) so mobile users can navigate easily.",
+      "Make the success card responsive: stack content on mobile and keep buttons full-width.",
+      "Use existing button classes and neutral background styles to keep visual consistency with the site.",
+      "Localize all success copy, including the status headings and summary labels.",
+      "Ensure the success panel is visible to screen readers by focusing the container when the form is replaced.",
+      "Make the edit RSVP link copy explicit about using the same link from the invitation email if the user needs it later."
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Multi-event schedule renders all configured events on the wedding page",
+    "steps": [
+      "Update renderEventDetails in apps/wedding-site/src/lib/render.ts to check eventDetails.events and branch into a multi-event layout when present.",
+      "Sort the events array by date and startTime so the schedule is chronological.",
+      "Render each event with its name, date, time range, venue, address, and city using the same escapeHtml and formatDate helpers.",
+      "Include event.type labels (ceremony, reception, other) when available, with localized labels via i18n.",
+      "Maintain the existing single-event rendering for weddings that do not provide eventDetails.events.",
+      "Add per-event map links that use the address + city for Google Maps, but only when address is present.",
+      "Update CSS in apps/wedding-site/src/styles/main.css to display multi-event cards in a stacked layout that is readable on mobile.",
+      "Add a subtle divider between events so the schedule is easy to scan.",
+      "Keep the event details section id and title unchanged so existing navigation anchors still work.",
+      "Verify that the new layout still fits within the max width and matches the visual style of other sections.",
+      "Add a fallback message for events missing required fields so the UI fails gracefully.",
+      "Ensure that eventDetails.events does not override top-level eventDetails fields unless explicitly needed."
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Guest-specific seating assignment surfaced on RSVP page without exposing full seating chart",
+    "steps": [
+      "Read data.guest.tableAssignment from the RSVP view data in apps/wedding-site/src/main.ts.",
+      "Only render table assignment details on the RSVP page that is gated by the RSVP token, never on the public wedding page.",
+      "Display tableName and seatNumber (if provided) in a dedicated card labeled with a localized 'Your table' heading.",
+      "If table notes are present in the assignment data, display them in muted text for additional context.",
+      "Add a placeholder message when seating is enabled but no assignment exists, so guests know it is coming later.",
+      "Ensure the assignment card does not reveal any other guests or table capacities to preserve privacy.",
+      "Keep the existing seating section (table list) on the public wedding page unchanged unless product explicitly wants to remove it.",
+      "If seating chart feature flag is disabled in config.features.SEATING_CHART, suppress the assignment card entirely.",
+      "Add CSS for the assignment card to match the event-card and guestbook message styling.",
+      "Localize the seating labels through i18n and verify the translations are added for all supported languages.",
+      "Confirm that the assignment card renders correctly both before and after RSVP submission, using the data from fetchRsvpView and submitRsvp responses."
+    ],
+    "passes": false
+  },
+  {
+    "category": "seo",
+    "description": "Use ogImageUrl and templateId to update meta tags and document classes",
+    "steps": [
+      "Update apps/wedding-site/index.html to include baseline og:title, og:description, og:image, twitter:card, and twitter:image tags with safe defaults.",
+      "In apps/wedding-site/src/main.ts, update renderInvitationContent and renderWeddingContent to set meta tags at runtime based on config.ogImageUrl and the current page title/description.",
+      "If ogImageUrl is missing, fall back to the default image in apps/wedding-site/public (og-image-default.png or .svg).",
+      "Set twitter:card to summary_large_image when an og image is available.",
+      "Add logic to remove or update stale meta tags when navigating between invitation, wedding, RSVP, and photo pages so the tags match the active view.",
+      "Set a data-template-id attribute on document.body or document.documentElement using config.templateId so template styling can hook into it.",
+      "Ensure templateId is sanitized and fallback to a known default when undefined to avoid invalid class names.",
+      "Document which template IDs are supported (from platform UI TemplateSelector) so CSS can target them predictably.",
+      "Verify that meta updates do not rely on SSR and still work in a static SPA context.",
+      "Add a small utility function in main.ts to centralize meta tag updates for reuse across routes.",
+      "Confirm that preview or custom domain routes set the same meta tags without requiring query params."
+    ],
+    "passes": false
+  },
+  {
+    "category": "ui",
+    "description": "Template selection affects wedding-site styling in a controlled way",
+    "steps": [
+      "Create a mapping from templateId to CSS class names or data attributes (for example, template-classic, template-modern) and document the mapping in code.",
+      "Add a wrapper class (or body attribute) on the wedding page root so template-specific CSS can override spacing, background patterns, or typography.",
+      "Implement minimal, intentional template-specific overrides in apps/wedding-site/src/styles/main.css without rewriting the full design system.",
+      "Ensure invitation styles (classic, modern, minimal) continue to work even when templateId is set by scoping invitation overrides with both the invitation-style class and template class if needed.",
+      "Avoid introducing new fonts unless the template explicitly requires it and the font is already used in the project.",
+      "Test each template class on both invitation landing and full wedding page to ensure consistent spacing and section borders.",
+      "If a templateId is unknown, default to the existing base styles to avoid blank pages.",
+      "Add comments near template-specific CSS blocks to explain which template they target and why.",
+      "Confirm that template styling does not degrade the RSVP or photo upload pages, which should remain mostly consistent.",
+      "Keep template-specific background styles subtle to ensure readability across themes."
+    ],
+    "passes": false
+  },
+  {
+    "category": "i18n",
+    "description": "Passcode gate and RSVP copy use config.language and shared translations",
+    "steps": [
+      "Add missing translation keys to apps/wedding-site/src/lib/i18n.ts for passcode gate labels, passcode errors, RSVP form labels, RSVP status options, dietary notes label, plus-one labels, meal selection label, photo opt-out label, and success/error messages.",
+      "Ensure the new keys are added to the English and Spanish dictionaries at minimum; leave other languages as English fallback.",
+      "Update renderPasscodeGate in apps/wedding-site/src/main.ts to use t(...) for headings, helper text, field labels, and button copy.",
+      "Update renderRsvpPage in apps/wedding-site/src/main.ts to use t(...) for all labels, placeholders, button text, and status messages.",
+      "Pass the correct language into t(...) using config.language for wedding pages and the RSVP view data language if available.",
+      "If the RSVP view data does not include language, update services/platform-api/src/rsvp/rsvp.controller.ts to include renderConfig.language and extend RsvpViewData accordingly.",
+      "Avoid hard-coded English strings anywhere in the guest-facing UI after the update.",
+      "Make sure default language is English when language is missing or unsupported.",
+      "Retain existing translations for announcement, RSVP button, and event details to avoid regressions.",
+      "Verify that error messages from API responses map to translated strings where possible and fall back to a generic localized error otherwise."
+    ],
+    "passes": false
+  },
+  {
+    "category": "error-handling",
+    "description": "RSVP and calendar errors have clear, localized handling",
+    "steps": [
+      "Map API error codes to user-facing messages for RSVP (INVALID_TOKEN, FEATURE_DISABLED, PLUS_ONE_LIMIT_EXCEEDED, INVALID_MEAL_OPTION, GUEST_NOT_INVITED_TO_EVENT) and calendar (FEATURE_DISABLED, EVENT_DETAILS_NOT_CONFIGURED, WEDDING_NOT_FOUND).",
+      "In apps/wedding-site/src/main.ts, ensure status elements use role=\"alert\" or aria-live so screen readers announce errors.",
+      "Disable submit buttons during network requests and re-enable them after error handling to avoid double submissions.",
+      "Provide inline error messages near the relevant form controls for missing required fields before a network request is sent.",
+      "When the calendar download fails (non-200 response), show a localized toast or inline message near the calendar actions.",
+      "Ensure that errors do not leak internal codes to the user; map to friendly copy.",
+      "Log unexpected errors to console for debugging, but keep user-facing copy short.",
+      "Verify that RSVP form errors reset when the user changes inputs or toggles attending status.",
+      "Confirm that RSVP and calendar error states do not break layout on mobile screens.",
+      "Add basic retry guidance for transient failures (for example, 'Please try again in a moment')."
+    ],
+    "passes": false
+  },
+  {
+    "category": "accessibility",
+    "description": "RSVP and calendar interactions are keyboard and screen-reader friendly",
+    "steps": [
+      "Add proper form labels and aria-describedby for RSVP controls, especially dynamic plus-one and meal selection fields.",
+      "Ensure radio groups for attending status and per-event responses are grouped with fieldset and legend for screen-reader context.",
+      "Focus the first validation error when submission fails, or scroll into view and announce with aria-live.",
+      "Ensure calendar action buttons and RSVP submit button have clear focus-visible styles.",
+      "Avoid placeholder-only labels; every input needs a visible label or a screen-reader-only label.",
+      "Use button elements for interactive controls rather than divs to preserve native keyboard behavior.",
+      "Make sure dynamic sections (plus-one forms, meal options, event list) appear in the correct tab order when toggled.",
+      "Verify that the invitation landing page CTA is keyboard-accessible and has sufficient color contrast.",
+      "Add aria-live polite region for RSVP success messages so the change is announced.",
+      "Test reduced-motion mode to ensure animations do not block form usage."
+    ],
+    "passes": false
+  },
+  {
+    "category": "testing",
+    "description": "Add coverage for RSVP payload construction and calendar proxy functions",
+    "steps": [
+      "Create unit tests for the calendar Netlify function to assert it forwards status codes and headers from the Platform API.",
+      "Add tests for the RSVP payload builder (if factored into a helper) to verify plus-one and meal option mapping and eventRsvps structure.",
+      "Add tests for the RSVP validation logic: required fields, plus-one limit enforcement, and event response requirement.",
+      "Update any existing render tests to cover multi-event schedules and invitation landing page changes.",
+      "If no test framework exists for the Vite app, document manual test steps clearly in this PRD and ensure all flows are executed before release.",
+      "Verify at least one manual test scenario for each feature in this PRD on both desktop and mobile viewport sizes.",
+      "Ensure that localization is tested by running at least one non-English language and confirming passcode and RSVP strings are translated.",
+      "Add or update any smoke tests in apps/wedding-site/netlify/functions/utils/response.spec.ts if response helpers change.",
+      "Confirm that tests avoid network calls by mocking fetch when running locally.",
+      "Document any remaining test gaps explicitly in the PRD so they are tracked."
+    ],
+    "passes": false
+  }
+]

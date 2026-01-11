@@ -20,6 +20,11 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   return response.json();
 }
 
+interface DomainLookupResult {
+  slug: string;
+  defaultUrl: string;
+}
+
 export async function fetchSiteConfig(slug: string): Promise<RenderConfig | null> {
   try {
     const response = await fetchJson<ApiResponse<RenderConfig>>(
@@ -172,5 +177,19 @@ export async function verifyPasscode(
     return { valid: false };
   } catch {
     return { valid: false };
+  }
+}
+
+export async function fetchDomainLookup(domain: string): Promise<DomainLookupResult | null> {
+  try {
+    const response = await fetchJson<ApiResponse<DomainLookupResult>>(
+      `${API_BASE}/domain-lookup?domain=${encodeURIComponent(domain)}`
+    );
+    if (response.ok) {
+      return response.data;
+    }
+    return null;
+  } catch {
+    return null;
   }
 }

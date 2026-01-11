@@ -9,6 +9,11 @@ import { t, type TranslationStrings } from './i18n';
 
 type SectionData = Section['data'];
 
+type RenderOptions = {
+  rsvpUrl?: string;
+  showRsvpCta?: boolean;
+};
+
 // Escape HTML to prevent XSS
 function escapeHtml(str: string): string {
   const div = document.createElement('div');
@@ -39,6 +44,42 @@ function getInvitationStyle(data: SectionData): string {
   return INVITATION_STYLES.has(normalized) ? normalized : 'classic';
 }
 
+function buildStrings(lang: string): TranslationStrings {
+  return {
+    eventDetailsTitle: t('eventDetailsTitle', lang),
+    eventDetailsGetDirections: t('eventDetailsGetDirections', lang),
+    rsvpTitle: t('rsvpTitle', lang),
+    rsvpRespondButton: t('rsvpRespondButton', lang),
+    faqTitle: t('faqTitle', lang),
+    registryTitle: t('registryTitle', lang),
+    accommodationsTitle: t('accommodationsTitle', lang),
+    accommodationsBookNow: t('accommodationsBookNow', lang),
+    accommodationsRoomBlockCode: t('accommodationsRoomBlockCode', lang),
+    accommodationsGettingThere: t('accommodationsGettingThere', lang),
+    accommodationsAirportDirections: t('accommodationsAirportDirections', lang),
+    accommodationsParking: t('accommodationsParking', lang),
+    accommodationsViewMap: t('accommodationsViewMap', lang),
+    guestbookTitle: t('guestbookTitle', lang),
+    guestbookDescription: t('guestbookDescription', lang),
+    guestbookNameLabel: t('guestbookNameLabel', lang),
+    guestbookMessageLabel: t('guestbookMessageLabel', lang),
+    guestbookSubmitButton: t('guestbookSubmitButton', lang),
+    guestbookNoMessages: t('guestbookNoMessages', lang),
+    photosTitle: t('photosTitle', lang),
+    photosDescription: t('photosDescription', lang),
+    photosUploadButton: t('photosUploadButton', lang),
+    musicTitle: t('musicTitle', lang),
+    musicDescription: t('musicDescription', lang),
+    musicSongTitleLabel: t('musicSongTitleLabel', lang),
+    musicArtistLabel: t('musicArtistLabel', lang),
+    musicYourNameLabel: t('musicYourNameLabel', lang),
+    musicSubmitButton: t('musicSubmitButton', lang),
+    galleryTitle: t('galleryTitle', lang),
+    videoTitle: t('videoTitle', lang),
+    seatingTitle: t('seatingTitle', lang),
+  } as TranslationStrings;
+}
+
 // Render announcement banner
 function renderAnnouncement(announcement: Announcement): string {
   if (!announcement.enabled) return '';
@@ -54,19 +95,36 @@ function renderAnnouncement(announcement: Announcement): string {
 }
 
 // Render hero section
-function renderHero(data: SectionData, config: RenderConfig, _strings: TranslationStrings): string {
+function renderHero(
+  data: SectionData,
+  config: RenderConfig,
+  strings: TranslationStrings,
+  options?: RenderOptions
+): string {
   const headline = (data.headline as string) || `${config.wedding.partnerNames[0]} & ${config.wedding.partnerNames[1]}`;
   const subheadline = (data.subheadline as string) || '';
   const invitationMessage = (data.invitationMessage as string) || '';
   const showDate = (data.showDate as boolean | undefined) !== false;
   const invitationStyle = getInvitationStyle(data);
+  const venueLine = [config.wedding.venue, config.wedding.city].filter(Boolean).join(', ');
+  const showDivider = Boolean((showDate && config.wedding.date) || venueLine);
+  const showRsvpCta = options?.showRsvpCta === true && config.features.RSVP;
+  const rsvpUrl = showRsvpCta ? (options?.rsvpUrl || '/rsvp') : '';
 
   return `
     <section class="section hero-section invitation-style-${invitationStyle}" id="hero" data-invitation-style="${invitationStyle}">
-      ${invitationMessage ? `<p class="hero-message">${escapeHtml(invitationMessage)}</p>` : ''}
-      <h1 class="hero-headline">${escapeHtml(headline)}</h1>
-      ${subheadline ? `<p class="hero-subheadline">${escapeHtml(subheadline)}</p>` : ''}
-      ${showDate && config.wedding.date ? `<p class="hero-date">${formatDate(config.wedding.date, config.language || 'en')}</p>` : ''}
+      <div class="hero-invitation">
+        <div class="hero-card">
+          <span class="hero-accent" aria-hidden="true"></span>
+          ${invitationMessage ? `<p class="hero-message">${escapeHtml(invitationMessage)}</p>` : ''}
+          <h1 class="hero-headline">${escapeHtml(headline)}</h1>
+          ${subheadline ? `<p class="hero-subheadline">${escapeHtml(subheadline)}</p>` : ''}
+          ${showDivider ? `<span class="hero-divider" aria-hidden="true"></span>` : ''}
+          ${showDate && config.wedding.date ? `<p class="hero-date">${formatDate(config.wedding.date, config.language || 'en')}</p>` : ''}
+          ${venueLine ? `<p class="hero-location">${escapeHtml(venueLine)}</p>` : ''}
+        </div>
+        ${showRsvpCta ? `<a href="${escapeHtml(rsvpUrl)}" class="btn btn-primary hero-rsvp">${strings.rsvpRespondButton}</a>` : ''}
+      </div>
     </section>
   `;
 }
@@ -357,43 +415,18 @@ function renderSeating(seating: SeatingConfig, strings: TranslationStrings): str
 }
 
 // Main render function
-export function renderWeddingPage(config: RenderConfig): string {
+export function renderInvitationPage(config: RenderConfig, options?: RenderOptions): string {
   const lang = config.language || 'en';
-  const strings = {
-    ...{
-      eventDetailsTitle: t('eventDetailsTitle', lang),
-      eventDetailsGetDirections: t('eventDetailsGetDirections', lang),
-      rsvpTitle: t('rsvpTitle', lang),
-      rsvpRespondButton: t('rsvpRespondButton', lang),
-      faqTitle: t('faqTitle', lang),
-      registryTitle: t('registryTitle', lang),
-      accommodationsTitle: t('accommodationsTitle', lang),
-      accommodationsBookNow: t('accommodationsBookNow', lang),
-      accommodationsRoomBlockCode: t('accommodationsRoomBlockCode', lang),
-      accommodationsGettingThere: t('accommodationsGettingThere', lang),
-      accommodationsAirportDirections: t('accommodationsAirportDirections', lang),
-      accommodationsParking: t('accommodationsParking', lang),
-      accommodationsViewMap: t('accommodationsViewMap', lang),
-      guestbookTitle: t('guestbookTitle', lang),
-      guestbookDescription: t('guestbookDescription', lang),
-      guestbookNameLabel: t('guestbookNameLabel', lang),
-      guestbookMessageLabel: t('guestbookMessageLabel', lang),
-      guestbookSubmitButton: t('guestbookSubmitButton', lang),
-      guestbookNoMessages: t('guestbookNoMessages', lang),
-      photosTitle: t('photosTitle', lang),
-      photosDescription: t('photosDescription', lang),
-      photosUploadButton: t('photosUploadButton', lang),
-      musicTitle: t('musicTitle', lang),
-      musicDescription: t('musicDescription', lang),
-      musicSongTitleLabel: t('musicSongTitleLabel', lang),
-      musicArtistLabel: t('musicArtistLabel', lang),
-      musicYourNameLabel: t('musicYourNameLabel', lang),
-      musicSubmitButton: t('musicSubmitButton', lang),
-      galleryTitle: t('galleryTitle', lang),
-      videoTitle: t('videoTitle', lang),
-      seatingTitle: t('seatingTitle', lang),
-    }
-  } as TranslationStrings;
+  const strings = buildStrings(lang);
+  const heroSection = config.sections.find(section => section.type === 'hero');
+  const heroData = heroSection?.data || {};
+
+  return renderHero(heroData, config, strings, options);
+}
+
+export function renderWeddingPage(config: RenderConfig, options?: RenderOptions): string {
+  const lang = config.language || 'en';
+  const strings = buildStrings(lang);
 
   const slug = config.wedding.slug;
   const sections: string[] = [];
@@ -410,7 +443,7 @@ export function renderWeddingPage(config: RenderConfig): string {
 
     switch (section.type) {
       case 'hero':
-        sections.push(renderHero(section.data, config, strings));
+        sections.push(renderHero(section.data, config, strings, options));
         break;
       case 'event_details':
         if (config.eventDetails) {

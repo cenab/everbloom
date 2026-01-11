@@ -1,6 +1,7 @@
 // Main entry point for wedding site
 
 import {
+  fetchDomainLookup,
   fetchSiteConfig,
   fetchRsvpView,
   submitGuestbookMessage,
@@ -9,7 +10,7 @@ import {
   requestPhotoUploadToken,
   completePhotoUpload,
 } from './lib/api';
-import { renderWeddingPage, applyTheme } from './lib/render';
+import { renderInvitationPage, renderWeddingPage, applyTheme } from './lib/render';
 import { t } from './lib/i18n';
 import type { RenderConfig } from './types';
 import './styles/main.css';
@@ -34,6 +35,32 @@ function storePasscodeAccess(slug: string, token?: string): void {
   } catch {
     // Ignore storage errors (private mode, etc.)
   }
+}
+
+function getRsvpTokenFromUrl(): string | undefined {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  return token || undefined;
+}
+
+function buildRsvpUrl(token?: string): string {
+  return token ? `/rsvp?token=${encodeURIComponent(token)}` : '/rsvp';
+}
+
+async function resolveWeddingSlug(): Promise<string | null> {
+  const params = new URLSearchParams(window.location.search);
+  const slugParam = params.get('slug');
+  if (slugParam) {
+    return slugParam;
+  }
+
+  const hostname = window.location.hostname;
+  if (!hostname) {
+    return null;
+  }
+
+  const lookup = await fetchDomainLookup(hostname);
+  return lookup?.slug ?? null;
 }
 
 // Router - determine what page to show based on URL
@@ -84,16 +111,44 @@ function showContent(html: string): void {
   hideLoading();
 }
 
-// Render landing/home page
-function renderHomePage(): void {
-  showContent(`
-    <div class="home-page">
-      <div class="home-hero">
-        <h1>Everbloom</h1>
-        <p>Beautiful wedding websites for your special day</p>
-      </div>
-    </div>
-  `);
+function renderInvitationContent(config: RenderConfig): void {
+  applyTheme(config.theme);
+
+  const names = config.wedding.partnerNames;
+  document.title = `${names[0]} & ${names[1]} | Invitation`;
+
+  const metaDesc = document.querySelector('meta[name="description"]');
+  if (metaDesc) {
+    metaDesc.setAttribute('content', `Invitation to the wedding of ${names[0]} and ${names[1]}.`);
+  }
+
+  const rsvpUrl = buildRsvpUrl(getRsvpTokenFromUrl());
+  const html = renderInvitationPage(config, { rsvpUrl, showRsvpCta: true });
+  showContent(`<div class="invitation-page">${html}</div>`);
+}
+
+// Render landing/home page as invitation
+async function renderHomePage(): Promise<void> {
+  const slug = await resolveWeddingSlug();
+
+  if (!slug) {
+    renderNotFoundPage();
+    return;
+  }
+
+  const config = await fetchSiteConfig(slug);
+
+  if (!config) {
+    renderNotFoundPage();
+    return;
+  }
+
+  if (config.passcodeProtected && config.features.PASSCODE_SITE && !hasPasscodeAccess(slug)) {
+    renderPasscodeGate(config, slug, () => renderInvitationContent(config));
+    return;
+  }
+
+  renderInvitationContent(config);
 }
 
 // Render 404 page
@@ -316,7 +371,8 @@ function renderWeddingContent(config: RenderConfig): void {
   }
 
   // Render content
-  const html = renderWeddingPage(config);
+  const rsvpUrl = buildRsvpUrl(getRsvpTokenFromUrl());
+  const html = renderWeddingPage(config, { rsvpUrl });
   showContent(`<div class="wedding-page">${html}</div>`);
 
   // Setup interactive elements
@@ -652,7 +708,7 @@ async function init(): Promise<void> {
 
   switch (route.page) {
     case 'home':
-      renderHomePage();
+      await renderHomePage();
       break;
     case 'wedding':
       if (route.slug) {
