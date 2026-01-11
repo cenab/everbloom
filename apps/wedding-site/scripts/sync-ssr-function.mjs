@@ -1,10 +1,10 @@
 import { existsSync } from 'node:fs';
-import { cp, mkdir, readdir } from 'node:fs/promises';
+import { cp, mkdir, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 
 const projectRoot = process.cwd();
 const targetDir = path.join(projectRoot, 'netlify', 'functions');
-const ssrEntryNames = ['entry', 'ssr'];
+const ssrEntryNames = ['ssr', 'entry'];
 const sourceDirs = [
   path.join(projectRoot, '.netlify', 'v1', 'functions'),
   path.join(projectRoot, 'dist', '.netlify', 'functions'),
@@ -13,22 +13,45 @@ const sourceDirs = [
   path.join(projectRoot, '.netlify', 'functions-internal'),
 ];
 
-const hasEntryFile = async (dir) => {
+const getEntryInfo = async (dir) => {
   try {
     const entries = await readdir(dir, { withFileTypes: true });
-    return entries.some((entry) => {
-      if (entry.isFile()) {
-        return ssrEntryNames.some(
-          (name) => entry.name === name || entry.name.startsWith(`${name}.`),
-        );
+    for (const name of ssrEntryNames) {
+      const directoryMatch = entries.find((entry) => entry.isDirectory() && entry.name === name);
+      if (directoryMatch) {
+        return { name, path: path.join(dir, name), isDirectory: true };
       }
-      if (entry.isDirectory()) {
-        return ssrEntryNames.includes(entry.name);
+      const fileMatch = entries.find(
+        (entry) =>
+          entry.isFile() && (entry.name === name || entry.name.startsWith(`${name}.`)),
+      );
+      if (fileMatch) {
+        return { name: fileMatch.name, path: path.join(dir, fileMatch.name), isDirectory: false };
       }
-      return false;
-    });
+    }
+    return null;
   } catch {
-    return false;
+    return null;
+  }
+};
+
+const cleanupTargetEntries = async () => {
+  if (!existsSync(targetDir)) {
+    return;
+  }
+  try {
+    const entries = await readdir(targetDir, { withFileTypes: true });
+    await Promise.all(
+      entries
+        .filter(
+          (entry) =>
+            ssrEntryNames.includes(entry.name) ||
+            ssrEntryNames.some((name) => entry.name.startsWith(`${name}.`)),
+        )
+        .map((entry) => rm(path.join(targetDir, entry.name), { recursive: true, force: true })),
+    );
+  } catch {
+    // Best effort cleanup; sync will still attempt to copy.
   }
 };
 
@@ -39,11 +62,21 @@ const sync = async () => {
     if (!existsSync(dir)) {
       continue;
     }
-    if (await hasEntryFile(dir)) {
-      await cp(dir, targetDir, { recursive: true, force: true });
-      console.log(`[sync-ssr-function] Copied SSR function assets from ${dir}`);
-      return;
+    const entryInfo = await getEntryInfo(dir);
+    if (!entryInfo) {
+      continue;
     }
+    await cleanupTargetEntries();
+    const targetPath = path.join(targetDir, entryInfo.name);
+    await cp(entryInfo.path, targetPath, {
+      recursive: entryInfo.isDirectory,
+      force: true,
+      dereference: true,
+    });
+    console.log(
+      `[sync-ssr-function] Copied SSR function assets from ${entryInfo.path} to ${targetPath}`,
+    );
+    return;
   }
 
   for (const dir of sourceDirs) {
