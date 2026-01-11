@@ -7,12 +7,18 @@ const targetDir = path.join(projectRoot, 'netlify', 'functions');
 const sourceDirs = [
   path.join(projectRoot, 'dist', '.netlify', 'functions'),
   path.join(projectRoot, 'dist', '.netlify', 'functions-internal'),
+  path.join(projectRoot, '.netlify', 'functions'),
+  path.join(projectRoot, '.netlify', 'functions-internal'),
 ];
 
 const hasEntryFile = async (dir) => {
   try {
-    const files = await readdir(dir);
-    return files.some((file) => file.startsWith('entry.'));
+    const entries = await readdir(dir, { withFileTypes: true });
+    return entries.some(
+      (entry) =>
+        (entry.isFile() && (entry.name === 'entry' || entry.name.startsWith('entry.'))) ||
+        (entry.isDirectory() && entry.name === 'entry'),
+    );
   } catch {
     return false;
   }
@@ -32,6 +38,17 @@ const sync = async () => {
     }
   }
 
+  for (const dir of sourceDirs) {
+    if (!existsSync(dir)) {
+      continue;
+    }
+    try {
+      const entries = await readdir(dir);
+      console.error(`[sync-ssr-function] Checked ${dir}: ${entries.join(', ') || 'empty'}`);
+    } catch {
+      console.error(`[sync-ssr-function] Checked ${dir}: unable to read directory.`);
+    }
+  }
   console.error('[sync-ssr-function] SSR function entry not found in build output.');
   process.exit(1);
 };
