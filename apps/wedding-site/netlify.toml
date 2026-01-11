@@ -125,6 +125,13 @@
   force = false
   conditions = {Role = ["custom-domain"]}
 
+# Astro SSR fallback (handle /w/* and all other routes)
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/entry"
+  status = 200
+  force = false
+
 # Edge function for custom domain detection (optional)
 # [[edge_functions]]
 #   path = "/*"
