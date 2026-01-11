@@ -11,8 +11,7 @@
 
 [functions]
   directory = "netlify/functions"
-  # Note: node_bundler is intentionally not set globally
-  # The Astro SSR function uses nodeBundler: 'none' with pre-bundled dependencies
+  # API functions only - Astro SSR is handled automatically
 
 # Development settings
 [dev]
@@ -125,14 +124,5 @@
   force = false
   conditions = {Role = ["custom-domain"]}
 
-# Astro SSR fallback (handle /w/* and all other routes)
-[[redirects]]
-  from = "/*"
-  to = "/.netlify/functions/ssr"
-  status = 200
-  force = false
-
-# Edge function for custom domain detection (optional)
-# [[edge_functions]]
-#   path = "/*"
-#   function = "domain-router"
+# Astro SSR handles all other routes automatically via .netlify/v1/functions/ssr/
+# No manual redirect needed - Netlify detects the Astro SSR function automatically
