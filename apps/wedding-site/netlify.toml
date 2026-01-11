@@ -23,7 +23,7 @@
 [context.production.environment]
   NODE_ENV = "production"
   # Set these in Netlify Dashboard for security:
-  # SUPABASE_URL, SUPABASE_ANON_KEY, DEFAULT_DOMAIN_URL
+  # SUPABASE_URL, SUPABASE_ANON_KEY, DEFAULT_DOMAIN_URL, PLATFORM_API_URL
 
 [context.deploy-preview.environment]
   NODE_ENV = "staging"

@@ -205,6 +205,7 @@ VITE_WEDDING_SITE_URL=https://yourdomain.com
 ```bash
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_ANON_KEY=eyJxxx
+PLATFORM_API_URL=https://api.yourdomain.com
 ```
 
 ---

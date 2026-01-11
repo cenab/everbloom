@@ -3,7 +3,26 @@
  * All guest-facing operations proxy through the Platform API
  */
 
-const PLATFORM_API_URL = process.env.PLATFORM_API_URL || 'http://localhost:3001';
+function normalizePlatformApiBaseUrl(raw?: string): string | null {
+  if (!raw) return null;
+  const trimmed = raw.replace(/\/+$/, '');
+  if (trimmed.endsWith('/api')) {
+    return trimmed.slice(0, -4);
+  }
+  return trimmed;
+}
+
+const PLATFORM_API_URL =
+  normalizePlatformApiBaseUrl(process.env.PLATFORM_API_URL) ||
+  normalizePlatformApiBaseUrl(process.env.PUBLIC_PLATFORM_API_URL) ||
+  normalizePlatformApiBaseUrl(process.env.VITE_API_URL) ||
+  'http://localhost:3001';
+
+if (!process.env.PLATFORM_API_URL && !process.env.PUBLIC_PLATFORM_API_URL && !process.env.VITE_API_URL) {
+  console.warn(
+    'PLATFORM_API_URL is not set; falling back to http://localhost:3001 which will fail in production.'
+  );
+}
 
 export interface PlatformApiResponse<T = unknown> {
   ok: boolean;
