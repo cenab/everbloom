@@ -14,9 +14,9 @@
 
 # Development settings
 [dev]
-  command = "pnpm --filter @wedding-bestie/wedding-site dev"
-  port = 4321
-  targetPort = 4321
+  command = "pnpm dev"
+  port = 5173
+  targetPort = 5173
   autoLaunch = false
 
 # Environment variables per context
@@ -40,9 +40,9 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     X-XSS-Protection = "1; mode=block"
 
-# Cache static assets
+# Cache static assets (Vite outputs to /assets/)
 [[headers]]
-  for = "/_astro/*"
+  for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
@@ -123,9 +123,8 @@
   force = false
   conditions = {Role = ["custom-domain"]}
 
-# Astro SSR fallback - catches all routes not matched by static files
+# SPA fallback - serve index.html for all routes not matched above
 [[redirects]]
   from = "/*"
-  to = "/.netlify/functions/ssr"
+  to = "/index.html"
   status = 200
-  force = false

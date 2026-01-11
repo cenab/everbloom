@@ -1,26 +1,19 @@
 {
   "name": "@wedding-bestie/wedding-site",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "postbuild": "node ./scripts/sync-ssr-function.mjs",
-    "preview": "astro preview",
-    "dev:netlify": "netlify dev",
-    "typecheck": "astro check && tsc --noEmit",
-    "test": "vitest run"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@astrojs/netlify": "^5.0.0",
-    "@netlify/functions": "^2.4.0",
-    "astro": "^4.2.0"
+    "@netlify/functions": "^2.4.0"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.4.0",
-    "netlify-cli": "^17.0.0",
     "typescript": "^5.3.3",
-    "vitest": "^1.2.0"
+    "vite": "^5.0.0"
   }
 }

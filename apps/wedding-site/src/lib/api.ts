@@ -1,155 +1,176 @@
-import type {
-  RenderConfig,
-  ApiResponse,
-  RsvpViewData,
-  RsvpSubmitRequest,
-  RsvpSubmitResponse,
-  SubmitGuestbookMessageRequest,
-  SubmitGuestbookMessageResponse,
-  DomainLookupResponse,
-} from '../types';
+// API client for wedding site
 
-/**
- * Platform API base URL
- * In production, this would be the deployed platform-api URL
- */
-const API_BASE_URL = import.meta.env.PUBLIC_PLATFORM_API_URL || 'http://localhost:3001/api';
+import type { RenderConfig, RsvpViewData, ApiResponse } from '../types';
 
-/**
- * Fetch render_config for a wedding site by slug
- * This is the only data fetch needed for rendering - no joins, no multiple queries
- */
+const API_BASE = '/api';
+
+async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
 export async function fetchSiteConfig(slug: string): Promise<RenderConfig | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/site-config/${slug}`);
-
-    if (!response.ok) {
-      console.error(`Failed to fetch site config for ${slug}: ${response.status}`);
-      return null;
+    const response = await fetchJson<ApiResponse<RenderConfig>>(
+      `${API_BASE}/site-config?slug=${encodeURIComponent(slug)}`
+    );
+    if (response.ok) {
+      return response.data;
     }
-
-    const result: ApiResponse<RenderConfig> = await response.json();
-
-    if (!result.ok) {
-      console.error(`API error for ${slug}: ${result.error}`);
-      return null;
-    }
-
-    return result.data;
-  } catch (error) {
-    console.error(`Error fetching site config for ${slug}:`, error);
+    return null;
+  } catch {
     return null;
   }
 }
 
-/**
- * Fetch RSVP view data by token
- * Returns guest info and wedding details for the RSVP form
- */
-export async function fetchRsvpView(token: string): Promise<{
-  data: RsvpViewData | null;
-  error: string | null;
-}> {
+export async function fetchRsvpView(token: string): Promise<RsvpViewData | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/rsvp/view?token=${encodeURIComponent(token)}`);
-
-    const result: ApiResponse<RsvpViewData> = await response.json();
-
-    if (!result.ok) {
-      return { data: null, error: result.error };
+    const response = await fetchJson<ApiResponse<RsvpViewData>>(
+      `${API_BASE}/rsvp-view?token=${encodeURIComponent(token)}`
+    );
+    if (response.ok) {
+      return response.data;
     }
-
-    return { data: result.data, error: null };
-  } catch (error) {
-    console.error('Error fetching RSVP view:', error);
-    return { data: null, error: 'NETWORK_ERROR' };
+    return null;
+  } catch {
+    return null;
   }
 }
 
-/**
- * Submit RSVP response
- */
-export async function submitRsvp(request: RsvpSubmitRequest): Promise<{
-  data: RsvpSubmitResponse | null;
-  error: string | null;
-}> {
+export async function submitRsvp(data: {
+  token: string;
+  rsvpStatus: string;
+  partySize: number;
+  dietaryNotes?: string;
+  plusOneGuests?: { name: string; dietaryNotes?: string }[];
+  mealOptionId?: string;
+  photoOptOut?: boolean;
+}): Promise<{ success: boolean; message?: string }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/rsvp/submit`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-    });
-
-    const result: ApiResponse<RsvpSubmitResponse> = await response.json();
-
-    if (!result.ok) {
-      return { data: null, error: result.error };
-    }
-
-    return { data: result.data, error: null };
-  } catch (error) {
-    console.error('Error submitting RSVP:', error);
-    return { data: null, error: 'NETWORK_ERROR' };
+    const response = await fetchJson<ApiResponse<{ message: string }>>(
+      `${API_BASE}/rsvp-submit`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return { success: response.ok, message: response.ok ? response.data.message : undefined };
+  } catch {
+    return { success: false };
   }
 }
 
-/**
- * Submit a guestbook message
- * Public endpoint - no auth required
- */
 export async function submitGuestbookMessage(
   slug: string,
-  request: SubmitGuestbookMessageRequest,
-): Promise<{
-  data: SubmitGuestbookMessageResponse | null;
-  error: string | null;
-}> {
+  guestName: string,
+  message: string
+): Promise<{ success: boolean }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/guestbook/${slug}/submit`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-    });
-
-    const result: ApiResponse<SubmitGuestbookMessageResponse> = await response.json();
-
-    if (!result.ok) {
-      return { data: null, error: result.error };
-    }
-
-    return { data: result.data, error: null };
-  } catch (error) {
-    console.error('Error submitting guestbook message:', error);
-    return { data: null, error: 'NETWORK_ERROR' };
+    const response = await fetchJson<ApiResponse<unknown>>(
+      `${API_BASE}/guestbook-submit`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ slug, guestName, message }),
+      }
+    );
+    return { success: response.ok };
+  } catch {
+    return { success: false };
   }
 }
 
-/**
- * Look up a wedding by custom domain
- * Returns the slug and default URL for the wedding associated with the domain
- * Returns null if domain is not found or not verified
- */
-export async function lookupByDomain(domain: string): Promise<DomainLookupResponse | null> {
+export async function submitMusicRequest(
+  slug: string,
+  songTitle: string,
+  artistName: string,
+  requesterName?: string
+): Promise<{ success: boolean }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/site-config/domain/lookup?domain=${encodeURIComponent(domain)}`);
+    const response = await fetchJson<ApiResponse<unknown>>(
+      `${API_BASE}/music-request`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ slug, songTitle, artistName, requesterName }),
+      }
+    );
+    return { success: response.ok };
+  } catch {
+    return { success: false };
+  }
+}
 
-    if (!response.ok) {
-      return null;
+export async function requestPhotoUploadToken(data: {
+  slug: string;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+}): Promise<{ uploadId: string; uploadUrl: string; expiresAt: string } | null> {
+  try {
+    const response = await fetchJson<ApiResponse<{ uploadId: string; uploadUrl: string; expiresAt: string }>>(
+      `${API_BASE}/photo-upload-token`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    if (response.ok) {
+      return response.data;
     }
-
-    const result: ApiResponse<DomainLookupResponse> = await response.json();
-
-    if (!result.ok) {
-      return null;
-    }
-
-    return result.data;
-  } catch (error) {
-    console.error(`Error looking up domain ${domain}:`, error);
     return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function completePhotoUpload(data: {
+  uploadId: string;
+  uploaderName?: string;
+  uploaderEmail?: string;
+}): Promise<{ id: string; fileName: string; moderationStatus: string; uploadedAt: string } | null> {
+  try {
+    const response = await fetchJson<
+      ApiResponse<{ id: string; fileName: string; moderationStatus: string; uploadedAt: string }>
+    >(`${API_BASE}/photo-metadata`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (response.ok) {
+      return response.data;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function verifyPasscode(
+  slug: string,
+  passcode: string
+): Promise<{ valid: boolean; sessionToken?: string }> {
+  try {
+    const response = await fetchJson<ApiResponse<{ valid: boolean; sessionToken?: string }>>(
+      `${API_BASE}/passcode-verify`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ slug, passcode }),
+      }
+    );
+    if (response.ok) {
+      return response.data;
+    }
+    return { valid: false };
+  } catch {
+    return { valid: false };
   }
 }

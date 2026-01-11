@@ -1,12 +1,8 @@
-/**
- * Internationalization utilities for wedding site
- * PRD: "Admin can set site language"
- */
+// Internationalization for wedding site
 
 export type SupportedLanguage = 'en' | 'es' | 'fr' | 'pt' | 'de' | 'it' | 'nl' | 'ja' | 'zh' | 'ko';
 
 export interface TranslationStrings {
-  // Common
   rsvp: string;
   faq: string;
   registry: string;
@@ -17,19 +13,11 @@ export interface TranslationStrings {
   seating: string;
   gallery: string;
   video: string;
-
-  // RSVP Section
   rsvpTitle: string;
   rsvpRespondButton: string;
-
-  // FAQ Section
   faqTitle: string;
-
-  // Registry Section
   registryTitle: string;
   registryViewRegistry: string;
-
-  // Accommodations Section
   accommodationsTitle: string;
   accommodationsBookNow: string;
   accommodationsRoomBlockCode: string;
@@ -37,18 +25,9 @@ export interface TranslationStrings {
   accommodationsAirportDirections: string;
   accommodationsParking: string;
   accommodationsViewMap: string;
-
-  // Photo Upload Section
   photosTitle: string;
   photosDescription: string;
   photosUploadButton: string;
-  photosBrowseButton: string;
-  photosUploading: string;
-  photosSuccessMessage: string;
-  photosErrorMessage: string;
-  photosDragDrop: string;
-
-  // Music Request Section
   musicTitle: string;
   musicDescription: string;
   musicSongTitleLabel: string;
@@ -57,8 +36,6 @@ export interface TranslationStrings {
   musicSubmitButton: string;
   musicSuccessMessage: string;
   musicErrorMessage: string;
-
-  // Guestbook Section
   guestbookTitle: string;
   guestbookDescription: string;
   guestbookNameLabel: string;
@@ -67,1059 +44,174 @@ export interface TranslationStrings {
   guestbookSuccessMessage: string;
   guestbookErrorMessage: string;
   guestbookNoMessages: string;
-
-  // Event Details Section
   eventDetailsTitle: string;
   eventDetailsCeremony: string;
   eventDetailsReception: string;
   eventDetailsAddToCalendar: string;
   eventDetailsGetDirections: string;
-
-  // Gallery Section
   galleryTitle: string;
-
-  // Video Section
   videoTitle: string;
-
-  // Hero Section
   heroJoinUs: string;
-
-  // Seating Section
   seatingTitle: string;
   seatingYourTable: string;
-
-  // Calendar
-  calendarGoogleCalendar: string;
-  calendarAppleCalendar: string;
-  calendarOutlookCalendar: string;
-
-  // Photo opt-out
-  photoOptOutLabel: string;
-  photoOptOutDescription: string;
-
-  // General
   loading: string;
   error: string;
   submit: string;
   cancel: string;
   back: string;
-  viewAll: string;
-
-  // Language Selector
-  languageSelect: string;
-  languageEnglish: string;
-  languageSpanish: string;
-  languageFrench: string;
-  languagePortuguese: string;
-  languageGerman: string;
-  languageItalian: string;
-  languageDutch: string;
-  languageJapanese: string;
-  languageChinese: string;
-  languageKorean: string;
+  notFound: string;
+  notFoundMessage: string;
+  goHome: string;
 }
 
-const translations: Record<SupportedLanguage, TranslationStrings> = {
-  en: {
-    // Common
-    rsvp: 'RSVP',
-    faq: 'FAQ',
-    registry: 'Registry',
-    accommodations: 'Accommodations',
-    guestbook: 'Guestbook',
-    photos: 'Photos',
-    music: 'Music',
-    seating: 'Seating',
-    gallery: 'Gallery',
-    video: 'Video',
-
-    // RSVP Section
-    rsvpTitle: 'RSVP',
-    rsvpRespondButton: 'Respond to our invitation',
-
-    // FAQ Section
-    faqTitle: 'Frequently Asked Questions',
-
-    // Registry Section
-    registryTitle: 'Gift Registry',
-    registryViewRegistry: 'View Registry',
-
-    // Accommodations Section
-    accommodationsTitle: 'Accommodations',
-    accommodationsBookNow: 'Book Now',
-    accommodationsRoomBlockCode: 'Room Block Code',
-    accommodationsGettingThere: 'Getting There',
-    accommodationsAirportDirections: 'From the Airport',
-    accommodationsParking: 'Parking',
-    accommodationsViewMap: 'View Map',
-
-    // Photo Upload Section
-    photosTitle: 'Share Your Photos',
-    photosDescription: 'Help us capture the memories by sharing your photos from our special day.',
-    photosUploadButton: 'Upload Photos',
-    photosBrowseButton: 'Browse files',
-    photosUploading: 'Uploading...',
-    photosSuccessMessage: 'Photo uploaded successfully!',
-    photosErrorMessage: 'Failed to upload photo. Please try again.',
-    photosDragDrop: 'Drag and drop your photos here, or',
-
-    // Music Request Section
-    musicTitle: 'Request a Song',
-    musicDescription: 'Help us build the perfect playlist for our celebration.',
-    musicSongTitleLabel: 'Song Title',
-    musicArtistLabel: 'Artist',
-    musicYourNameLabel: 'Your Name (optional)',
-    musicSubmitButton: 'Submit Request',
-    musicSuccessMessage: 'Song request submitted!',
-    musicErrorMessage: 'Failed to submit request. Please try again.',
-
-    // Guestbook Section
-    guestbookTitle: 'Guestbook',
-    guestbookDescription: 'Leave us a message to celebrate our special day.',
-    guestbookNameLabel: 'Your Name',
-    guestbookMessageLabel: 'Your Message',
-    guestbookSubmitButton: 'Sign Guestbook',
-    guestbookSuccessMessage: 'Your message has been submitted for review.',
-    guestbookErrorMessage: 'Failed to submit message. Please try again.',
-    guestbookNoMessages: 'Be the first to sign our guestbook!',
-
-    // Event Details Section
-    eventDetailsTitle: 'Event Details',
-    eventDetailsCeremony: 'Ceremony',
-    eventDetailsReception: 'Reception',
-    eventDetailsAddToCalendar: 'Add to Calendar',
-    eventDetailsGetDirections: 'Get Directions',
-
-    // Gallery Section
-    galleryTitle: 'Photo Gallery',
-
-    // Video Section
-    videoTitle: 'Our Story',
-
-    // Hero Section
-    heroJoinUs: 'Join us in celebrating our love',
-
-    // Seating Section
-    seatingTitle: 'Seating Chart',
-    seatingYourTable: 'Your Table',
-
-    // Calendar
-    calendarGoogleCalendar: 'Google Calendar',
-    calendarAppleCalendar: 'Apple Calendar',
-    calendarOutlookCalendar: 'Outlook Calendar',
-
-    // Photo opt-out
-    photoOptOutLabel: 'Opt out of photos',
-    photoOptOutDescription: 'I prefer not to be included in shared photos',
-
-    // General
-    loading: 'Loading...',
-    error: 'An error occurred',
-    submit: 'Submit',
-    cancel: 'Cancel',
-    back: 'Back',
-    viewAll: 'View All',
-
-    // Language Selector
-    languageSelect: 'Language',
-    languageEnglish: 'English',
-    languageSpanish: 'Español',
-    languageFrench: 'Français',
-    languagePortuguese: 'Português',
-    languageGerman: 'Deutsch',
-    languageItalian: 'Italiano',
-    languageDutch: 'Nederlands',
-    languageJapanese: '日本語',
-    languageChinese: '中文',
-    languageKorean: '한국어',
-  },
-
-  es: {
-    rsvp: 'Confirmar asistencia',
-    faq: 'Preguntas frecuentes',
-    registry: 'Lista de regalos',
-    accommodations: 'Alojamiento',
-    guestbook: 'Libro de visitas',
-    photos: 'Fotos',
-    music: 'Música',
-    seating: 'Ubicación',
-    gallery: 'Galería',
-    video: 'Video',
-
-    rsvpTitle: 'Confirmar asistencia',
-    rsvpRespondButton: 'Responder a nuestra invitación',
-
-    faqTitle: 'Preguntas frecuentes',
-
-    registryTitle: 'Lista de regalos',
-    registryViewRegistry: 'Ver lista',
-
-    accommodationsTitle: 'Alojamiento',
-    accommodationsBookNow: 'Reservar ahora',
-    accommodationsRoomBlockCode: 'Código de reserva',
-    accommodationsGettingThere: 'Cómo llegar',
-    accommodationsAirportDirections: 'Desde el aeropuerto',
-    accommodationsParking: 'Estacionamiento',
-    accommodationsViewMap: 'Ver mapa',
-
-    photosTitle: 'Comparte tus fotos',
-    photosDescription: 'Ayúdanos a capturar los recuerdos compartiendo tus fotos de nuestro día especial.',
-    photosUploadButton: 'Subir fotos',
-    photosBrowseButton: 'Explorar archivos',
-    photosUploading: 'Subiendo...',
-    photosSuccessMessage: '¡Foto subida exitosamente!',
-    photosErrorMessage: 'Error al subir la foto. Por favor intenta de nuevo.',
-    photosDragDrop: 'Arrastra y suelta tus fotos aquí, o',
-
-    musicTitle: 'Solicitar una canción',
-    musicDescription: 'Ayúdanos a crear la lista de reproducción perfecta para nuestra celebración.',
-    musicSongTitleLabel: 'Título de la canción',
-    musicArtistLabel: 'Artista',
-    musicYourNameLabel: 'Tu nombre (opcional)',
-    musicSubmitButton: 'Enviar solicitud',
-    musicSuccessMessage: '¡Solicitud de canción enviada!',
-    musicErrorMessage: 'Error al enviar la solicitud. Por favor intenta de nuevo.',
-
-    guestbookTitle: 'Libro de visitas',
-    guestbookDescription: 'Déjanos un mensaje para celebrar nuestro día especial.',
-    guestbookNameLabel: 'Tu nombre',
-    guestbookMessageLabel: 'Tu mensaje',
-    guestbookSubmitButton: 'Firmar libro',
-    guestbookSuccessMessage: 'Tu mensaje ha sido enviado para revisión.',
-    guestbookErrorMessage: 'Error al enviar el mensaje. Por favor intenta de nuevo.',
-    guestbookNoMessages: '¡Sé el primero en firmar nuestro libro de visitas!',
-
-    eventDetailsTitle: 'Detalles del evento',
-    eventDetailsCeremony: 'Ceremonia',
-    eventDetailsReception: 'Recepción',
-    eventDetailsAddToCalendar: 'Añadir al calendario',
-    eventDetailsGetDirections: 'Obtener direcciones',
-
-    galleryTitle: 'Galería de fotos',
-
-    videoTitle: 'Nuestra historia',
-
-    heroJoinUs: 'Únete a nosotros para celebrar nuestro amor',
-
-    seatingTitle: 'Ubicación de mesas',
-    seatingYourTable: 'Tu mesa',
-
-    calendarGoogleCalendar: 'Google Calendar',
-    calendarAppleCalendar: 'Calendario de Apple',
-    calendarOutlookCalendar: 'Calendario de Outlook',
-
-    photoOptOutLabel: 'No aparecer en fotos',
-    photoOptOutDescription: 'Prefiero no aparecer en las fotos compartidas',
-
-    loading: 'Cargando...',
-    error: 'Ocurrió un error',
-    submit: 'Enviar',
-    cancel: 'Cancelar',
-    back: 'Volver',
-    viewAll: 'Ver todo',
-
-    // Language Selector
-    languageSelect: 'Idioma',
-    languageEnglish: 'English',
-    languageSpanish: 'Español',
-    languageFrench: 'Français',
-    languagePortuguese: 'Português',
-    languageGerman: 'Deutsch',
-    languageItalian: 'Italiano',
-    languageDutch: 'Nederlands',
-    languageJapanese: '日本語',
-    languageChinese: '中文',
-    languageKorean: '한국어',
-  },
-
-  fr: {
-    rsvp: 'RSVP',
-    faq: 'FAQ',
-    registry: 'Liste de mariage',
-    accommodations: 'Hébergement',
-    guestbook: "Livre d'or",
-    photos: 'Photos',
-    music: 'Musique',
-    seating: 'Plan de table',
-    gallery: 'Galerie',
-    video: 'Vidéo',
-
-    rsvpTitle: 'RSVP',
-    rsvpRespondButton: 'Répondre à notre invitation',
-
-    faqTitle: 'Questions fréquentes',
-
-    registryTitle: 'Liste de mariage',
-    registryViewRegistry: 'Voir la liste',
-
-    accommodationsTitle: 'Hébergement',
-    accommodationsBookNow: 'Réserver',
-    accommodationsRoomBlockCode: 'Code de réservation',
-    accommodationsGettingThere: 'Comment y accéder',
-    accommodationsAirportDirections: "Depuis l'aéroport",
-    accommodationsParking: 'Parking',
-    accommodationsViewMap: 'Voir la carte',
-
-    photosTitle: 'Partagez vos photos',
-    photosDescription: 'Aidez-nous à capturer les souvenirs en partageant vos photos de notre journée spéciale.',
-    photosUploadButton: 'Télécharger des photos',
-    photosBrowseButton: 'Parcourir les fichiers',
-    photosUploading: 'Téléchargement...',
-    photosSuccessMessage: 'Photo téléchargée avec succès !',
-    photosErrorMessage: 'Échec du téléchargement. Veuillez réessayer.',
-    photosDragDrop: 'Glissez-déposez vos photos ici, ou',
-
-    musicTitle: 'Demander une chanson',
-    musicDescription: 'Aidez-nous à créer la playlist parfaite pour notre célébration.',
-    musicSongTitleLabel: 'Titre de la chanson',
-    musicArtistLabel: 'Artiste',
-    musicYourNameLabel: 'Votre nom (optionnel)',
-    musicSubmitButton: 'Envoyer la demande',
-    musicSuccessMessage: 'Demande de chanson envoyée !',
-    musicErrorMessage: "Échec de l'envoi. Veuillez réessayer.",
-
-    guestbookTitle: "Livre d'or",
-    guestbookDescription: 'Laissez-nous un message pour célébrer notre journée spéciale.',
-    guestbookNameLabel: 'Votre nom',
-    guestbookMessageLabel: 'Votre message',
-    guestbookSubmitButton: "Signer le livre d'or",
-    guestbookSuccessMessage: 'Votre message a été soumis pour révision.',
-    guestbookErrorMessage: "Échec de l'envoi du message. Veuillez réessayer.",
-    guestbookNoMessages: "Soyez le premier à signer notre livre d'or !",
-
-    eventDetailsTitle: "Détails de l'événement",
-    eventDetailsCeremony: 'Cérémonie',
-    eventDetailsReception: 'Réception',
-    eventDetailsAddToCalendar: 'Ajouter au calendrier',
-    eventDetailsGetDirections: 'Obtenir les directions',
-
-    galleryTitle: 'Galerie photos',
-
-    videoTitle: 'Notre histoire',
-
-    heroJoinUs: 'Rejoignez-nous pour célébrer notre amour',
-
-    seatingTitle: 'Plan de table',
-    seatingYourTable: 'Votre table',
-
-    calendarGoogleCalendar: 'Google Agenda',
-    calendarAppleCalendar: 'Calendrier Apple',
-    calendarOutlookCalendar: 'Calendrier Outlook',
-
-    photoOptOutLabel: 'Ne pas apparaître sur les photos',
-    photoOptOutDescription: 'Je préfère ne pas être inclus(e) dans les photos partagées',
-
-    loading: 'Chargement...',
-    error: 'Une erreur est survenue',
-    submit: 'Envoyer',
-    cancel: 'Annuler',
-    back: 'Retour',
-    viewAll: 'Voir tout',
-
-    // Language Selector
-    languageSelect: 'Langue',
-    languageEnglish: 'English',
-    languageSpanish: 'Español',
-    languageFrench: 'Français',
-    languagePortuguese: 'Português',
-    languageGerman: 'Deutsch',
-    languageItalian: 'Italiano',
-    languageDutch: 'Nederlands',
-    languageJapanese: '日本語',
-    languageChinese: '中文',
-    languageKorean: '한국어',
-  },
-
-  pt: {
-    rsvp: 'Confirmar presença',
-    faq: 'Perguntas frequentes',
-    registry: 'Lista de presentes',
-    accommodations: 'Hospedagem',
-    guestbook: 'Livro de visitas',
-    photos: 'Fotos',
-    music: 'Música',
-    seating: 'Mesas',
-    gallery: 'Galeria',
-    video: 'Vídeo',
-
-    rsvpTitle: 'Confirmar presença',
-    rsvpRespondButton: 'Responder ao convite',
-
-    faqTitle: 'Perguntas frequentes',
-
-    registryTitle: 'Lista de presentes',
-    registryViewRegistry: 'Ver lista',
-
-    accommodationsTitle: 'Hospedagem',
-    accommodationsBookNow: 'Reservar agora',
-    accommodationsRoomBlockCode: 'Código de reserva',
-    accommodationsGettingThere: 'Como chegar',
-    accommodationsAirportDirections: 'Do aeroporto',
-    accommodationsParking: 'Estacionamento',
-    accommodationsViewMap: 'Ver mapa',
-
-    photosTitle: 'Compartilhe suas fotos',
-    photosDescription: 'Ajude-nos a capturar as memórias compartilhando suas fotos do nosso dia especial.',
-    photosUploadButton: 'Enviar fotos',
-    photosBrowseButton: 'Procurar arquivos',
-    photosUploading: 'Enviando...',
-    photosSuccessMessage: 'Foto enviada com sucesso!',
-    photosErrorMessage: 'Falha ao enviar a foto. Por favor, tente novamente.',
-    photosDragDrop: 'Arraste e solte suas fotos aqui, ou',
-
-    musicTitle: 'Pedir uma música',
-    musicDescription: 'Ajude-nos a criar a playlist perfeita para nossa celebração.',
-    musicSongTitleLabel: 'Nome da música',
-    musicArtistLabel: 'Artista',
-    musicYourNameLabel: 'Seu nome (opcional)',
-    musicSubmitButton: 'Enviar pedido',
-    musicSuccessMessage: 'Pedido de música enviado!',
-    musicErrorMessage: 'Falha ao enviar o pedido. Por favor, tente novamente.',
-
-    guestbookTitle: 'Livro de visitas',
-    guestbookDescription: 'Deixe uma mensagem para celebrar nosso dia especial.',
-    guestbookNameLabel: 'Seu nome',
-    guestbookMessageLabel: 'Sua mensagem',
-    guestbookSubmitButton: 'Assinar livro',
-    guestbookSuccessMessage: 'Sua mensagem foi enviada para revisão.',
-    guestbookErrorMessage: 'Falha ao enviar a mensagem. Por favor, tente novamente.',
-    guestbookNoMessages: 'Seja o primeiro a assinar nosso livro de visitas!',
-
-    eventDetailsTitle: 'Detalhes do evento',
-    eventDetailsCeremony: 'Cerimônia',
-    eventDetailsReception: 'Recepção',
-    eventDetailsAddToCalendar: 'Adicionar ao calendário',
-    eventDetailsGetDirections: 'Obter direções',
-
-    galleryTitle: 'Galeria de fotos',
-
-    videoTitle: 'Nossa história',
-
-    heroJoinUs: 'Junte-se a nós para celebrar nosso amor',
-
-    seatingTitle: 'Mapa de mesas',
-    seatingYourTable: 'Sua mesa',
-
-    calendarGoogleCalendar: 'Google Agenda',
-    calendarAppleCalendar: 'Calendário Apple',
-    calendarOutlookCalendar: 'Calendário Outlook',
-
-    photoOptOutLabel: 'Não aparecer em fotos',
-    photoOptOutDescription: 'Prefiro não ser incluído(a) nas fotos compartilhadas',
-
-    loading: 'Carregando...',
-    error: 'Ocorreu um erro',
-    submit: 'Enviar',
-    cancel: 'Cancelar',
-    back: 'Voltar',
-    viewAll: 'Ver tudo',
-
-    // Language Selector
-    languageSelect: 'Idioma',
-    languageEnglish: 'English',
-    languageSpanish: 'Español',
-    languageFrench: 'Français',
-    languagePortuguese: 'Português',
-    languageGerman: 'Deutsch',
-    languageItalian: 'Italiano',
-    languageDutch: 'Nederlands',
-    languageJapanese: '日本語',
-    languageChinese: '中文',
-    languageKorean: '한국어',
-  },
-
-  de: {
-    rsvp: 'Antworten',
-    faq: 'FAQ',
-    registry: 'Geschenkliste',
-    accommodations: 'Unterkunft',
-    guestbook: 'Gästebuch',
-    photos: 'Fotos',
-    music: 'Musik',
-    seating: 'Sitzplan',
-    gallery: 'Galerie',
-    video: 'Video',
-
-    rsvpTitle: 'Antworten',
-    rsvpRespondButton: 'Auf unsere Einladung antworten',
-
-    faqTitle: 'Häufig gestellte Fragen',
-
-    registryTitle: 'Geschenkliste',
-    registryViewRegistry: 'Liste ansehen',
-
-    accommodationsTitle: 'Unterkunft',
-    accommodationsBookNow: 'Jetzt buchen',
-    accommodationsRoomBlockCode: 'Buchungscode',
-    accommodationsGettingThere: 'Anreise',
-    accommodationsAirportDirections: 'Vom Flughafen',
-    accommodationsParking: 'Parken',
-    accommodationsViewMap: 'Karte ansehen',
-
-    photosTitle: 'Teilen Sie Ihre Fotos',
-    photosDescription: 'Helfen Sie uns, die Erinnerungen festzuhalten, indem Sie Ihre Fotos von unserem besonderen Tag teilen.',
-    photosUploadButton: 'Fotos hochladen',
-    photosBrowseButton: 'Dateien durchsuchen',
-    photosUploading: 'Wird hochgeladen...',
-    photosSuccessMessage: 'Foto erfolgreich hochgeladen!',
-    photosErrorMessage: 'Hochladen fehlgeschlagen. Bitte versuchen Sie es erneut.',
-    photosDragDrop: 'Ziehen Sie Ihre Fotos hierher, oder',
-
-    musicTitle: 'Lied wünschen',
-    musicDescription: 'Helfen Sie uns, die perfekte Playlist für unsere Feier zu erstellen.',
-    musicSongTitleLabel: 'Songtitel',
-    musicArtistLabel: 'Künstler',
-    musicYourNameLabel: 'Ihr Name (optional)',
-    musicSubmitButton: 'Wunsch senden',
-    musicSuccessMessage: 'Musikwunsch gesendet!',
-    musicErrorMessage: 'Senden fehlgeschlagen. Bitte versuchen Sie es erneut.',
-
-    guestbookTitle: 'Gästebuch',
-    guestbookDescription: 'Hinterlassen Sie uns eine Nachricht, um unseren besonderen Tag zu feiern.',
-    guestbookNameLabel: 'Ihr Name',
-    guestbookMessageLabel: 'Ihre Nachricht',
-    guestbookSubmitButton: 'Ins Gästebuch eintragen',
-    guestbookSuccessMessage: 'Ihre Nachricht wurde zur Überprüfung eingereicht.',
-    guestbookErrorMessage: 'Senden der Nachricht fehlgeschlagen. Bitte versuchen Sie es erneut.',
-    guestbookNoMessages: 'Seien Sie der Erste, der sich in unser Gästebuch einträgt!',
-
-    eventDetailsTitle: 'Veranstaltungsdetails',
-    eventDetailsCeremony: 'Zeremonie',
-    eventDetailsReception: 'Empfang',
-    eventDetailsAddToCalendar: 'Zum Kalender hinzufügen',
-    eventDetailsGetDirections: 'Wegbeschreibung',
-
-    galleryTitle: 'Fotogalerie',
-
-    videoTitle: 'Unsere Geschichte',
-
-    heroJoinUs: 'Feiern Sie unsere Liebe mit uns',
-
-    seatingTitle: 'Sitzplan',
-    seatingYourTable: 'Ihr Tisch',
-
-    calendarGoogleCalendar: 'Google Kalender',
-    calendarAppleCalendar: 'Apple Kalender',
-    calendarOutlookCalendar: 'Outlook Kalender',
-
-    photoOptOutLabel: 'Nicht auf Fotos erscheinen',
-    photoOptOutDescription: 'Ich möchte nicht auf geteilten Fotos erscheinen',
-
-    loading: 'Wird geladen...',
-    error: 'Ein Fehler ist aufgetreten',
-    submit: 'Senden',
-    cancel: 'Abbrechen',
-    back: 'Zurück',
-    viewAll: 'Alle ansehen',
-
-    // Language Selector
-    languageSelect: 'Sprache',
-    languageEnglish: 'English',
-    languageSpanish: 'Español',
-    languageFrench: 'Français',
-    languagePortuguese: 'Português',
-    languageGerman: 'Deutsch',
-    languageItalian: 'Italiano',
-    languageDutch: 'Nederlands',
-    languageJapanese: '日本語',
-    languageChinese: '中文',
-    languageKorean: '한국어',
-  },
-
-  it: {
-    rsvp: 'Conferma presenza',
-    faq: 'FAQ',
-    registry: 'Lista nozze',
-    accommodations: 'Alloggio',
-    guestbook: 'Libro degli ospiti',
-    photos: 'Foto',
-    music: 'Musica',
-    seating: 'Posti a sedere',
-    gallery: 'Galleria',
-    video: 'Video',
-
-    rsvpTitle: 'Conferma presenza',
-    rsvpRespondButton: 'Rispondi al nostro invito',
-
-    faqTitle: 'Domande frequenti',
-
-    registryTitle: 'Lista nozze',
-    registryViewRegistry: 'Vedi lista',
-
-    accommodationsTitle: 'Alloggio',
-    accommodationsBookNow: 'Prenota ora',
-    accommodationsRoomBlockCode: 'Codice prenotazione',
-    accommodationsGettingThere: 'Come arrivare',
-    accommodationsAirportDirections: "Dall'aeroporto",
-    accommodationsParking: 'Parcheggio',
-    accommodationsViewMap: 'Vedi mappa',
-
-    photosTitle: 'Condividi le tue foto',
-    photosDescription: 'Aiutaci a catturare i ricordi condividendo le tue foto del nostro giorno speciale.',
-    photosUploadButton: 'Carica foto',
-    photosBrowseButton: 'Sfoglia file',
-    photosUploading: 'Caricamento...',
-    photosSuccessMessage: 'Foto caricata con successo!',
-    photosErrorMessage: 'Caricamento fallito. Per favore riprova.',
-    photosDragDrop: 'Trascina e rilascia le tue foto qui, oppure',
-
-    musicTitle: 'Richiedi una canzone',
-    musicDescription: 'Aiutaci a creare la playlist perfetta per la nostra celebrazione.',
-    musicSongTitleLabel: 'Titolo della canzone',
-    musicArtistLabel: 'Artista',
-    musicYourNameLabel: 'Il tuo nome (opzionale)',
-    musicSubmitButton: 'Invia richiesta',
-    musicSuccessMessage: 'Richiesta canzone inviata!',
-    musicErrorMessage: 'Invio fallito. Per favore riprova.',
-
-    guestbookTitle: 'Libro degli ospiti',
-    guestbookDescription: 'Lasciaci un messaggio per celebrare il nostro giorno speciale.',
-    guestbookNameLabel: 'Il tuo nome',
-    guestbookMessageLabel: 'Il tuo messaggio',
-    guestbookSubmitButton: 'Firma il libro',
-    guestbookSuccessMessage: 'Il tuo messaggio è stato inviato per la revisione.',
-    guestbookErrorMessage: 'Invio del messaggio fallito. Per favore riprova.',
-    guestbookNoMessages: 'Sii il primo a firmare il nostro libro degli ospiti!',
-
-    eventDetailsTitle: "Dettagli dell'evento",
-    eventDetailsCeremony: 'Cerimonia',
-    eventDetailsReception: 'Ricevimento',
-    eventDetailsAddToCalendar: 'Aggiungi al calendario',
-    eventDetailsGetDirections: 'Indicazioni stradali',
-
-    galleryTitle: 'Galleria fotografica',
-
-    videoTitle: 'La nostra storia',
-
-    heroJoinUs: 'Unisciti a noi per celebrare il nostro amore',
-
-    seatingTitle: 'Disposizione tavoli',
-    seatingYourTable: 'Il tuo tavolo',
-
-    calendarGoogleCalendar: 'Google Calendar',
-    calendarAppleCalendar: 'Calendario Apple',
-    calendarOutlookCalendar: 'Calendario Outlook',
-
-    photoOptOutLabel: 'Non apparire nelle foto',
-    photoOptOutDescription: 'Preferisco non essere incluso/a nelle foto condivise',
-
-    loading: 'Caricamento...',
-    error: 'Si è verificato un errore',
-    submit: 'Invia',
-    cancel: 'Annulla',
-    back: 'Indietro',
-    viewAll: 'Vedi tutto',
-
-    // Language Selector
-    languageSelect: 'Lingua',
-    languageEnglish: 'English',
-    languageSpanish: 'Español',
-    languageFrench: 'Français',
-    languagePortuguese: 'Português',
-    languageGerman: 'Deutsch',
-    languageItalian: 'Italiano',
-    languageDutch: 'Nederlands',
-    languageJapanese: '日本語',
-    languageChinese: '中文',
-    languageKorean: '한국어',
-  },
-
-  nl: {
-    rsvp: 'RSVP',
-    faq: 'FAQ',
-    registry: 'Cadeaulijst',
-    accommodations: 'Accommodatie',
-    guestbook: 'Gastenboek',
-    photos: "Foto's",
-    music: 'Muziek',
-    seating: 'Tafelschikking',
-    gallery: 'Galerij',
-    video: 'Video',
-
-    rsvpTitle: 'RSVP',
-    rsvpRespondButton: 'Reageer op onze uitnodiging',
-
-    faqTitle: 'Veelgestelde vragen',
-
-    registryTitle: 'Cadeaulijst',
-    registryViewRegistry: 'Bekijk lijst',
-
-    accommodationsTitle: 'Accommodatie',
-    accommodationsBookNow: 'Nu boeken',
-    accommodationsRoomBlockCode: 'Reserveringscode',
-    accommodationsGettingThere: 'Routebeschrijving',
-    accommodationsAirportDirections: 'Vanaf het vliegveld',
-    accommodationsParking: 'Parkeren',
-    accommodationsViewMap: 'Bekijk kaart',
-
-    photosTitle: "Deel je foto's",
-    photosDescription: "Help ons de herinneringen vast te leggen door je foto's van onze speciale dag te delen.",
-    photosUploadButton: "Foto's uploaden",
-    photosBrowseButton: 'Bestanden bladeren',
-    photosUploading: 'Uploaden...',
-    photosSuccessMessage: 'Foto succesvol geüpload!',
-    photosErrorMessage: 'Uploaden mislukt. Probeer het opnieuw.',
-    photosDragDrop: "Sleep je foto's hierheen, of",
-
-    musicTitle: 'Vraag een nummer aan',
-    musicDescription: 'Help ons de perfecte playlist samen te stellen voor onze viering.',
-    musicSongTitleLabel: 'Titel van het nummer',
-    musicArtistLabel: 'Artiest',
-    musicYourNameLabel: 'Je naam (optioneel)',
-    musicSubmitButton: 'Verzoek indienen',
-    musicSuccessMessage: 'Muziekverzoek ingediend!',
-    musicErrorMessage: 'Indienen mislukt. Probeer het opnieuw.',
-
-    guestbookTitle: 'Gastenboek',
-    guestbookDescription: 'Laat een bericht achter om onze speciale dag te vieren.',
-    guestbookNameLabel: 'Je naam',
-    guestbookMessageLabel: 'Je bericht',
-    guestbookSubmitButton: 'Gastenboek ondertekenen',
-    guestbookSuccessMessage: 'Je bericht is ingediend ter beoordeling.',
-    guestbookErrorMessage: 'Bericht verzenden mislukt. Probeer het opnieuw.',
-    guestbookNoMessages: 'Wees de eerste om ons gastenboek te ondertekenen!',
-
-    eventDetailsTitle: 'Evenementdetails',
-    eventDetailsCeremony: 'Ceremonie',
-    eventDetailsReception: 'Receptie',
-    eventDetailsAddToCalendar: 'Toevoegen aan agenda',
-    eventDetailsGetDirections: 'Routebeschrijving',
-
-    galleryTitle: 'Fotogalerij',
-
-    videoTitle: 'Ons verhaal',
-
-    heroJoinUs: 'Vier onze liefde met ons',
-
-    seatingTitle: 'Tafelschikking',
-    seatingYourTable: 'Jouw tafel',
-
-    calendarGoogleCalendar: 'Google Agenda',
-    calendarAppleCalendar: 'Apple Agenda',
-    calendarOutlookCalendar: 'Outlook Agenda',
-
-    photoOptOutLabel: "Niet op foto's verschijnen",
-    photoOptOutDescription: "Ik wil liever niet worden opgenomen in gedeelde foto's",
-
-    loading: 'Laden...',
-    error: 'Er is een fout opgetreden',
-    submit: 'Versturen',
-    cancel: 'Annuleren',
-    back: 'Terug',
-    viewAll: 'Alles bekijken',
-
-    // Language Selector
-    languageSelect: 'Taal',
-    languageEnglish: 'English',
-    languageSpanish: 'Español',
-    languageFrench: 'Français',
-    languagePortuguese: 'Português',
-    languageGerman: 'Deutsch',
-    languageItalian: 'Italiano',
-    languageDutch: 'Nederlands',
-    languageJapanese: '日本語',
-    languageChinese: '中文',
-    languageKorean: '한국어',
-  },
-
-  ja: {
-    rsvp: '出欠確認',
-    faq: 'よくある質問',
-    registry: 'ギフトリスト',
-    accommodations: '宿泊施設',
-    guestbook: 'ゲストブック',
-    photos: '写真',
-    music: '音楽',
-    seating: '座席表',
-    gallery: 'ギャラリー',
-    video: 'ビデオ',
-
-    rsvpTitle: '出欠確認',
-    rsvpRespondButton: '招待状に返信する',
-
-    faqTitle: 'よくある質問',
-
-    registryTitle: 'ギフトリスト',
-    registryViewRegistry: 'リストを見る',
-
-    accommodationsTitle: '宿泊施設',
-    accommodationsBookNow: '今すぐ予約',
-    accommodationsRoomBlockCode: '予約コード',
-    accommodationsGettingThere: 'アクセス方法',
-    accommodationsAirportDirections: '空港から',
-    accommodationsParking: '駐車場',
-    accommodationsViewMap: '地図を見る',
-
-    photosTitle: '写真を共有する',
-    photosDescription: '私たちの特別な日の思い出を、あなたの写真でお届けください。',
-    photosUploadButton: '写真をアップロード',
-    photosBrowseButton: 'ファイルを選択',
-    photosUploading: 'アップロード中...',
-    photosSuccessMessage: '写真のアップロードが完了しました！',
-    photosErrorMessage: 'アップロードに失敗しました。もう一度お試しください。',
-    photosDragDrop: 'ここに写真をドラッグ＆ドロップするか、',
-
-    musicTitle: '曲をリクエスト',
-    musicDescription: '私たちのお祝いにぴったりのプレイリストを作るのを手伝ってください。',
-    musicSongTitleLabel: '曲名',
-    musicArtistLabel: 'アーティスト',
-    musicYourNameLabel: 'お名前（任意）',
-    musicSubmitButton: 'リクエストを送信',
-    musicSuccessMessage: '曲のリクエストが送信されました！',
-    musicErrorMessage: '送信に失敗しました。もう一度お試しください。',
-
-    guestbookTitle: 'ゲストブック',
-    guestbookDescription: '私たちの特別な日を祝うメッセージを残してください。',
-    guestbookNameLabel: 'お名前',
-    guestbookMessageLabel: 'メッセージ',
-    guestbookSubmitButton: 'ゲストブックに記入',
-    guestbookSuccessMessage: 'メッセージが確認のために送信されました。',
-    guestbookErrorMessage: 'メッセージの送信に失敗しました。もう一度お試しください。',
-    guestbookNoMessages: '最初のゲストブックの記入者になりましょう！',
-
-    eventDetailsTitle: 'イベント詳細',
-    eventDetailsCeremony: '挙式',
-    eventDetailsReception: '披露宴',
-    eventDetailsAddToCalendar: 'カレンダーに追加',
-    eventDetailsGetDirections: '道順を表示',
-
-    galleryTitle: 'フォトギャラリー',
-
-    videoTitle: '私たちの物語',
-
-    heroJoinUs: '私たちの愛を一緒にお祝いしましょう',
-
-    seatingTitle: '座席表',
-    seatingYourTable: 'あなたのテーブル',
-
-    calendarGoogleCalendar: 'Googleカレンダー',
-    calendarAppleCalendar: 'Appleカレンダー',
-    calendarOutlookCalendar: 'Outlookカレンダー',
-
-    photoOptOutLabel: '写真への掲載を希望しない',
-    photoOptOutDescription: '共有される写真への掲載を希望しません',
-
-    loading: '読み込み中...',
-    error: 'エラーが発生しました',
-    submit: '送信',
-    cancel: 'キャンセル',
-    back: '戻る',
-    viewAll: 'すべて見る',
-
-    // Language Selector
-    languageSelect: '言語',
-    languageEnglish: 'English',
-    languageSpanish: 'Español',
-    languageFrench: 'Français',
-    languagePortuguese: 'Português',
-    languageGerman: 'Deutsch',
-    languageItalian: 'Italiano',
-    languageDutch: 'Nederlands',
-    languageJapanese: '日本語',
-    languageChinese: '中文',
-    languageKorean: '한국어',
-  },
-
-  zh: {
-    rsvp: '回复邀请',
-    faq: '常见问题',
-    registry: '礼物清单',
-    accommodations: '住宿',
-    guestbook: '留言簿',
-    photos: '照片',
-    music: '音乐',
-    seating: '座位表',
-    gallery: '相册',
-    video: '视频',
-
-    rsvpTitle: '回复邀请',
-    rsvpRespondButton: '回复我们的邀请',
-
-    faqTitle: '常见问题',
-
-    registryTitle: '礼物清单',
-    registryViewRegistry: '查看清单',
-
-    accommodationsTitle: '住宿',
-    accommodationsBookNow: '立即预订',
-    accommodationsRoomBlockCode: '预订码',
-    accommodationsGettingThere: '如何到达',
-    accommodationsAirportDirections: '从机场出发',
-    accommodationsParking: '停车',
-    accommodationsViewMap: '查看地图',
-
-    photosTitle: '分享您的照片',
-    photosDescription: '分享您在我们特别日子拍摄的照片，帮助我们留住美好回忆。',
-    photosUploadButton: '上传照片',
-    photosBrowseButton: '浏览文件',
-    photosUploading: '上传中...',
-    photosSuccessMessage: '照片上传成功！',
-    photosErrorMessage: '上传失败，请重试。',
-    photosDragDrop: '将照片拖放到此处，或',
-
-    musicTitle: '点歌',
-    musicDescription: '帮助我们为庆典创建完美的播放列表。',
-    musicSongTitleLabel: '歌曲名称',
-    musicArtistLabel: '艺术家',
-    musicYourNameLabel: '您的姓名（可选）',
-    musicSubmitButton: '提交请求',
-    musicSuccessMessage: '歌曲请求已提交！',
-    musicErrorMessage: '提交失败，请重试。',
-
-    guestbookTitle: '留言簿',
-    guestbookDescription: '留下您的祝福，与我们共同庆祝这特别的日子。',
-    guestbookNameLabel: '您的姓名',
-    guestbookMessageLabel: '您的留言',
-    guestbookSubmitButton: '签名留言',
-    guestbookSuccessMessage: '您的留言已提交审核。',
-    guestbookErrorMessage: '提交失败，请重试。',
-    guestbookNoMessages: '成为第一个签名的人吧！',
-
-    eventDetailsTitle: '活动详情',
-    eventDetailsCeremony: '仪式',
-    eventDetailsReception: '宴会',
-    eventDetailsAddToCalendar: '添加到日历',
-    eventDetailsGetDirections: '获取路线',
-
-    galleryTitle: '照片相册',
-
-    videoTitle: '我们的故事',
-
-    heroJoinUs: '与我们共同庆祝爱情',
-
-    seatingTitle: '座位表',
-    seatingYourTable: '您的座位',
-
-    calendarGoogleCalendar: 'Google日历',
-    calendarAppleCalendar: '苹果日历',
-    calendarOutlookCalendar: 'Outlook日历',
-
-    photoOptOutLabel: '不希望出现在照片中',
-    photoOptOutDescription: '我不希望出现在分享的照片中',
-
-    loading: '加载中...',
-    error: '发生错误',
-    submit: '提交',
-    cancel: '取消',
-    back: '返回',
-    viewAll: '查看全部',
-
-    // Language Selector
-    languageSelect: '语言',
-    languageEnglish: 'English',
-    languageSpanish: 'Español',
-    languageFrench: 'Français',
-    languagePortuguese: 'Português',
-    languageGerman: 'Deutsch',
-    languageItalian: 'Italiano',
-    languageDutch: 'Nederlands',
-    languageJapanese: '日本語',
-    languageChinese: '中文',
-    languageKorean: '한국어',
-  },
-
-  ko: {
-    rsvp: '참석 여부',
-    faq: '자주 묻는 질문',
-    registry: '선물 목록',
-    accommodations: '숙박',
-    guestbook: '방명록',
-    photos: '사진',
-    music: '음악',
-    seating: '좌석표',
-    gallery: '갤러리',
-    video: '비디오',
-
-    rsvpTitle: '참석 여부',
-    rsvpRespondButton: '초대에 응답하기',
-
-    faqTitle: '자주 묻는 질문',
-
-    registryTitle: '선물 목록',
-    registryViewRegistry: '목록 보기',
-
-    accommodationsTitle: '숙박',
-    accommodationsBookNow: '지금 예약',
-    accommodationsRoomBlockCode: '예약 코드',
-    accommodationsGettingThere: '오시는 길',
-    accommodationsAirportDirections: '공항에서',
-    accommodationsParking: '주차',
-    accommodationsViewMap: '지도 보기',
-
-    photosTitle: '사진 공유하기',
-    photosDescription: '특별한 날의 추억을 담은 사진을 공유해 주세요.',
-    photosUploadButton: '사진 업로드',
-    photosBrowseButton: '파일 찾아보기',
-    photosUploading: '업로드 중...',
-    photosSuccessMessage: '사진이 성공적으로 업로드되었습니다!',
-    photosErrorMessage: '업로드에 실패했습니다. 다시 시도해 주세요.',
-    photosDragDrop: '여기에 사진을 끌어다 놓거나,',
-
-    musicTitle: '노래 신청',
-    musicDescription: '우리의 축하 행사를 위한 완벽한 플레이리스트를 만드는 것을 도와주세요.',
-    musicSongTitleLabel: '곡 제목',
-    musicArtistLabel: '아티스트',
-    musicYourNameLabel: '이름 (선택사항)',
-    musicSubmitButton: '신청하기',
-    musicSuccessMessage: '노래 신청이 완료되었습니다!',
-    musicErrorMessage: '신청에 실패했습니다. 다시 시도해 주세요.',
-
-    guestbookTitle: '방명록',
-    guestbookDescription: '특별한 날을 축하하는 메시지를 남겨주세요.',
-    guestbookNameLabel: '이름',
-    guestbookMessageLabel: '메시지',
-    guestbookSubmitButton: '방명록 작성',
-    guestbookSuccessMessage: '메시지가 검토를 위해 제출되었습니다.',
-    guestbookErrorMessage: '메시지 제출에 실패했습니다. 다시 시도해 주세요.',
-    guestbookNoMessages: '첫 번째로 방명록을 작성해 주세요!',
-
-    eventDetailsTitle: '행사 정보',
-    eventDetailsCeremony: '예식',
-    eventDetailsReception: '피로연',
-    eventDetailsAddToCalendar: '캘린더에 추가',
-    eventDetailsGetDirections: '길찾기',
-
-    galleryTitle: '포토 갤러리',
-
-    videoTitle: '우리의 이야기',
-
-    heroJoinUs: '우리의 사랑을 함께 축하해 주세요',
-
-    seatingTitle: '좌석 배치',
-    seatingYourTable: '내 자리',
-
-    calendarGoogleCalendar: 'Google 캘린더',
-    calendarAppleCalendar: 'Apple 캘린더',
-    calendarOutlookCalendar: 'Outlook 캘린더',
-
-    photoOptOutLabel: '사진에 포함되지 않기',
-    photoOptOutDescription: '공유되는 사진에 포함되는 것을 원하지 않습니다',
-
-    loading: '로딩 중...',
-    error: '오류가 발생했습니다',
-    submit: '제출',
-    cancel: '취소',
-    back: '뒤로',
-    viewAll: '전체 보기',
-
-    // Language Selector
-    languageSelect: '언어',
-    languageEnglish: 'English',
-    languageSpanish: 'Español',
-    languageFrench: 'Français',
-    languagePortuguese: 'Português',
-    languageGerman: 'Deutsch',
-    languageItalian: 'Italiano',
-    languageDutch: 'Nederlands',
-    languageJapanese: '日本語',
-    languageChinese: '中文',
-    languageKorean: '한국어',
-  },
+const en: TranslationStrings = {
+  rsvp: 'RSVP',
+  faq: 'FAQ',
+  registry: 'Registry',
+  accommodations: 'Accommodations',
+  guestbook: 'Guestbook',
+  photos: 'Photos',
+  music: 'Music',
+  seating: 'Seating',
+  gallery: 'Gallery',
+  video: 'Video',
+  rsvpTitle: 'RSVP',
+  rsvpRespondButton: 'Respond to our invitation',
+  faqTitle: 'Frequently Asked Questions',
+  registryTitle: 'Gift Registry',
+  registryViewRegistry: 'View Registry',
+  accommodationsTitle: 'Accommodations',
+  accommodationsBookNow: 'Book Now',
+  accommodationsRoomBlockCode: 'Room Block Code',
+  accommodationsGettingThere: 'Getting There',
+  accommodationsAirportDirections: 'From the Airport',
+  accommodationsParking: 'Parking',
+  accommodationsViewMap: 'View Map',
+  photosTitle: 'Share Your Photos',
+  photosDescription: 'Help us capture the memories by sharing your photos from our special day.',
+  photosUploadButton: 'Upload Photos',
+  musicTitle: 'Request a Song',
+  musicDescription: 'Help us build the perfect playlist for our celebration.',
+  musicSongTitleLabel: 'Song Title',
+  musicArtistLabel: 'Artist',
+  musicYourNameLabel: 'Your Name (optional)',
+  musicSubmitButton: 'Submit Request',
+  musicSuccessMessage: 'Song request submitted!',
+  musicErrorMessage: 'Failed to submit request. Please try again.',
+  guestbookTitle: 'Guestbook',
+  guestbookDescription: 'Leave us a message to celebrate our special day.',
+  guestbookNameLabel: 'Your Name',
+  guestbookMessageLabel: 'Your Message',
+  guestbookSubmitButton: 'Sign Guestbook',
+  guestbookSuccessMessage: 'Your message has been submitted for review.',
+  guestbookErrorMessage: 'Failed to submit message. Please try again.',
+  guestbookNoMessages: 'Be the first to sign our guestbook!',
+  eventDetailsTitle: 'Event Details',
+  eventDetailsCeremony: 'Ceremony',
+  eventDetailsReception: 'Reception',
+  eventDetailsAddToCalendar: 'Add to Calendar',
+  eventDetailsGetDirections: 'Get Directions',
+  galleryTitle: 'Photo Gallery',
+  videoTitle: 'Our Story',
+  heroJoinUs: 'Join us in celebrating our love',
+  seatingTitle: 'Seating Chart',
+  seatingYourTable: 'Your Table',
+  loading: 'Loading...',
+  error: 'An error occurred',
+  submit: 'Submit',
+  cancel: 'Cancel',
+  back: 'Back',
+  notFound: 'Page Not Found',
+  notFoundMessage: 'The wedding page you\'re looking for doesn\'t exist.',
+  goHome: 'Go Home',
 };
 
-/**
- * Language code to native name mapping for the selector
- */
+const es: TranslationStrings = {
+  rsvp: 'Confirmar asistencia',
+  faq: 'Preguntas frecuentes',
+  registry: 'Lista de regalos',
+  accommodations: 'Alojamiento',
+  guestbook: 'Libro de visitas',
+  photos: 'Fotos',
+  music: 'Música',
+  seating: 'Ubicación',
+  gallery: 'Galería',
+  video: 'Video',
+  rsvpTitle: 'Confirmar asistencia',
+  rsvpRespondButton: 'Responder a nuestra invitación',
+  faqTitle: 'Preguntas frecuentes',
+  registryTitle: 'Lista de regalos',
+  registryViewRegistry: 'Ver lista',
+  accommodationsTitle: 'Alojamiento',
+  accommodationsBookNow: 'Reservar ahora',
+  accommodationsRoomBlockCode: 'Código de reserva',
+  accommodationsGettingThere: 'Cómo llegar',
+  accommodationsAirportDirections: 'Desde el aeropuerto',
+  accommodationsParking: 'Estacionamiento',
+  accommodationsViewMap: 'Ver mapa',
+  photosTitle: 'Comparte tus fotos',
+  photosDescription: 'Ayúdanos a capturar los recuerdos compartiendo tus fotos de nuestro día especial.',
+  photosUploadButton: 'Subir fotos',
+  musicTitle: 'Solicitar una canción',
+  musicDescription: 'Ayúdanos a crear la lista de reproducción perfecta para nuestra celebración.',
+  musicSongTitleLabel: 'Título de la canción',
+  musicArtistLabel: 'Artista',
+  musicYourNameLabel: 'Tu nombre (opcional)',
+  musicSubmitButton: 'Enviar solicitud',
+  musicSuccessMessage: '¡Solicitud de canción enviada!',
+  musicErrorMessage: 'Error al enviar la solicitud. Por favor intenta de nuevo.',
+  guestbookTitle: 'Libro de visitas',
+  guestbookDescription: 'Déjanos un mensaje para celebrar nuestro día especial.',
+  guestbookNameLabel: 'Tu nombre',
+  guestbookMessageLabel: 'Tu mensaje',
+  guestbookSubmitButton: 'Firmar libro',
+  guestbookSuccessMessage: 'Tu mensaje ha sido enviado para revisión.',
+  guestbookErrorMessage: 'Error al enviar el mensaje. Por favor intenta de nuevo.',
+  guestbookNoMessages: '¡Sé el primero en firmar nuestro libro de visitas!',
+  eventDetailsTitle: 'Detalles del evento',
+  eventDetailsCeremony: 'Ceremonia',
+  eventDetailsReception: 'Recepción',
+  eventDetailsAddToCalendar: 'Añadir al calendario',
+  eventDetailsGetDirections: 'Obtener direcciones',
+  galleryTitle: 'Galería de fotos',
+  videoTitle: 'Nuestra historia',
+  heroJoinUs: 'Únete a nosotros para celebrar nuestro amor',
+  seatingTitle: 'Ubicación de mesas',
+  seatingYourTable: 'Tu mesa',
+  loading: 'Cargando...',
+  error: 'Ocurrió un error',
+  submit: 'Enviar',
+  cancel: 'Cancelar',
+  back: 'Volver',
+  notFound: 'Página no encontrada',
+  notFoundMessage: 'La página de boda que buscas no existe.',
+  goHome: 'Ir al inicio',
+};
+
+// Add more languages as needed - using English as fallback
+const translations: Record<SupportedLanguage, TranslationStrings> = {
+  en,
+  es,
+  fr: en, // Fallback to English
+  pt: en,
+  de: en,
+  it: en,
+  nl: en,
+  ja: en,
+  zh: en,
+  ko: en,
+};
+
+export function getTranslations(language?: string): TranslationStrings {
+  const lang = (language || 'en') as SupportedLanguage;
+  return translations[lang] || translations.en;
+}
+
+export function t(key: keyof TranslationStrings, language?: string): string {
+  const strings = getTranslations(language);
+  return strings[key] || translations.en[key];
+}
+
 export const LANGUAGE_OPTIONS: { code: SupportedLanguage; nativeName: string }[] = [
   { code: 'en', nativeName: 'English' },
   { code: 'es', nativeName: 'Español' },
@@ -1132,20 +224,3 @@ export const LANGUAGE_OPTIONS: { code: SupportedLanguage; nativeName: string }[]
   { code: 'zh', nativeName: '中文' },
   { code: 'ko', nativeName: '한국어' },
 ];
-
-/**
- * Get translations for a specific language
- * Falls back to English if the language is not supported
- */
-export function getTranslations(language?: string): TranslationStrings {
-  const lang = (language || 'en') as SupportedLanguage;
-  return translations[lang] || translations.en;
-}
-
-/**
- * Get a specific translation string
- */
-export function t(key: keyof TranslationStrings, language?: string): string {
-  const strings = getTranslations(language);
-  return strings[key] || translations.en[key];
-}
