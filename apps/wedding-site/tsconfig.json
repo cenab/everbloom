@@ -3,5 +3,5 @@
   "compilerOptions": {
     "composite": true
   },
-  "exclude": ["astro.config.mjs"]
+  "exclude": ["astro.config.mjs", ".netlify", "netlify/functions/ssr"]
 }
