@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "postbuild": "node ./scripts/sync-ssr-function.mjs",
     "preview": "astro preview",
     "dev:netlify": "netlify dev",
     "typecheck": "astro check && tsc --noEmit",

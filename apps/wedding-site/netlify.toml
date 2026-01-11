@@ -9,7 +9,8 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# Functions: Netlify auto-detects from netlify/functions/ (API) and .netlify/v1/functions/ (Astro SSR)
+[functions]
+  directory = "netlify/functions"
 
 # Development settings
 [dev]
@@ -122,5 +123,9 @@
   force = false
   conditions = {Role = ["custom-domain"]}
 
-# Astro SSR handles all other routes automatically via .netlify/v1/functions/ssr/
-# No manual redirect needed - Netlify detects the Astro SSR function automatically
+# Astro SSR fallback - catches all routes not matched by static files
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/ssr"
+  status = 200
+  force = false
