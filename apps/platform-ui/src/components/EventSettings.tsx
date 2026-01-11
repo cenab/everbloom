@@ -4,7 +4,6 @@ import type { Wedding, EventDetailsData, WeddingEvent, WeddingEventType, ApiResp
 
 interface EventSettingsProps {
   wedding: Wedding;
-  onBack: () => void;
   onEventDetailsChanged: () => void;
 }
 
@@ -60,7 +59,6 @@ function createEmptyEvent(type: WeddingEventType): EventFormData {
  */
 export function EventSettings({
   wedding,
-  onBack,
   onEventDetailsChanged,
 }: EventSettingsProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -247,7 +245,7 @@ export function EventSettings({
         </p>
       </div>
 
-      <div className="max-w-2xl space-y-8">
+      <div className="space-y-8">
         {events.map((event, index) => (
           <EventCard
             key={event.id}
@@ -292,12 +290,6 @@ export function EventSettings({
             className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? 'Saving...' : 'Save event details'}
-          </button>
-          <button
-            onClick={onBack}
-            className="px-4 py-2 text-neutral-600 hover:text-neutral-800"
-          >
-            Cancel
           </button>
         </div>
 

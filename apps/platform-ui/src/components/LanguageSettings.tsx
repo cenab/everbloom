@@ -9,7 +9,6 @@ import type {
 
 interface LanguageSettingsProps {
   wedding: Wedding;
-  onBack: () => void;
   onLanguageChanged?: () => void;
 }
 
@@ -19,7 +18,6 @@ interface LanguageSettingsProps {
  */
 export function LanguageSettings({
   wedding,
-  onBack,
   onLanguageChanged,
 }: LanguageSettingsProps) {
   const [languages, setLanguages] = useState<LanguageOption[]>([]);
@@ -79,9 +77,6 @@ export function LanguageSettings({
           `Site language changed to ${selectedLang?.name ?? selectedLanguage}. Your changes are saved as a draft.`
         );
         onLanguageChanged?.();
-        setTimeout(() => {
-          onBack();
-        }, 1500);
       } else {
         setError('Unable to update language. Please try again.');
       }
@@ -201,9 +196,6 @@ export function LanguageSettings({
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Saving...' : 'Save changes'}
-        </button>
-        <button onClick={onBack} className="btn-secondary">
-          Cancel
         </button>
       </div>
     </div>

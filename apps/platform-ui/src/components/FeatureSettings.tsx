@@ -11,7 +11,6 @@ import type {
 
 interface FeatureSettingsProps {
   wedding: Wedding;
-  onBack: () => void;
   onFeaturesChanged?: () => void;
 }
 
@@ -97,7 +96,6 @@ const PLAN_AVAILABLE_FEATURES: Record<string, FeatureFlag[]> = {
  */
 export function FeatureSettings({
   wedding,
-  onBack,
   onFeaturesChanged,
 }: FeatureSettingsProps) {
   const [features, setFeatures] = useState<Record<FeatureFlag, boolean>>(wedding.features);
@@ -166,7 +164,6 @@ export function FeatureSettings({
 
   const handleSave = async () => {
     if (!hasChanges) {
-      onBack();
       return;
     }
 
@@ -190,10 +187,6 @@ export function FeatureSettings({
       if (data.ok) {
         setSuccessMessage('Features updated successfully');
         onFeaturesChanged?.();
-        // Wait a moment so user sees the success message
-        setTimeout(() => {
-          onBack();
-        }, 1000);
       } else {
         setError('Unable to update features. Please try again.');
       }
@@ -261,9 +254,6 @@ export function FeatureSettings({
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Saving...' : 'Save changes'}
-        </button>
-        <button onClick={onBack} className="btn-secondary">
-          Cancel
         </button>
       </div>
     </div>

@@ -11,7 +11,6 @@ import type {
 
 interface RegistrySettingsProps {
   wedding: Wedding;
-  onBack: () => void;
   onRegistryChanged?: () => void;
 }
 
@@ -25,7 +24,6 @@ const DEFAULT_REGISTRY: RegistryConfig = {
  */
 export function RegistrySettings({
   wedding,
-  onBack,
   onRegistryChanged,
 }: RegistrySettingsProps) {
   const [registryLinks, setRegistryLinks] = useState<RegistryLink[]>([]);
@@ -181,9 +179,6 @@ export function RegistrySettings({
         setSuccessMessage('Registry updated successfully.');
         setInitialRegistryLinks(registryLinks);
         onRegistryChanged?.();
-        setTimeout(() => {
-          onBack();
-        }, 1000);
       } else {
         setError('Unable to update the registry. Please try again.');
       }
@@ -334,9 +329,6 @@ export function RegistrySettings({
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Saving...' : 'Save changes'}
-        </button>
-        <button onClick={onBack} className="btn-secondary">
-          Cancel
         </button>
       </div>
     </div>

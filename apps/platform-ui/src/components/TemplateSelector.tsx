@@ -10,7 +10,6 @@ import type {
 interface TemplateSelectorProps {
   weddingId: string;
   currentTemplateId: string;
-  onBack: () => void;
   onTemplateChanged?: () => void;
 }
 
@@ -38,7 +37,6 @@ const CATEGORY_LABELS: Record<TemplateCategory, string> = {
 export function TemplateSelector({
   weddingId,
   currentTemplateId,
-  onBack,
   onTemplateChanged,
 }: TemplateSelectorProps) {
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -72,7 +70,6 @@ export function TemplateSelector({
 
   const handleSave = async () => {
     if (selectedTemplateId === currentTemplateId) {
-      onBack();
       return;
     }
 
@@ -96,10 +93,6 @@ export function TemplateSelector({
       if (data.ok) {
         setSuccessMessage('Template updated successfully');
         onTemplateChanged?.();
-        // Wait a moment so user sees the success message
-        setTimeout(() => {
-          onBack();
-        }, 1000);
       } else {
         setError('Unable to update template. Please try again.');
       }
@@ -197,9 +190,6 @@ export function TemplateSelector({
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Saving...' : 'Save changes'}
-        </button>
-        <button onClick={onBack} className="btn-secondary">
-          Cancel
         </button>
       </div>
     </div>

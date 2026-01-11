@@ -12,7 +12,6 @@ import type {
 
 interface ScheduledEmailsProps {
   weddingId: string;
-  onBack: () => void;
 }
 
 /**
@@ -20,7 +19,7 @@ interface ScheduledEmailsProps {
  * PRD: "Admin can schedule emails for future send"
  * PRD: "Admin can view and cancel scheduled emails"
  */
-export function ScheduledEmails({ weddingId, onBack }: ScheduledEmailsProps) {
+export function ScheduledEmails({ weddingId }: ScheduledEmailsProps) {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [scheduledEmails, setScheduledEmails] = useState<ScheduledEmail[]>([]);
   const [selectedGuestIds, setSelectedGuestIds] = useState<Set<string>>(new Set());
@@ -253,14 +252,6 @@ export function ScheduledEmails({ weddingId, onBack }: ScheduledEmailsProps) {
 
   return (
     <div>
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-neutral-600 hover:text-neutral-800 mb-6"
-      >
-        <ChevronLeftIcon className="w-4 h-4" />
-        Back
-      </button>
-
       <div className="mb-8">
         <h2 className="text-2xl font-serif text-neutral-800">Scheduled Emails</h2>
         <p className="text-neutral-500 mt-1">

@@ -20,7 +20,6 @@ import { getAuthToken } from '../lib/auth';
 
 interface GuestsProps {
   weddingId: string;
-  onBack: () => void;
 }
 
 /**
@@ -58,7 +57,7 @@ function getLatestEmailStatus(guestId: string, emailOutbox: EmailOutbox[]): Emai
   };
 }
 
-export function Guests({ weddingId, onBack }: GuestsProps) {
+export function Guests({ weddingId }: GuestsProps) {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [tags, setTags] = useState<GuestTag[]>([]);
   const [emailOutbox, setEmailOutbox] = useState<EmailOutbox[]>([]);
@@ -72,6 +71,9 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
   const [filterTagIds, setFilterTagIds] = useState<string[]>([]);
   const [showAssignTags, setShowAssignTags] = useState(false);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
+  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
+  const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const fetchEmailOutbox = useCallback(async () => {
     try {
@@ -133,6 +135,32 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
     fetchTags();
     fetchEmailOutbox();
   }, [fetchGuests, fetchTags, fetchEmailOutbox]);
+
+  useEffect(() => {
+    if (!showActionsMenu) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(target)) {
+        setShowActionsMenu(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowActionsMenu(false);
+        actionsButtonRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showActionsMenu]);
 
   const handleGuestAdded = (newGuest: Guest) => {
     setGuests((prev) => [...prev, newGuest].sort((a, b) => a.name.localeCompare(b.name)));
@@ -552,6 +580,8 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
   const filteredGuests = filterTagIds.length > 0
     ? guests.filter((g) => g.tagIds?.some((tid) => filterTagIds.includes(tid)))
     : guests;
+  const selectedCount = selectedGuestIds.size;
+  const hasSelection = selectedCount > 0;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -564,64 +594,138 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
             </p>
           </div>
           <div className="flex flex-wrap gap-3 sm:flex-1 sm:justify-end sm:min-w-0">
-            {selectedGuestIds.size > 0 && (
+            {hasSelection && (
               <>
-                <button
-                  onClick={() => setShowAssignTags(true)}
-                  className="btn-secondary flex items-center gap-2"
-                >
-                  <TagIcon className="w-4 h-4" />
-                  Tag ({selectedGuestIds.size})
-                </button>
                 <button
                   onClick={() => setShowSendInvites(true)}
                   className="btn-primary flex items-center gap-2"
                 >
                   <EnvelopeIcon className="w-4 h-4" />
-                  Send invites ({selectedGuestIds.size})
+                  Send invites ({selectedCount})
                 </button>
               </>
             )}
-            <button
-              onClick={() => setShowTagManager(true)}
-              className="btn-secondary flex items-center gap-2"
-            >
-              <TagIcon className="w-4 h-4" />
-              Tags
-            </button>
-            <button
-              onClick={handleExportCsv}
-              className="btn-secondary flex items-center gap-2"
-              disabled={guests.length === 0}
-            >
-              <DownloadIcon className="w-4 h-4" />
-              Export
-            </button>
-            <button
-              onClick={handleExportEmails}
-              className="btn-secondary flex items-center gap-2"
-              disabled={filteredGuests.length === 0}
-              title={filterTagIds.length > 0 ? `Export ${filteredGuests.length} filtered emails` : 'Export all emails'}
-            >
-              <MailIcon className="w-4 h-4" />
-              Emails
-            </button>
-            <button
-              onClick={handlePrint}
-              className="btn-secondary flex items-center gap-2 print:hidden"
-              disabled={filteredGuests.length === 0}
-              title="Print guest list"
-            >
-              <PrinterIcon className="w-4 h-4" />
-              Print
-            </button>
-            <button
-              onClick={() => setShowCsvImport(true)}
-              className="btn-secondary"
-              disabled={showCsvImport || showAddForm}
-            >
-              Import CSV
-            </button>
+            <div className="relative" ref={actionsMenuRef}>
+              <button
+                ref={actionsButtonRef}
+                type="button"
+                className="btn-secondary px-4"
+                aria-haspopup="menu"
+                aria-expanded={showActionsMenu}
+                aria-controls="guest-actions-menu"
+                onClick={() => setShowActionsMenu((prev) => !prev)}
+              >
+                ...
+              </button>
+              {showActionsMenu && (
+                <div
+                  id="guest-actions-menu"
+                  role="menu"
+                  className="absolute right-0 mt-2 w-56 rounded-lg border border-neutral-200 bg-white shadow-lg z-10"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      if (!hasSelection) return;
+                      setShowAssignTags(true);
+                      setShowActionsMenu(false);
+                    }}
+                    disabled={!hasSelection}
+                    className={`flex w-full items-center gap-2 px-4 py-2 text-sm ${
+                      hasSelection
+                        ? 'text-neutral-700 hover:bg-neutral-100'
+                        : 'text-neutral-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <TagIcon className="w-4 h-4" />
+                    Tag{hasSelection ? ` (${selectedCount})` : ''}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowTagManager(true);
+                      setShowActionsMenu(false);
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
+                  >
+                    <TagIcon className="w-4 h-4" />
+                    Tags
+                  </button>
+                  <div className="my-1 border-t border-neutral-200" />
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      handleExportCsv();
+                      setShowActionsMenu(false);
+                    }}
+                    disabled={guests.length === 0}
+                    className={`flex w-full items-center gap-2 px-4 py-2 text-sm ${
+                      guests.length > 0
+                        ? 'text-neutral-700 hover:bg-neutral-100'
+                        : 'text-neutral-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <DownloadIcon className="w-4 h-4" />
+                    Export
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      handleExportEmails();
+                      setShowActionsMenu(false);
+                    }}
+                    disabled={filteredGuests.length === 0}
+                    className={`flex w-full items-center gap-2 px-4 py-2 text-sm ${
+                      filteredGuests.length > 0
+                        ? 'text-neutral-700 hover:bg-neutral-100'
+                        : 'text-neutral-400 cursor-not-allowed'
+                    }`}
+                    title={filterTagIds.length > 0 ? `Export ${filteredGuests.length} filtered emails` : 'Export all emails'}
+                  >
+                    <MailIcon className="w-4 h-4" />
+                    Emails
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      handlePrint();
+                      setShowActionsMenu(false);
+                    }}
+                    disabled={filteredGuests.length === 0}
+                    className={`flex w-full items-center gap-2 px-4 py-2 text-sm print:hidden ${
+                      filteredGuests.length > 0
+                        ? 'text-neutral-700 hover:bg-neutral-100'
+                        : 'text-neutral-400 cursor-not-allowed'
+                    }`}
+                    title="Print guest list"
+                  >
+                    <PrinterIcon className="w-4 h-4" />
+                    Print
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowCsvImport(true);
+                      setShowActionsMenu(false);
+                    }}
+                    disabled={showCsvImport || showAddForm}
+                    className={`flex w-full items-center gap-2 px-4 py-2 text-sm ${
+                      showCsvImport || showAddForm
+                        ? 'text-neutral-400 cursor-not-allowed'
+                        : 'text-neutral-700 hover:bg-neutral-100'
+                    }`}
+                  >
+                    Import CSV
+                  </button>
+                </div>
+              )}
+            </div>
             <button
               onClick={() => setShowAddForm(true)}
               className="btn-primary"

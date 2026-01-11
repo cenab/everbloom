@@ -9,14 +9,13 @@ import type {
 
 interface GuestbookManagerProps {
   weddingId: string;
-  onBack: () => void;
 }
 
 /**
  * Guestbook management component for admin dashboard.
  * PRD: "Admin can moderate guestbook messages"
  */
-export function GuestbookManager({ weddingId, onBack }: GuestbookManagerProps) {
+export function GuestbookManager({ weddingId }: GuestbookManagerProps) {
   const [messages, setMessages] = useState<GuestbookMessage[]>([]);
   const [summary, setSummary] = useState<GuestbookSummaryResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -151,14 +150,6 @@ export function GuestbookManager({ weddingId, onBack }: GuestbookManagerProps) {
 
   return (
     <div>
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-neutral-600 hover:text-neutral-800 mb-6"
-      >
-        <ChevronLeftIcon className="w-4 h-4" />
-        Back
-      </button>
-
       <div className="mb-8">
         <h1 className="text-2xl text-neutral-800">Guestbook messages</h1>
         <p className="text-neutral-500 mt-1">

@@ -4,7 +4,6 @@ import type { EmailStatistics, ApiResponse, EmailStatisticsResponse } from '../t
 
 interface EmailStatisticsProps {
   weddingId: string;
-  onBack: () => void;
 }
 
 /**
@@ -12,7 +11,7 @@ interface EmailStatisticsProps {
  * PRD: "Dashboard shows email delivery statistics"
  * Shows total sent, delivered, failed counts and breakdown by email type.
  */
-export function EmailStatisticsDashboard({ weddingId, onBack }: EmailStatisticsProps) {
+export function EmailStatisticsDashboard({ weddingId }: EmailStatisticsProps) {
   const [statistics, setStatistics] = useState<EmailStatistics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,13 +57,6 @@ export function EmailStatisticsDashboard({ weddingId, onBack }: EmailStatisticsP
   if (error) {
     return (
       <div>
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-neutral-600 hover:text-neutral-800 mb-6"
-        >
-          <ChevronLeftIcon className="w-4 h-4" />
-          Back
-        </button>
         <div className="text-center py-16">
           <p className="text-neutral-500">{error}</p>
           <button
@@ -89,14 +81,6 @@ export function EmailStatisticsDashboard({ weddingId, onBack }: EmailStatisticsP
 
   return (
     <div>
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-neutral-600 hover:text-neutral-800 mb-6"
-      >
-        <ChevronLeftIcon className="w-4 h-4" />
-        Back
-      </button>
-
       <div className="mb-8">
         <h1 className="text-2xl text-neutral-800">Email delivery statistics</h1>
         <p className="text-neutral-500 mt-1">

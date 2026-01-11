@@ -12,7 +12,6 @@ import type {
 
 interface DomainSettingsProps {
   wedding: Wedding;
-  onBack: () => void;
   onDomainChanged?: () => void;
 }
 
@@ -24,7 +23,6 @@ interface DomainSettingsProps {
  */
 export function DomainSettings({
   wedding,
-  onBack,
   onDomainChanged,
 }: DomainSettingsProps) {
   const [isLoading, setIsLoading] = useState(true);

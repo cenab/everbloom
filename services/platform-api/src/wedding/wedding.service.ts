@@ -459,7 +459,18 @@ export class WeddingService {
       announcement: DEFAULT_ANNOUNCEMENT,
       faq: DEFAULT_FAQ,
       sections: [
-        { id: 'hero', type: 'hero', enabled: true, order: 0, data: { headline: `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}` } },
+        {
+          id: 'hero',
+          type: 'hero',
+          enabled: true,
+          order: 0,
+          data: {
+            headline: `${wedding.partnerNames[0]} & ${wedding.partnerNames[1]}`,
+            invitationStyle: 'classic',
+            invitationMessage: '',
+            showDate: true,
+          },
+        },
         { id: 'details', type: 'event-details', enabled: true, order: 1, data: { title: 'Our Wedding Day', description: "We can't wait to celebrate with you." } },
         { id: 'rsvp', type: 'rsvp', enabled: wedding.features.RSVP, order: 2, data: { title: 'RSVP', description: 'Please let us know if you can join us.' } },
         { id: 'photos', type: 'photo-upload', enabled: wedding.features.PHOTO_UPLOAD, order: 3, data: { title: 'Share Photos', description: 'Add your favorite moments.' } },
@@ -1228,9 +1239,27 @@ export class WeddingService {
     // Update hero section in sections array
     config.sections = config.sections.map((section) => {
       if (section.type === 'hero') {
+        const nextData: Record<string, unknown> = {
+          ...section.data,
+          headline: heroContent.headline,
+        };
+
+        if ('subheadline' in heroContent) {
+          nextData.subheadline = heroContent.subheadline;
+        }
+        if ('invitationStyle' in heroContent) {
+          nextData.invitationStyle = heroContent.invitationStyle;
+        }
+        if ('invitationMessage' in heroContent) {
+          nextData.invitationMessage = heroContent.invitationMessage;
+        }
+        if ('showDate' in heroContent) {
+          nextData.showDate = heroContent.showDate;
+        }
+
         return {
           ...section,
-          data: { ...section.data, headline: heroContent.headline, subheadline: heroContent.subheadline },
+          data: nextData,
         };
       }
       return section;

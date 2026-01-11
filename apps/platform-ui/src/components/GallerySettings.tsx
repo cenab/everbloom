@@ -11,7 +11,6 @@ import type {
 
 interface GallerySettingsProps {
   wedding: Wedding;
-  onBack: () => void;
   onGalleryChanged?: () => void;
 }
 
@@ -25,7 +24,6 @@ const DEFAULT_GALLERY: GalleryConfig = {
  */
 export function GallerySettings({
   wedding,
-  onBack,
   onGalleryChanged,
 }: GallerySettingsProps) {
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
@@ -194,9 +192,6 @@ export function GallerySettings({
         setSuccessMessage('Gallery updated successfully.');
         setInitialPhotos(photos);
         onGalleryChanged?.();
-        setTimeout(() => {
-          onBack();
-        }, 1000);
       } else {
         setError('Unable to update the gallery. Please try again.');
       }
@@ -350,9 +345,6 @@ export function GallerySettings({
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Saving...' : 'Save changes'}
-        </button>
-        <button onClick={onBack} className="btn-secondary">
-          Cancel
         </button>
       </div>
     </div>

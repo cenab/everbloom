@@ -11,7 +11,6 @@ import type {
 
 interface VideoSettingsProps {
   wedding: Wedding;
-  onBack: () => void;
   onVideoChanged?: () => void;
 }
 
@@ -25,7 +24,6 @@ const DEFAULT_VIDEO: VideoConfig = {
  */
 export function VideoSettings({
   wedding,
-  onBack,
   onVideoChanged,
 }: VideoSettingsProps) {
   const [videos, setVideos] = useState<VideoEmbed[]>([]);
@@ -199,9 +197,6 @@ export function VideoSettings({
         setSuccessMessage('Videos updated successfully.');
         setInitialVideos(videos);
         onVideoChanged?.();
-        setTimeout(() => {
-          onBack();
-        }, 1000);
       } else {
         setError('Unable to update videos. Please try again.');
       }
@@ -413,9 +408,6 @@ export function VideoSettings({
             className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? 'Saving...' : 'Save changes'}
-          </button>
-          <button onClick={onBack} className="btn-secondary">
-            Cancel
           </button>
         </div>
       )}

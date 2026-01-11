@@ -11,7 +11,6 @@ import type {
 
 interface FaqSettingsProps {
   wedding: Wedding;
-  onBack: () => void;
   onFaqChanged?: () => void;
 }
 
@@ -25,7 +24,6 @@ const DEFAULT_FAQ: FaqConfig = {
  */
 export function FaqSettings({
   wedding,
-  onBack,
   onFaqChanged,
 }: FaqSettingsProps) {
   const [faqItems, setFaqItems] = useState<FaqItem[]>([]);
@@ -168,9 +166,6 @@ export function FaqSettings({
         setSuccessMessage('FAQ updated successfully.');
         setInitialFaqItems(faqItems);
         onFaqChanged?.();
-        setTimeout(() => {
-          onBack();
-        }, 1000);
       } else {
         setError('Unable to update the FAQ. Please try again.');
       }
@@ -321,9 +316,6 @@ export function FaqSettings({
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Saving...' : 'Save changes'}
-        </button>
-        <button onClick={onBack} className="btn-secondary">
-          Cancel
         </button>
       </div>
     </div>

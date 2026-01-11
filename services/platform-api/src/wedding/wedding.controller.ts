@@ -336,6 +336,12 @@ export class WeddingController {
 
     const headline = body.heroContent.headline?.trim();
     const subheadline = body.heroContent.subheadline?.trim();
+    const invitationStyle = body.heroContent.invitationStyle?.trim();
+    const invitationMessage = body.heroContent.invitationMessage?.trim();
+    const hasSubheadline = Object.prototype.hasOwnProperty.call(body.heroContent, 'subheadline');
+    const hasInvitationStyle = Object.prototype.hasOwnProperty.call(body.heroContent, 'invitationStyle');
+    const hasInvitationMessage = Object.prototype.hasOwnProperty.call(body.heroContent, 'invitationMessage');
+    const hasShowDate = Object.prototype.hasOwnProperty.call(body.heroContent, 'showDate');
 
     if (!headline) {
       throw new BadRequestException({ ok: false, error: VALIDATION_ERROR });
@@ -343,7 +349,10 @@ export class WeddingController {
 
     const heroContent = {
       headline,
-      ...(subheadline && { subheadline }),
+      ...(hasSubheadline ? { subheadline: subheadline ?? '' } : {}),
+      ...(hasInvitationStyle ? { invitationStyle: invitationStyle || 'classic' } : {}),
+      ...(hasInvitationMessage ? { invitationMessage: invitationMessage ?? '' } : {}),
+      ...(hasShowDate ? { showDate: Boolean(body.heroContent.showDate) } : {}),
     };
 
     const result = await this.weddingService.updateHeroContent(id, heroContent);

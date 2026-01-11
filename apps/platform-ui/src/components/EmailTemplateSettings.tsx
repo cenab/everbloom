@@ -10,7 +10,6 @@ import type {
 
 interface EmailTemplateSettingsProps {
   wedding: Wedding;
-  onBack: () => void;
   onTemplatesChanged?: () => void;
 }
 
@@ -87,7 +86,6 @@ const DEFAULT_TEMPLATES: Record<TemplateType, EmailTemplateContent> = {
  */
 export function EmailTemplateSettings({
   wedding,
-  onBack,
   onTemplatesChanged,
 }: EmailTemplateSettingsProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('invitation');
@@ -351,9 +349,6 @@ export function EmailTemplateSettings({
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSaving ? 'Saving...' : 'Save templates'}
-            </button>
-            <button onClick={onBack} className="btn-secondary">
-              Cancel
             </button>
           </div>
         </div>

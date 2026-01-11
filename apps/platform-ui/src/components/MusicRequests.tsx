@@ -5,14 +5,13 @@ import { getAuthToken } from '../lib/auth';
 interface MusicRequestsProps {
   weddingId: string;
   wedding: Wedding;
-  onBack: () => void;
 }
 
 /**
  * Music requests management component.
  * PRD: "Admin can view song requests" and "Admin can export playlist for DJ"
  */
-export function MusicRequests({ weddingId, wedding, onBack }: MusicRequestsProps) {
+export function MusicRequests({ weddingId, wedding }: MusicRequestsProps) {
   const [songRequests, setSongRequests] = useState<SongRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

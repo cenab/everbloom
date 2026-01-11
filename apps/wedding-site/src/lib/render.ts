@@ -31,6 +31,14 @@ function formatDate(dateStr: string, lang: string): string {
   }
 }
 
+const INVITATION_STYLES = new Set(['classic', 'modern', 'minimal']);
+
+function getInvitationStyle(data: SectionData): string {
+  const raw = (data.invitationStyle as string | undefined) || '';
+  const normalized = raw.trim().toLowerCase();
+  return INVITATION_STYLES.has(normalized) ? normalized : 'classic';
+}
+
 // Render announcement banner
 function renderAnnouncement(announcement: Announcement): string {
   if (!announcement.enabled) return '';
@@ -49,12 +57,16 @@ function renderAnnouncement(announcement: Announcement): string {
 function renderHero(data: SectionData, config: RenderConfig, _strings: TranslationStrings): string {
   const headline = (data.headline as string) || `${config.wedding.partnerNames[0]} & ${config.wedding.partnerNames[1]}`;
   const subheadline = (data.subheadline as string) || '';
+  const invitationMessage = (data.invitationMessage as string) || '';
+  const showDate = (data.showDate as boolean | undefined) !== false;
+  const invitationStyle = getInvitationStyle(data);
 
   return `
-    <section class="section hero-section" id="hero">
+    <section class="section hero-section invitation-style-${invitationStyle}" id="hero" data-invitation-style="${invitationStyle}">
+      ${invitationMessage ? `<p class="hero-message">${escapeHtml(invitationMessage)}</p>` : ''}
       <h1 class="hero-headline">${escapeHtml(headline)}</h1>
       ${subheadline ? `<p class="hero-subheadline">${escapeHtml(subheadline)}</p>` : ''}
-      ${config.wedding.date ? `<p class="hero-date">${formatDate(config.wedding.date, config.language || 'en')}</p>` : ''}
+      ${showDate && config.wedding.date ? `<p class="hero-date">${formatDate(config.wedding.date, config.language || 'en')}</p>` : ''}
     </section>
   `;
 }

@@ -4,7 +4,6 @@ import type { ApiResponse, PhotoSummary, PhotoSummaryResponse, PhotoMetadata } f
 
 interface PhotoStatsDashboardProps {
   weddingId: string;
-  onBack: () => void;
 }
 
 /**
@@ -12,7 +11,7 @@ interface PhotoStatsDashboardProps {
  * Shows total photo count and recent uploads.
  * PRD: "Dashboard shows photo upload count"
  */
-export function PhotoStatsDashboard({ weddingId, onBack }: PhotoStatsDashboardProps) {
+export function PhotoStatsDashboard({ weddingId }: PhotoStatsDashboardProps) {
   const [summary, setSummary] = useState<PhotoSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

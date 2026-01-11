@@ -381,17 +381,23 @@ export interface UpdateFaqResponse {
 }
 
 // ============================================================================
-// Hero Content Types
+// Invitation Content Types
 // ============================================================================
 
 /**
- * Hero section content data
+ * Invitation content data
  */
 export interface HeroContentData {
   /** Main headline (typically partner names) */
   headline: string;
   /** Optional subheadline (e.g., "We're getting married!") */
   subheadline?: string;
+  /** Invitation style identifier for future designs */
+  invitationStyle?: string;
+  /** Optional invitation message displayed above the headline */
+  invitationMessage?: string;
+  /** Toggle for showing the wedding date in the invitation */
+  showDate?: boolean;
 }
 
 /**

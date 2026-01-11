@@ -12,7 +12,6 @@ import type {
 
 interface AccommodationsSettingsProps {
   wedding: Wedding;
-  onBack: () => void;
   onAccommodationsChanged?: () => void;
 }
 
@@ -27,7 +26,6 @@ const DEFAULT_ACCOMMODATIONS: AccommodationsConfig = {
  */
 export function AccommodationsSettings({
   wedding,
-  onBack,
   onAccommodationsChanged,
 }: AccommodationsSettingsProps) {
   const [hotels, setHotels] = useState<Hotel[]>([]);
@@ -218,9 +216,6 @@ export function AccommodationsSettings({
         setInitialHotels(hotels);
         setInitialTravelInfo(travelInfo);
         onAccommodationsChanged?.();
-        setTimeout(() => {
-          onBack();
-        }, 1000);
       } else {
         setError('Unable to update accommodations. Please try again.');
       }
@@ -472,9 +467,6 @@ export function AccommodationsSettings({
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Saving...' : 'Save changes'}
-        </button>
-        <button onClick={onBack} className="btn-secondary">
-          Cancel
         </button>
       </div>
     </div>

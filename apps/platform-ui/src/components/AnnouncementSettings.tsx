@@ -10,7 +10,6 @@ import type {
 
 interface AnnouncementSettingsProps {
   wedding: Wedding;
-  onBack: () => void;
   onAnnouncementChanged?: () => void;
 }
 
@@ -26,7 +25,6 @@ const DEFAULT_ANNOUNCEMENT: Announcement = {
  */
 export function AnnouncementSettings({
   wedding,
-  onBack,
   onAnnouncementChanged,
 }: AnnouncementSettingsProps) {
   const [announcement, setAnnouncement] = useState<Announcement>(DEFAULT_ANNOUNCEMENT);
@@ -120,9 +118,6 @@ export function AnnouncementSettings({
         setSuccessMessage('Announcement updated successfully.');
         setInitialAnnouncement(announcement);
         onAnnouncementChanged?.();
-        setTimeout(() => {
-          onBack();
-        }, 1000);
       } else {
         setError('Unable to update the announcement. Please try again.');
       }
@@ -247,9 +242,6 @@ export function AnnouncementSettings({
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Saving...' : 'Save changes'}
-        </button>
-        <button onClick={onBack} className="btn-secondary">
-          Cancel
         </button>
       </div>
     </div>

@@ -4,7 +4,6 @@ import type { Wedding, ApiResponse, SocialConfig, UpdateSocialConfigResponse } f
 
 interface SocialSettingsProps {
   wedding: Wedding;
-  onBack: () => void;
   onSocialConfigChanged: () => void;
 }
 
@@ -17,7 +16,6 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
  */
 export function SocialSettings({
   wedding,
-  onBack,
   onSocialConfigChanged,
 }: SocialSettingsProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -206,7 +204,7 @@ export function SocialSettings({
         </p>
       </div>
 
-      <div className="max-w-xl space-y-6">
+      <div className="space-y-6">
         {/* Current or Preview Image */}
         <div>
           <label className="block text-sm font-medium text-neutral-700 mb-3">

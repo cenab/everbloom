@@ -9,7 +9,6 @@ import type {
 
 interface SeatingManagerProps {
   weddingId: string;
-  onBack: () => void;
 }
 
 /**
@@ -17,7 +16,7 @@ interface SeatingManagerProps {
  * PRD: "Admin can create table assignments"
  * PRD: "Admin can assign guests to tables"
  */
-export function SeatingManager({ weddingId, onBack }: SeatingManagerProps) {
+export function SeatingManager({ weddingId }: SeatingManagerProps) {
   const [overview, setOverview] = useState<SeatingOverviewResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -264,12 +263,6 @@ export function SeatingManager({ weddingId, onBack }: SeatingManagerProps) {
     return (
       <div className="p-8 text-center">
         <p className="text-primary">{error}</p>
-        <button
-          onClick={onBack}
-          className="mt-4 text-primary underline"
-        >
-          Go back
-        </button>
       </div>
     );
   }
@@ -282,13 +275,7 @@ export function SeatingManager({ weddingId, onBack }: SeatingManagerProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onBack}
-            className="text-neutral-dark/60 hover:text-neutral-dark transition-colors"
-          >
-            ← Back
-          </button>
+        <div className="flex items-center">
           <h2 className="font-serif text-2xl text-neutral-dark">Seating Chart</h2>
         </div>
       </div>

@@ -11,14 +11,13 @@ const API_BASE = '/api';
 
 interface RsvpDashboardProps {
   weddingId: string;
-  onBack: () => void;
 }
 
 /**
  * RSVP Dashboard component for viewing RSVP summary and guest responses.
  * PRD: "Admin can view RSVP summary"
  */
-export function RsvpDashboard({ weddingId, onBack }: RsvpDashboardProps) {
+export function RsvpDashboard({ weddingId }: RsvpDashboardProps) {
   const [summary, setSummary] = useState<RsvpSummary | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [isLoading, setIsLoading] = useState(true);

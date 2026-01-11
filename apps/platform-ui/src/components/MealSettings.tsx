@@ -10,7 +10,6 @@ import type {
 
 interface MealSettingsProps {
   wedding: Wedding;
-  onBack: () => void;
   onMealConfigChanged?: () => void;
 }
 
@@ -25,7 +24,6 @@ const DEFAULT_MEAL_CONFIG: MealConfig = {
  */
 export function MealSettings({
   wedding,
-  onBack,
   onMealConfigChanged,
 }: MealSettingsProps) {
   const [enabled, setEnabled] = useState(false);
@@ -161,9 +159,6 @@ export function MealSettings({
         setSuccessMessage('Meal options updated successfully.');
         setInitialConfig(currentConfig);
         onMealConfigChanged?.();
-        setTimeout(() => {
-          onBack();
-        }, 1000);
       } else {
         setError('Unable to update meal options. Please try again.');
       }
@@ -354,9 +349,6 @@ export function MealSettings({
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Saving...' : 'Save changes'}
-        </button>
-        <button onClick={onBack} className="btn-secondary">
-          Cancel
         </button>
       </div>
     </div>

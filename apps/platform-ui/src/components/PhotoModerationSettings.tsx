@@ -12,7 +12,6 @@ import type {
 
 interface PhotoModerationSettingsProps {
   wedding: Wedding;
-  onBack: () => void;
   onWeddingChanged?: () => void;
 }
 
@@ -23,7 +22,6 @@ interface PhotoModerationSettingsProps {
  */
 export function PhotoModerationSettings({
   wedding,
-  onBack,
   onWeddingChanged,
 }: PhotoModerationSettingsProps) {
   const [moderationRequired, setModerationRequired] = useState(

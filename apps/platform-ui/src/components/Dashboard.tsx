@@ -78,10 +78,6 @@ export function Dashboard() {
     setSelectedWedding(wedding);
     setView('dashboard');
   };
-  const handleBackToWeddings = () => {
-    setSelectedWedding(null);
-    setView('dashboard');
-  };
 
   if (view === 'create-wedding') {
     return (
@@ -128,35 +124,30 @@ export function Dashboard() {
             onNavigateToSocial={() => setView('social')}
             onNavigateToLanguage={() => setView('language')}
             onNavigateToDomain={() => setView('domain')}
-            onBack={weddings.length > 1 ? handleBackToWeddings : undefined}
           />
         );
       case 'guests':
         return (
           <Guests
             weddingId={selectedWedding.id}
-            onBack={() => setView('dashboard')}
           />
         );
       case 'rsvp':
         return (
           <RsvpDashboard
             weddingId={selectedWedding.id}
-            onBack={() => setView('dashboard')}
           />
         );
       case 'template':
         return (
           <TemplateSelectorWrapper
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
           />
         );
       case 'features':
         return (
           <FeatureSettings
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
             onFeaturesChanged={fetchWeddings}
           />
         );
@@ -164,7 +155,6 @@ export function Dashboard() {
         return (
           <AnnouncementSettings
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
             onAnnouncementChanged={fetchWeddings}
           />
         );
@@ -172,7 +162,6 @@ export function Dashboard() {
         return (
           <EventSettings
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
             onEventDetailsChanged={fetchWeddings}
           />
         );
@@ -180,7 +169,6 @@ export function Dashboard() {
         return (
           <FaqSettings
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
             onFaqChanged={fetchWeddings}
           />
         );
@@ -188,7 +176,6 @@ export function Dashboard() {
         return (
           <RegistrySettings
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
             onRegistryChanged={fetchWeddings}
           />
         );
@@ -196,7 +183,6 @@ export function Dashboard() {
         return (
           <AccommodationsSettings
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
             onAccommodationsChanged={fetchWeddings}
           />
         );
@@ -204,7 +190,6 @@ export function Dashboard() {
         return (
           <PasscodeSettings
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
             onPasscodeChanged={fetchWeddings}
           />
         );
@@ -212,7 +197,6 @@ export function Dashboard() {
         return (
           <HeroSettings
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
             onHeroChanged={fetchWeddings}
           />
         );
@@ -220,7 +204,6 @@ export function Dashboard() {
         return (
           <MealSettings
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
             onMealConfigChanged={fetchWeddings}
           />
         );
@@ -228,21 +211,18 @@ export function Dashboard() {
         return (
           <EmailStatisticsDashboard
             weddingId={selectedWedding.id}
-            onBack={() => setView('dashboard')}
           />
         );
       case 'photo-stats':
         return (
           <PhotoStatsDashboard
             weddingId={selectedWedding.id}
-            onBack={() => setView('dashboard')}
           />
         );
       case 'guestbook':
         return (
           <GuestbookManager
             weddingId={selectedWedding.id}
-            onBack={() => setView('dashboard')}
           />
         );
       case 'music':
@@ -250,28 +230,24 @@ export function Dashboard() {
           <MusicRequests
             weddingId={selectedWedding.id}
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
           />
         );
       case 'seating':
         return (
           <SeatingManager
             weddingId={selectedWedding.id}
-            onBack={() => setView('dashboard')}
           />
         );
       case 'communications':
         return (
           <Communications
             weddingId={selectedWedding.id}
-            onBack={() => setView('dashboard')}
           />
         );
       case 'email-templates':
         return (
           <EmailTemplateSettings
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
             onTemplatesChanged={fetchWeddings}
           />
         );
@@ -279,7 +255,6 @@ export function Dashboard() {
         return (
           <GallerySettings
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
             onGalleryChanged={fetchWeddings}
           />
         );
@@ -287,7 +262,6 @@ export function Dashboard() {
         return (
           <PhotoModerationSettings
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
             onWeddingChanged={fetchWeddings}
           />
         );
@@ -295,7 +269,6 @@ export function Dashboard() {
         return (
           <VideoSettings
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
             onVideoChanged={fetchWeddings}
           />
         );
@@ -303,7 +276,6 @@ export function Dashboard() {
         return (
           <SocialSettings
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
             onSocialConfigChanged={fetchWeddings}
           />
         );
@@ -311,7 +283,6 @@ export function Dashboard() {
         return (
           <LanguageSettings
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
             onLanguageChanged={fetchWeddings}
           />
         );
@@ -319,7 +290,6 @@ export function Dashboard() {
         return (
           <DomainSettings
             wedding={selectedWedding}
-            onBack={() => setView('dashboard')}
           />
         );
       default:
@@ -351,7 +321,6 @@ export function Dashboard() {
             onNavigateToSocial={() => setView('social')}
             onNavigateToLanguage={() => setView('language')}
             onNavigateToDomain={() => setView('domain')}
-            onBack={weddings.length > 1 ? handleBackToWeddings : undefined}
           />
         );
     }
@@ -418,7 +387,6 @@ export function Dashboard() {
             onNavigateToSocial={() => setView('social')}
             onNavigateToLanguage={() => setView('language')}
             onNavigateToDomain={() => setView('domain')}
-            onBack={weddings.length > 1 ? handleBackToWeddings : undefined}
           />
           <div className="flex-1 min-w-0 bg-white border border-neutral-200 rounded-xl p-6">
             {renderWeddingContent()}
@@ -516,7 +484,6 @@ interface WeddingDashboardProps {
   onNavigateToSocial: () => void;
   onNavigateToLanguage: () => void;
   onNavigateToDomain: () => void;
-  onBack?: () => void;
 }
 
 /**
@@ -550,20 +517,9 @@ function WeddingDashboard({
   onNavigateToSocial,
   onNavigateToLanguage,
   onNavigateToDomain,
-  onBack,
 }: WeddingDashboardProps) {
   return (
     <div>
-      {onBack && (
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-neutral-600 hover:text-neutral-800 mb-6"
-        >
-          <ChevronLeftIcon className="w-4 h-4" />
-          Back to weddings
-        </button>
-      )}
-
       {/* Preview banner shows when there are unpublished changes */}
       <PreviewBanner weddingId={wedding.id} weddingSlug={wedding.slug} />
 
@@ -584,8 +540,8 @@ function WeddingDashboard({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             <DashboardCard
-              title="Hero section"
-              description="Edit your site's headline"
+              title="Your invitation"
+              description="Edit the invitation text"
               icon={<SparklesIcon className="w-6 h-6" />}
               onClick={onNavigateToHero}
             />
@@ -651,7 +607,6 @@ interface WeddingSidebarProps {
   onNavigateToSocial: () => void;
   onNavigateToLanguage: () => void;
   onNavigateToDomain: () => void;
-  onBack?: () => void;
 }
 
 interface SidebarNavItemConfig {
@@ -693,7 +648,6 @@ function WeddingSidebar({
   onNavigateToSocial,
   onNavigateToLanguage,
   onNavigateToDomain,
-  onBack,
 }: WeddingSidebarProps) {
   const weddingSiteUrl = getWeddingSiteUrl(wedding.slug);
   const sections: { title: string; items: SidebarNavItemConfig[] }[] = [
@@ -718,7 +672,7 @@ function WeddingSidebar({
       title: 'Site',
       items: [
         {
-          label: 'Hero section',
+          label: 'Your invitation',
           icon: <SparklesIcon className="w-4 h-4" />,
           view: 'hero',
           onClick: onNavigateToHero,
@@ -910,16 +864,6 @@ function WeddingSidebar({
           {wedding.partnerNames[0]} &amp; {wedding.partnerNames[1]}
         </p>
       </div>
-
-      {onBack && (
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-800 mb-4"
-        >
-          <ChevronLeftIcon className="w-4 h-4" />
-          All weddings
-        </button>
-      )}
 
       <nav className="space-y-6">
         {visibleSections.map((section) => (
@@ -1540,10 +1484,9 @@ function LinkIcon({ className }: { className?: string }) {
  */
 interface TemplateSelectorWrapperProps {
   wedding: Wedding;
-  onBack: () => void;
 }
 
-function TemplateSelectorWrapper({ wedding, onBack }: TemplateSelectorWrapperProps) {
+function TemplateSelectorWrapper({ wedding }: TemplateSelectorWrapperProps) {
   const [currentTemplateId, setCurrentTemplateId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -1587,7 +1530,6 @@ function TemplateSelectorWrapper({ wedding, onBack }: TemplateSelectorWrapperPro
     <TemplateSelector
       weddingId={wedding.id}
       currentTemplateId={currentTemplateId}
-      onBack={onBack}
       onTemplateChanged={fetchRenderConfig}
     />
   );

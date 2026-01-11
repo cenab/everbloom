@@ -8,7 +8,6 @@ import type {
 
 interface PasscodeSettingsProps {
   wedding: Wedding;
-  onBack: () => void;
   onPasscodeChanged?: () => void;
 }
 
@@ -18,7 +17,6 @@ interface PasscodeSettingsProps {
  */
 export function PasscodeSettings({
   wedding,
-  onBack,
   onPasscodeChanged,
 }: PasscodeSettingsProps) {
   // Check if passcode is currently enabled and set
@@ -89,9 +87,6 @@ export function PasscodeSettings({
         setPasscode('');
         setConfirmPasscode('');
         onPasscodeChanged?.();
-        setTimeout(() => {
-          onBack();
-        }, 1500);
       } else {
         setError('Unable to update passcode settings. Please try again.');
       }
@@ -249,9 +244,6 @@ export function PasscodeSettings({
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Saving...' : 'Save changes'}
-        </button>
-        <button onClick={onBack} className="btn-secondary">
-          Cancel
         </button>
       </div>
     </div>
