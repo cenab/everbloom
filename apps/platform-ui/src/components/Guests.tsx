@@ -556,14 +556,14 @@ export function Guests({ weddingId, onBack }: GuestsProps) {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+          <div className="flex-shrink-0">
             <h1 className="text-2xl text-neutral-800">Your guests</h1>
             <p className="text-neutral-500 mt-1">
               Manage your wedding guest list
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3 sm:flex-1 sm:justify-end sm:min-w-0">
             {selectedGuestIds.size > 0 && (
               <>
                 <button
