@@ -3,7 +3,7 @@
 
 [build]
   base = "apps/wedding-site"
-  command = "pnpm build"
+  command = "pnpm build && node ./scripts/sync-ssr-function.mjs"
   publish = "dist"
 
 [build.environment]
