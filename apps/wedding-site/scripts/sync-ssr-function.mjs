@@ -4,7 +4,9 @@ import path from 'node:path';
 
 const projectRoot = process.cwd();
 const targetDir = path.join(projectRoot, 'netlify', 'functions');
+const ssrEntryNames = ['entry', 'ssr'];
 const sourceDirs = [
+  path.join(projectRoot, '.netlify', 'v1', 'functions'),
   path.join(projectRoot, 'dist', '.netlify', 'functions'),
   path.join(projectRoot, 'dist', '.netlify', 'functions-internal'),
   path.join(projectRoot, '.netlify', 'functions'),
@@ -14,11 +16,17 @@ const sourceDirs = [
 const hasEntryFile = async (dir) => {
   try {
     const entries = await readdir(dir, { withFileTypes: true });
-    return entries.some(
-      (entry) =>
-        (entry.isFile() && (entry.name === 'entry' || entry.name.startsWith('entry.'))) ||
-        (entry.isDirectory() && entry.name === 'entry'),
-    );
+    return entries.some((entry) => {
+      if (entry.isFile()) {
+        return ssrEntryNames.some(
+          (name) => entry.name === name || entry.name.startsWith(`${name}.`),
+        );
+      }
+      if (entry.isDirectory()) {
+        return ssrEntryNames.includes(entry.name);
+      }
+      return false;
+    });
   } catch {
     return false;
   }
